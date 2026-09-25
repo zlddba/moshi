@@ -1,6 +1,5 @@
 package dev.zlddba.moshiapp.ui.theme
 
-import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
@@ -12,32 +11,77 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
+    primary = MoshiPrimaryDark,
+    onPrimary = MoshiOnPrimaryDark,
+    primaryContainer = MoshiPrimaryContainerDark,
+    onPrimaryContainer = MoshiOnPrimaryContainerDark,
+    secondary = MoshiSecondaryDark,
+    onSecondary = MoshiOnSecondaryDark,
+    secondaryContainer = MoshiSecondaryContainerDark,
+    onSecondaryContainer = MoshiOnSecondaryContainerDark,
+    tertiary = MoshiTertiaryDark,
+    onTertiary = MoshiOnTertiaryDark,
+    tertiaryContainer = MoshiTertiaryContainerDark,
+    onTertiaryContainer = MoshiOnTertiaryContainerDark,
+    background = MoshiBackgroundDark,
+    onBackground = MoshiOnBackgroundDark,
+    surface = MoshiSurfaceDark,
+    onSurface = MoshiOnSurfaceDark,
+    surfaceVariant = MoshiSurfaceVariantDark,
+    onSurfaceVariant = MoshiOnSurfaceVariantDark,
+    outline = MoshiOutlineDark,
+    outlineVariant = MoshiOutlineVariantDark,
+    error = MoshiErrorDark,
+    onError = MoshiOnErrorDark,
+    errorContainer = MoshiErrorContainerDark,
+    onErrorContainer = MoshiOnErrorContainerDark,
+    surfaceBright = MoshiSurfaceBrightDark,
+    surfaceDim = MoshiSurfaceDimDark,
+    surfaceContainerLowest = MoshiSurfaceContainerLowestDark,
+    surfaceContainerLow = MoshiSurfaceContainerLowDark,
+    surfaceContainer = MoshiSurfaceContainerDark,
+    surfaceContainerHigh = MoshiSurfaceContainerHighDark,
+    surfaceContainerHighest = MoshiSurfaceContainerHighestDark
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
-
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+    primary = MoshiPrimaryLight,
+    onPrimary = MoshiOnPrimaryLight,
+    primaryContainer = MoshiPrimaryContainerLight,
+    onPrimaryContainer = MoshiOnPrimaryContainerLight,
+    secondary = MoshiSecondaryLight,
+    onSecondary = MoshiOnSecondaryLight,
+    secondaryContainer = MoshiSecondaryContainerLight,
+    onSecondaryContainer = MoshiOnSecondaryContainerLight,
+    tertiary = MoshiTertiaryLight,
+    onTertiary = MoshiOnTertiaryLight,
+    tertiaryContainer = MoshiTertiaryContainerLight,
+    onTertiaryContainer = MoshiOnTertiaryContainerLight,
+    background = MoshiBackgroundLight,
+    onBackground = MoshiOnBackgroundLight,
+    surface = MoshiSurfaceLight,
+    onSurface = MoshiOnSurfaceLight,
+    surfaceVariant = MoshiSurfaceVariantLight,
+    onSurfaceVariant = MoshiOnSurfaceVariantLight,
+    outline = MoshiOutlineLight,
+    outlineVariant = MoshiOutlineVariantLight,
+    error = MoshiErrorLight,
+    onError = MoshiOnErrorLight,
+    errorContainer = MoshiErrorContainerLight,
+    onErrorContainer = MoshiOnErrorContainerLight,
+    surfaceBright = MoshiSurfaceBrightLight,
+    surfaceDim = MoshiSurfaceDimLight,
+    surfaceContainerLowest = MoshiSurfaceContainerLowestLight,
+    surfaceContainerLow = MoshiSurfaceContainerLowLight,
+    surfaceContainer = MoshiSurfaceContainerLight,
+    surfaceContainerHigh = MoshiSurfaceContainerHighLight,
+    surfaceContainerHighest = MoshiSurfaceContainerHighestLight
 )
 
 @Composable
 fun MoshiTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
