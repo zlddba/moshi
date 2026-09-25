@@ -7,22 +7,70 @@
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
-        android:label="@string/app_name"
+        android:label="@string/app_name_zh"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Moshi">
         <activity
-            android:name=".MainActivity"
+            android:name=".activities.launchPage.LaunchActivity"
             android:exported="true"
-            android:label="@string/app_name"
             android:theme="@style/Theme.Moshi"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity
+            android:name=".activities.firstLaunchPage.FirstLaunchActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Moshi"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".activities.mainPage.MainActivity"
+            android:exported="true"
+            android:theme="@style/Theme.Moshi"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".activities.detailPage.DetailActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Moshi"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".activities.ocrPage.OcrActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Moshi"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".activities.voicePage.VoiceActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Moshi"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".activities.cloudPage.CloudActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Moshi"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".activities.privacyPage.PrivacyActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Moshi"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".activities.privacyPage.StorageActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Moshi"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".activities.privacyPage.ModelActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Moshi"
+            android:windowSoftInputMode="adjustResize" />
     </application>
 
 </manifest>
