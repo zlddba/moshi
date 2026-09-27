@@ -79,4 +79,5 @@ dependencies {
 
     implementation(libs.openai.client)
     implementation(libs.ktor.client.okhttp)
+    implementation(libs.sherpa.onnx)
 }

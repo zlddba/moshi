@@ -17,6 +17,9 @@ plugins {
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
+        maven {
+            url = java.io.File(settingsDir, "repo").toURI()
+        }
         google()
         mavenCentral()
     }
