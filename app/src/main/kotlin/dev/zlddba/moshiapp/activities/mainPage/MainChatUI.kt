@@ -25,15 +25,19 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.outlined.CloudSync
+import androidx.compose.material.icons.outlined.DeleteSweep
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Mic
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Shield
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
@@ -128,23 +132,27 @@ fun sampleChatUiState(): ChatUiState = ChatUiState(
 fun MainChatScreen(
     onSourceClick: () -> Unit,
     onEngineClick: () -> Unit,
+    onSettingsClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val uiState = sampleChatUiState()
     var input by rememberSaveable { mutableStateOf("") }
+    var sessionCleared by rememberSaveable { mutableStateOf(false) }
+    var showClearDialog by remember { mutableStateOf(false) }
+    val messages = if (sessionCleared) emptyList() else uiState.messages
     val listState = rememberLazyListState(
-        initialFirstVisibleItemIndex = (uiState.messages.size - 1).coerceAtLeast(0)
+        initialFirstVisibleItemIndex = (messages.size - 1).coerceAtLeast(0)
     )
     val imeBottomPx = rememberImeBottomPx()
     val latestMessageIndex = remember { mutableStateOf(-1) }
 
     SideEffect {
-        latestMessageIndex.value = uiState.messages.lastIndex
+        latestMessageIndex.value = messages.lastIndex
     }
 
-    LaunchedEffect(uiState.messages.size) {
-        if (uiState.messages.isNotEmpty()) {
-            listState.animateScrollToItem(uiState.messages.lastIndex)
+    LaunchedEffect(messages.size) {
+        if (messages.isNotEmpty()) {
+            listState.animateScrollToItem(messages.lastIndex)
         }
     }
 
@@ -175,6 +183,29 @@ fun MainChatScreen(
             }
     }
 
+    if (showClearDialog) {
+        AlertDialog(
+            onDismissRequest = { showClearDialog = false },
+            title = { Text(stringResource(R.string.chat_clear)) },
+            text = { Text(stringResource(R.string.chat_clear_confirm)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showClearDialog = false
+                        sessionCleared = true
+                    }
+                ) {
+                    Text(stringResource(R.string.chat_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearDialog = false }) {
+                    Text(stringResource(R.string.chat_cancel))
+                }
+            }
+        )
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -182,7 +213,9 @@ fun MainChatScreen(
     ) {
         ChatTopBar(
             isCloudEngine = uiState.isCloudEngine,
-            onEngineClick = onEngineClick
+            onEngineClick = onEngineClick,
+            onSettingsClick = onSettingsClick,
+            onClearClick = { showClearDialog = true }
         )
         LazyColumn(
             state = listState,
@@ -195,10 +228,10 @@ fun MainChatScreen(
             ),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            if (uiState.messages.isEmpty()) {
+            if (messages.isEmpty()) {
                 item { ChatWelcome() }
             }
-            items(uiState.messages) { message ->
+            items(messages) { message ->
                 when (message.role) {
                     ChatUiState.Role.USER -> UserMessage(text = message.text)
                     ChatUiState.Role.ASSISTANT -> AssistantMessage(
@@ -222,7 +255,9 @@ fun MainChatScreen(
 @Composable
 private fun ChatTopBar(
     isCloudEngine: Boolean,
-    onEngineClick: () -> Unit
+    onEngineClick: () -> Unit,
+    onSettingsClick: () -> Unit,
+    onClearClick: () -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -237,10 +272,32 @@ private fun ChatTopBar(
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface
         )
-        ChatEngineBadge(
-            isCloudEngine = isCloudEngine,
-            onClick = onEngineClick
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconButton(
+                onClick = onSettingsClick,
+                modifier = Modifier.size(40.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Settings,
+                    contentDescription = stringResource(R.string.chat_settings),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            IconButton(
+                onClick = onClearClick,
+                modifier = Modifier.size(40.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.DeleteSweep,
+                    contentDescription = stringResource(R.string.chat_clear),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            ChatEngineBadge(
+                isCloudEngine = isCloudEngine,
+                onClick = onEngineClick
+            )
+        }
     }
 }
 
@@ -481,6 +538,6 @@ private fun ChatInputBar(
 @Preview(showBackground = true, showSystemUi = true)
 private fun MainChatScreenPreview() {
     MoshiTheme {
-        MainChatScreen(onSourceClick = {}, onEngineClick = {})
+        MainChatScreen(onSourceClick = {}, onEngineClick = {}, onSettingsClick = {})
     }
 }

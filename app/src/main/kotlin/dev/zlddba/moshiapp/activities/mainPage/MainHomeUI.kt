@@ -19,7 +19,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Article
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
+import androidx.compose.material.icons.outlined.CloudSync
 import androidx.compose.material.icons.outlined.Image
+import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.PictureAsPdf
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Shield
@@ -99,6 +101,14 @@ private fun sampleHomeUiState(): HomeUiState = HomeUiState(
             summaryRes = R.string.home_card_summary_3,
             tagRes = R.string.home_card_tag_course,
             timeRes = R.string.home_card_time_3
+        ),
+        HomeUiState.NoteCard(
+            icon = Icons.Outlined.Mic,
+            typeRes = R.string.home_card_type_voice,
+            titleRes = R.string.home_card_title_4,
+            summaryRes = R.string.home_card_summary_4,
+            tagRes = R.string.home_card_tag_4,
+            timeRes = R.string.home_card_time_4
         )
     )
 )
@@ -106,6 +116,7 @@ private fun sampleHomeUiState(): HomeUiState = HomeUiState(
 @Composable
 fun MainHomeScreen(
     onNoteClick: () -> Unit,
+    isCloudEngine: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     var query by rememberSaveable { mutableStateOf("") }
@@ -116,7 +127,7 @@ fun MainHomeScreen(
         modifier = modifier
             .fillMaxSize()
     ) {
-        HomeTopBar()
+        HomeTopBar(isCloudEngine = isCloudEngine)
         HomeSearchBar(
             query = query,
             onQueryChange = { query = it }
@@ -147,7 +158,7 @@ fun MainHomeScreen(
 }
 
 @Composable
-private fun HomeTopBar() {
+private fun HomeTopBar(isCloudEngine: Boolean) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -160,31 +171,40 @@ private fun HomeTopBar() {
             style = MaterialTheme.typography.headlineMedium,
             color = MaterialTheme.colorScheme.onSurface
         )
-        HomeEngineBadge()
+        HomeEngineBadge(isCloudEngine = isCloudEngine)
     }
 }
 
 @Composable
-private fun HomeEngineBadge() {
+private fun HomeEngineBadge(isCloudEngine: Boolean) {
+    val container = if (isCloudEngine) MaterialTheme.colorScheme.secondaryContainer
+    else MaterialTheme.colorScheme.primaryContainer
+    val onContainer = if (isCloudEngine) MaterialTheme.colorScheme.onSecondaryContainer
+    else MaterialTheme.colorScheme.onPrimaryContainer
+    val icon: ImageVector = if (isCloudEngine) Icons.Outlined.CloudSync
+    else Icons.Outlined.Shield
+    val label = if (isCloudEngine) R.string.home_badge_cloud
+    else R.string.home_badge_local
+
     Surface(
         shape = MoshiShapePill,
-        color = MaterialTheme.colorScheme.primaryContainer
+        color = container
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
-                imageVector = Icons.Outlined.Shield,
+                imageVector = icon,
                 contentDescription = null,
                 modifier = Modifier.size(14.dp),
-                tint = MaterialTheme.colorScheme.onPrimaryContainer
+                tint = onContainer
             )
             Spacer(modifier = Modifier.width(5.dp))
             Text(
-                text = stringResource(R.string.home_badge_local),
+                text = stringResource(label),
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                color = onContainer,
                 fontWeight = FontWeight.Bold
             )
         }

@@ -27,6 +27,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -41,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import dev.zlddba.moshiapp.R
 import dev.zlddba.moshiapp.ui.theme.MoshiShapeLarge
 import dev.zlddba.moshiapp.ui.theme.MoshiShapeMedium
+import dev.zlddba.moshiapp.ui.theme.MoshiShapePill
 import dev.zlddba.moshiapp.ui.theme.MoshiTheme
 
 private data class MineAction(
@@ -60,6 +62,7 @@ fun MainSettingsScreen(
     var forceLocal by rememberSaveable { mutableStateOf(true) }
     var encrypt by rememberSaveable { mutableStateOf(false) }
     var telemetry by rememberSaveable { mutableStateOf(false) }
+    var engineMode by rememberSaveable { mutableIntStateOf(1) }
 
     Column(
         modifier = modifier
@@ -80,6 +83,10 @@ fun MainSettingsScreen(
 
         MineGroupTitle(titleRes = R.string.mine_group_engine)
         MineGroup {
+            EngineModeRow(
+                selectedIndex = engineMode,
+                onSelect = { engineMode = it }
+            )
             MineActionRow(
                 titleRes = R.string.mine_cloud_config,
                 icon = Icons.Outlined.CloudSync,
@@ -302,6 +309,63 @@ private fun MineSwitchRow(
             modifier = Modifier.weight(1f)
         )
         Switch(checked = checked, onCheckedChange = onCheckedChange)
+    }
+}
+
+@Composable
+private fun EngineModeRow(
+    selectedIndex: Int,
+    onSelect: (Int) -> Unit
+) {
+    val modeLabels = listOf(
+        R.string.mine_engine_mode_local,
+        R.string.mine_engine_mode_hybrid,
+        R.string.mine_engine_mode_cloud
+    )
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 14.dp)
+    ) {
+        Text(
+            text = stringResource(R.string.mine_engine_mode),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            modeLabels.forEachIndexed { index, labelRes ->
+                val selected = index == selectedIndex
+                Surface(
+                    onClick = { onSelect(index) },
+                    shape = MoshiShapePill,
+                    color = if (selected) {
+                        MaterialTheme.colorScheme.primaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.surfaceContainerHighest
+                    },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = stringResource(labelRes),
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                            color = if (selected) {
+                                MaterialTheme.colorScheme.onPrimaryContainer
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            }
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 

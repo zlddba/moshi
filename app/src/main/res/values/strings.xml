@@ -5,6 +5,7 @@
     <string name="first_launch_skip">跳过</string>
     <string name="first_launch_next">下一步</string>
     <string name="first_launch_start">开始使用</string>
+    <string name="first_launch_later_cloud">稍后在设置中配置云端</string>
     <string name="first_launch_privacy_title">你的知识，默认只存在你的设备上</string>
     <string name="first_launch_privacy_body">默识采用端侧优先架构，解析、分块、向量检索与问答生成全部在手机本地完成。本地模式不申请网络权限，你的笔记与文档永不上传。</string>
     <string name="first_launch_engine_title">双引擎，按需切换</string>
@@ -17,7 +18,6 @@
     <string name="main_tab_chat">问答</string>
     <string name="main_tab_capture">采集</string>
     <string name="main_tab_mine">我的</string>
-    <string name="main_capture_desc">采集新知识</string>
 
     <!-- 知识库主页 -->
     <string name="home_search_hint">语义搜索你的知识</string>
@@ -27,7 +27,7 @@
     <string name="home_badge_local">本地</string>
     <string name="home_badge_cloud">云端</string>
     <string name="home_empty_title">知识库还是空的</string>
-    <string name="home_empty_body">点击下方 + 采集第一条知识</string>
+    <string name="home_empty_body">点击底部「采集」标签，采集第一条知识</string>
     <string name="home_card_type_text">文本</string>
     <string name="home_card_type_pdf">PDF</string>
     <string name="home_card_type_image">截图</string>
@@ -44,6 +44,10 @@
     <string name="home_card_time_1">今天 09:24</string>
     <string name="home_card_time_2">昨天 21:10</string>
     <string name="home_card_time_3">9 月 18 日</string>
+    <string name="home_card_title_4">周会语音纪要</string>
+    <string name="home_card_summary_4">转写完成，识别置信度高，可直接编辑后入库</string>
+    <string name="home_card_tag_4">工作</string>
+    <string name="home_card_time_4">昨天 15:40</string>
     <string name="home_card_search_result">找到 3 条相关知识</string>
 
     <!-- 智能问答页 -->
@@ -54,6 +58,10 @@
     <string name="chat_send">发送</string>
     <string name="chat_voice_input">语音输入</string>
     <string name="chat_clear">清空会话</string>
+    <string name="chat_clear_confirm">确定清空全部问答记录？</string>
+    <string name="chat_confirm">确认</string>
+    <string name="chat_cancel">取消</string>
+    <string name="chat_settings">设置</string>
     <string name="chat_refusal">知识库中没有找到相关内容</string>
     <string name="chat_source_title">来源</string>
     <string name="chat_answer_demo">向量检索先用嵌入模型把查询和文档映射到同一向量空间，再按相似度召回候选，最后由重排模型提升精度。这样能在本地实现不依赖关键词的语义匹配。</string>
