@@ -165,6 +165,24 @@
     <string name="voice_confirm">加入知识库</string>
     <string name="voice_demo_text">今天实验的结论是，把分块长度控制在五百字左右的时候，召回效果最稳定，太长的段落会让向量的语义被稀释。</string>
     <string name="voice_transcribe_fail">转写失败，可重新录制或手动输入</string>
+    <string name="voice_model_title">端侧语音模型</string>
+    <string name="voice_model_desc">首次使用需下载一次中文语音模型（约230MB），下载完成后完全离线可用</string>
+    <string name="voice_model_download">下载模型</string>
+    <string name="voice_model_downloading">正在下载 %1$d%%</string>
+    <string name="voice_model_download_fail">模型下载失败，请稍后重试</string>
+    <string name="voice_ready_title">语音转文字</string>
+    <string name="voice_ready_hint">录音结束自动生成文字，可修改后加入知识库</string>
+    <string name="voice_start_record">开始录音</string>
+    <string name="voice_recording_hint">正在录音，点击按钮结束</string>
+    <string name="voice_stop_record">结束录音</string>
+    <string name="voice_transcribing">正在转写…</string>
+    <string name="voice_permission_denied">未获得麦克风权限，无法录音</string>
+    <string name="voice_record_fail">录音失败，请重试</string>
+    <string name="voice_engine_fail">端侧引擎初始化失败，请重新进入页面</string>
+    <string name="voice_empty_text">请输入转写文字</string>
+    <string name="voice_confirmed">已确认，入库功能待接入</string>
+    <string name="voice_pause">暂停</string>
+    <string name="voice_play_fail">录音播放失败</string>
 
     <!-- 云端 API 配置页 -->
     <string name="cloud_title">云端 API 配置</string>

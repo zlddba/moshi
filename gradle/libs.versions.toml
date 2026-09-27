@@ -11,6 +11,7 @@ kotlinxSerializationJson = "1.11.0"
 composeBom = "2026.09.00"
 androidJunit5 = "2.0.1"
 coil = "3.6.3"
+sherpaOnnx = "1.13.7"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -34,6 +35,7 @@ androidx-compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-te
 androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
 androidx-compose-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended" }
 coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose-android", version.ref = "coil" }
+sherpa-onnx = { group = "com.github.k2fsa", name = "sherpa-onnx", version.ref = "sherpaOnnx" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
