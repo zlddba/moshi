@@ -89,6 +89,7 @@
     <string name="capture_voice_title">语音输入</string>
     <string name="capture_voice_desc">说话转成文字入库</string>
     <string name="capture_coming_soon">该功能稍后开放</string>
+    <string name="capture_file_picked">已选择文件：%s</string>
 
     <!-- 我的页 -->
     <string name="mine_title">我的</string>

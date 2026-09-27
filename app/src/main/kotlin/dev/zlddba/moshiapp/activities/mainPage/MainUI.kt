@@ -1,6 +1,11 @@
 package dev.zlddba.moshiapp.activities.mainPage
 
+import android.content.Context
+import android.net.Uri
+import android.provider.OpenableColumns
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -65,6 +70,14 @@ private val mainTabItems = listOf(
     MainTabItem(icon = Icons.Outlined.Person, labelRes = R.string.main_tab_mine)
 )
 
+private fun uriDisplayName(context: Context, uri: Uri): String? =
+    context.contentResolver
+        .query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
+        ?.use { cursor ->
+            val index = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+            if (cursor.moveToFirst() && index >= 0) cursor.getString(index) else null
+        }
+
 @Composable
 fun MainPageScreen(modifier: Modifier = Modifier) {
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
@@ -72,6 +85,18 @@ fun MainPageScreen(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val showComingSoon = {
         Toast.makeText(context, R.string.capture_coming_soon, Toast.LENGTH_SHORT).show()
+    }
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            val name = uriDisplayName(context, uri) ?: uri.lastPathSegment.orEmpty()
+            Toast.makeText(
+                context,
+                context.getString(R.string.capture_file_picked, name),
+                Toast.LENGTH_SHORT
+            ).show()
+        }
     }
 
     Scaffold(
@@ -104,7 +129,7 @@ fun MainPageScreen(modifier: Modifier = Modifier) {
 
                 2 -> MainCaptureScreen(
                     onTextClick = showComingSoon,
-                    onFileClick = showComingSoon,
+                    onFileClick = { filePickerLauncher.launch(arrayOf("*/*")) },
                     onOcrClick = { OcrActivity.start(context) },
                     onVoiceClick = { VoiceActivity.start(context) }
                 )
