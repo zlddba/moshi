@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import dev.zlddba.moshiapp.R
 import dev.zlddba.moshiapp.activities.cloudPage.CloudActivity
 import dev.zlddba.moshiapp.activities.detailPage.DetailActivity
+import dev.zlddba.moshiapp.activities.licensePage.LicenseActivity
 import dev.zlddba.moshiapp.activities.ocrPage.OcrActivity
 import dev.zlddba.moshiapp.activities.privacyPage.ModelActivity
 import dev.zlddba.moshiapp.activities.privacyPage.PrivacyActivity
@@ -114,6 +115,7 @@ fun MainPageScreen(modifier: Modifier = Modifier) {
                     onModelManage = { ModelActivity.start(context) },
                     onPrivacy = { PrivacyActivity.start(context) },
                     onStorage = { StorageActivity.start(context) },
+                    onLicense = { LicenseActivity.start(context) },
                     onPlaceholder = showComingSoon
                 )
             }
