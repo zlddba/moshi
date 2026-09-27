@@ -183,8 +183,21 @@
     <string name="cloud_preset_qwen">通义千问</string>
     <string name="cloud_preset_zhipu">智谱</string>
     <string name="cloud_test">测试连接</string>
+    <string name="cloud_testing">测试中…</string>
     <string name="cloud_test_success">连接成功</string>
-    <string name="cloud_test_fail">连接失败：401 未授权</string>
+    <string name="cloud_test_fail">连接失败：%s</string>
+    <string name="cloud_err_base_url">请填写以 http(s) 开头的服务地址</string>
+    <string name="cloud_err_api_key">请填写 API 密钥</string>
+    <string name="cloud_err_model">请填写模型名称</string>
+    <string name="cloud_http_400">请求无效（HTTP %d），请检查模型名称</string>
+    <string name="cloud_http_401">密钥无效或未授权（HTTP %d），请检查 API 密钥</string>
+    <string name="cloud_http_403">无访问权限（HTTP %d），请检查账户或模型权限</string>
+    <string name="cloud_http_404">地址或模型不存在（HTTP %d），请检查服务地址与模型名称</string>
+    <string name="cloud_http_429">请求过于频繁或额度不足（HTTP %d），请稍后再试</string>
+    <string name="cloud_http_5xx">服务端错误（HTTP %d），请稍后再试</string>
+    <string name="cloud_http_other">请求被拒绝（HTTP %d）</string>
+    <string name="cloud_err_network">无法连接服务器，请检查网络与服务地址</string>
+    <string name="cloud_saved">配置已保存</string>
     <string name="cloud_privacy_note">仅发送「问题 + 检索命中的相关片段」，原始知识不出端。</string>
     <string name="cloud_save">保存</string>
 
