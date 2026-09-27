@@ -245,11 +245,16 @@
     <string name="model_name_qwen">Qwen3-0.6B</string>
     <string name="model_name_embed">Gecko 110M 嵌入模型</string>
     <string name="model_status_ready">已就绪</string>
-    <string name="model_status_downloading">下载中 62%</string>
     <string name="model_status_not_installed">未安装</string>
-    <string name="model_size_gemma">1.7 GB</string>
-    <string name="model_size_qwen">410 MB</string>
-    <string name="model_size_embed">96 MB</string>
+    <string name="model_size_gemma">2.6 GB</string>
+    <string name="model_size_qwen">498 MB</string>
+    <string name="model_size_embed">115 MB</string>
+    <string name="model_version_fmt">版本 %1$s</string>
+    <string name="model_version_gemma">E2B-it</string>
+    <string name="model_version_qwen">0.6B int4</string>
+    <string name="model_version_embed">110M INT8</string>
+    <string name="model_version_asr">2024-07-17</string>
+    <string name="model_occupied_fmt">已占用 %1$s</string>
     <string name="model_group_llm">生成模型</string>
     <string name="model_group_embed">嵌入模型</string>
     <string name="model_low_end_hint">低端设备可降级到 Qwen3-0.6B，或使用关键词检索模式</string>
@@ -261,5 +266,8 @@
     <string name="model_size_asr">230 MB</string>
     <string name="model_status_downloading_pct">下载中 %1$d%%</string>
     <string name="model_download_fail">模型下载失败，请稍后重试</string>
-    <string name="model_asr_cancel">取消下载</string>
+    <string name="model_cancel_download">取消下载</string>
+    <string name="model_download_busy">已有模型正在下载，请稍候</string>
+    <string name="model_switched">已切换到 %1$s</string>
+    <string name="model_deleted">已删除 %1$s</string>
 </resources>

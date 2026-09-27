@@ -50,9 +50,14 @@ class ModelActivity : ComponentActivity() {
                 viewModel.effects.collect { effect ->
                     when (effect) {
                         is ModelViewModel.ModelEffect.ShowToast -> {
+                            val text = if (effect.argRes != null) {
+                                getString(effect.messageRes, getString(effect.argRes))
+                            } else {
+                                getString(effect.messageRes)
+                            }
                             Toast.makeText(
                                 this@ModelActivity,
-                                effect.messageRes,
+                                text,
                                 Toast.LENGTH_SHORT
                             ).show()
                         }
