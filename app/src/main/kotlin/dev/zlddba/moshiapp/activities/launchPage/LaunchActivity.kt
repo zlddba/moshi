@@ -4,9 +4,9 @@ import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
-import androidx.core.view.SystemBarStyle
-import androidx.core.view.enableEdgeToEdge
+import androidx.activity.enableEdgeToEdge
 import dev.zlddba.moshiapp.activities.firstLaunchPage.FirstLaunchActivity
 import dev.zlddba.moshiapp.activities.mainPage.MainActivity
 import dev.zlddba.moshiapp.data.prefs.FirstLaunchPrefs
