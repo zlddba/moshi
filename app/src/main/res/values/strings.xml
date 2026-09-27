@@ -256,4 +256,10 @@
     <string name="model_download">下载</string>
     <string name="model_delete">删除</string>
     <string name="model_switch">切换</string>
+    <string name="model_group_asr">语音模型</string>
+    <string name="model_name_asr">SenseVoice 中文语音模型</string>
+    <string name="model_size_asr">230 MB</string>
+    <string name="model_status_downloading_pct">下载中 %1$d%%</string>
+    <string name="model_download_fail">模型下载失败，请稍后重试</string>
+    <string name="model_asr_cancel">取消下载</string>
 </resources>

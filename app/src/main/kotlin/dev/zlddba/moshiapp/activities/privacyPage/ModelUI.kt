@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -25,6 +26,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Book
 import androidx.compose.material.icons.outlined.CloudSync
+import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.School
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -79,6 +81,8 @@ private val embeddingModels = listOf(
 
 @Composable
 fun ModelPageScreen(
+    uiState: ModelViewModel.ModelUiState,
+    onEvent: (ModelViewModel.ModelEvent) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -121,6 +125,11 @@ fun ModelPageScreen(
             titleRes = R.string.model_group_embed,
             models = embeddingModels
         )
+        Spacer(modifier = Modifier.height(20.dp))
+        Column {
+            GroupLabel(titleRes = R.string.model_group_asr)
+            AsrModelCard(uiState = uiState, onEvent = onEvent)
+        }
         Spacer(modifier = Modifier.height(32.dp))
     }
 }
@@ -131,19 +140,24 @@ private fun ModelGroup(
     models: List<ModelItem>
 ) {
     Column {
-        Text(
-            text = stringResource(titleRes),
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
-        )
+        GroupLabel(titleRes = titleRes)
         Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(10.dp)) {
             models.forEach { model ->
                 ModelCard(model = model)
             }
         }
     }
+}
+
+@Composable
+private fun GroupLabel(titleRes: Int) {
+    Text(
+        text = stringResource(titleRes),
+        style = MaterialTheme.typography.labelLarge,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
+    )
 }
 
 @Composable
@@ -249,9 +263,117 @@ private fun ModelCard(model: ModelItem) {
 }
 
 @Composable
+private fun AsrModelCard(
+    uiState: ModelViewModel.ModelUiState,
+    onEvent: (ModelViewModel.ModelEvent) -> Unit
+) {
+    Surface(
+        shape = MoshiShapeMedium,
+        color = MaterialTheme.colorScheme.surface,
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            if (uiState.asrReady) MaterialTheme.colorScheme.primary
+            else MaterialTheme.colorScheme.outlineVariant
+        ),
+        shadowElevation = 2.dp,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Surface(
+                    shape = MoshiShapeSmall,
+                    color = MaterialTheme.colorScheme.primaryContainer
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Mic,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.padding(10.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.model_name_asr),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Row {
+                        Text(
+                            text = stringResource(R.string.model_size_asr),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = when {
+                                uiState.asrDownloading -> stringResource(
+                                    R.string.model_status_downloading_pct,
+                                    uiState.asrProgress
+                                )
+
+                                uiState.asrReady -> stringResource(R.string.model_status_ready)
+                                else -> stringResource(R.string.model_status_not_installed)
+                            },
+                            style = MaterialTheme.typography.labelSmall,
+                            color = when {
+                                uiState.asrDownloading -> MaterialTheme.colorScheme.primary
+                                uiState.asrReady -> MaterialTheme.colorScheme.tertiary
+                                else -> MaterialTheme.colorScheme.outline
+                            }
+                        )
+                    }
+                }
+            }
+            if (uiState.asrDownloading) {
+                Spacer(modifier = Modifier.height(12.dp))
+                LinearProgressIndicator(
+                    progress = { uiState.asrProgress / 100f },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(10.dp)) {
+                if (uiState.asrDownloading) {
+                    OutlinedButton(
+                        onClick = { onEvent(ModelViewModel.ModelEvent.AsrCancelClicked) },
+                        modifier = Modifier.weight(1f),
+                        shape = MoshiShapeSmall
+                    ) {
+                        Text(stringResource(R.string.model_asr_cancel))
+                    }
+                } else if (uiState.asrReady) {
+                    OutlinedButton(
+                        onClick = { onEvent(ModelViewModel.ModelEvent.AsrDeleteClicked) },
+                        modifier = Modifier.weight(1f),
+                        shape = MoshiShapeSmall
+                    ) {
+                        Text(stringResource(R.string.model_delete))
+                    }
+                } else {
+                    Button(
+                        onClick = { onEvent(ModelViewModel.ModelEvent.AsrDownloadClicked) },
+                        modifier = Modifier.weight(1f),
+                        shape = MoshiShapeSmall
+                    ) {
+                        Text(stringResource(R.string.model_download))
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 @Preview(showBackground = true, showSystemUi = true)
 private fun ModelPageScreenPreview() {
     MoshiTheme {
-        ModelPageScreen(onBack = {})
+        ModelPageScreen(
+            uiState = ModelViewModel.ModelUiState(asrReady = true),
+            onEvent = {},
+            onBack = {}
+        )
     }
 }
