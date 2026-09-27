@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.time.Duration.Companion.milliseconds
 
 private const val MAX_RECORD_SECONDS = 180
 private const val RECORD_FILE_NAME = "voice_record.wav"
@@ -152,7 +153,7 @@ class VoiceViewModel(context: Context) : ViewModel() {
         _voiceUiState.update { it.copy(phase = VoicePhase.RECORDING, elapsedSeconds = 0) }
         timerJob = viewModelScope.launch {
             while (true) {
-                delay(1000)
+                delay(1000.milliseconds)
                 val next = _voiceUiState.value.elapsedSeconds + 1
                 _voiceUiState.update { it.copy(elapsedSeconds = next) }
                 if (next >= MAX_RECORD_SECONDS) {
