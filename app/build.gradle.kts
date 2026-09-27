@@ -76,4 +76,7 @@ dependencies {
 
     // Coil
     implementation(libs.coil.compose)
+
+    implementation(libs.openai.client)
+    implementation(libs.ktor.client.okhttp)
 }
