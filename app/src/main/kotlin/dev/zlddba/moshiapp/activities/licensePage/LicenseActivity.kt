@@ -2,6 +2,7 @@ package dev.zlddba.moshiapp.activities.licensePage
 
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -15,7 +16,14 @@ class LicenseActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             MoshiTheme {
-                LicensePageScreen(onBack = { finish() })
+                LicensePageScreen(
+                    onBack = { finish() },
+                    onOpenUrl = { url ->
+                        runCatching {
+                            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                        }
+                    }
+                )
             }
         }
     }

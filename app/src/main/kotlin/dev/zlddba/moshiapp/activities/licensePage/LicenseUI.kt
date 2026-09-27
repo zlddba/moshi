@@ -16,21 +16,15 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
+import androidx.compose.material.icons.outlined.OpenInNew
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -39,6 +33,10 @@ import dev.zlddba.moshiapp.R
 import dev.zlddba.moshiapp.activities.common.PageTopBar
 import dev.zlddba.moshiapp.ui.theme.MoshiShapeMedium
 import dev.zlddba.moshiapp.ui.theme.MoshiTheme
+
+private const val URL_APACHE = "https://www.apache.org/licenses/LICENSE-2.0"
+private const val URL_MIT = "https://opensource.org/license/mit"
+private const val URL_EPL = "https://www.eclipse.org/legal/epl-2.0/"
 
 private data class LicenseDep(
     val name: String,
@@ -68,13 +66,9 @@ private val devDeps = listOf(
 @Composable
 fun LicensePageScreen(
     onBack: () -> Unit,
+    onOpenUrl: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var apacheAppExpanded by rememberSaveable { mutableStateOf(false) }
-    var apacheDepExpanded by rememberSaveable { mutableStateOf(false) }
-    var mitExpanded by rememberSaveable { mutableStateOf(false) }
-    var eplExpanded by rememberSaveable { mutableStateOf(false) }
-
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -94,6 +88,13 @@ fun LicensePageScreen(
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             lineHeight = 20.sp
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = stringResource(R.string.license_link_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            lineHeight = 18.sp
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -115,11 +116,9 @@ fun LicensePageScreen(
             )
         }
         Spacer(modifier = Modifier.height(12.dp))
-        LicenseExpandableCard(
+        LicenseLinkCard(
             title = stringResource(R.string.license_full_apache_app),
-            expanded = apacheAppExpanded,
-            onToggle = { apacheAppExpanded = !apacheAppExpanded },
-            text = stringResource(R.string.license_apache_text)
+            onClick = { onOpenUrl(URL_APACHE) }
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -144,25 +143,19 @@ fun LicensePageScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
         LicenseGroupTitle(titleRes = R.string.license_group_full)
-        LicenseExpandableCard(
+        LicenseLinkCard(
             title = stringResource(R.string.license_full_apache_dep),
-            expanded = apacheDepExpanded,
-            onToggle = { apacheDepExpanded = !apacheDepExpanded },
-            text = stringResource(R.string.license_apache_text)
+            onClick = { onOpenUrl(URL_APACHE) }
         )
         Spacer(modifier = Modifier.height(12.dp))
-        LicenseExpandableCard(
+        LicenseLinkCard(
             title = stringResource(R.string.license_full_mit),
-            expanded = mitExpanded,
-            onToggle = { mitExpanded = !mitExpanded },
-            text = stringResource(R.string.license_mit_text)
+            onClick = { onOpenUrl(URL_MIT) }
         )
         Spacer(modifier = Modifier.height(12.dp))
-        LicenseExpandableCard(
+        LicenseLinkCard(
             title = stringResource(R.string.license_full_epl),
-            expanded = eplExpanded,
-            onToggle = { eplExpanded = !eplExpanded },
-            text = stringResource(R.string.license_epl_text)
+            onClick = { onOpenUrl(URL_EPL) }
         )
         Spacer(modifier = Modifier.height(32.dp))
     }
@@ -223,55 +216,34 @@ private fun LicenseDepRow(dep: LicenseDep) {
 }
 
 @Composable
-private fun LicenseExpandableCard(
-    title: String,
-    expanded: Boolean,
-    onToggle: () -> Unit,
-    text: String
-) {
+private fun LicenseLinkCard(title: String, onClick: () -> Unit) {
     Surface(
-        onClick = onToggle,
+        onClick = onClick,
         shape = MoshiShapeMedium,
         color = MaterialTheme.colorScheme.surface,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         shadowElevation = 2.dp,
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 14.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.weight(1f)
-                )
-                Icon(
-                    imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
-                    contentDescription = stringResource(
-                        if (expanded) R.string.license_collapse else R.string.license_expand
-                    ),
-                    modifier = Modifier
-                        .size(20.dp)
-                        .rotate(if (expanded) 90f else 0f),
-                    tint = MaterialTheme.colorScheme.outline
-                )
-            }
-            if (expanded) {
-                Text(
-                    text = text,
-                    style = MaterialTheme.typography.bodySmall,
-                    fontFamily = FontFamily.Monospace,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
-                    lineHeight = 16.sp
-                )
-            }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f)
+            )
+            Icon(
+                imageVector = Icons.Outlined.OpenInNew,
+                contentDescription = stringResource(R.string.license_open),
+                modifier = Modifier.size(20.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
         }
     }
 }
@@ -280,6 +252,6 @@ private fun LicenseExpandableCard(
 @Preview(showBackground = true, showSystemUi = true)
 private fun LicensePageScreenPreview() {
     MoshiTheme {
-        LicensePageScreen(onBack = {})
+        LicensePageScreen(onBack = {}, onOpenUrl = {})
     }
 }
