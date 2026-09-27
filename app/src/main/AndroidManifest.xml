@@ -73,6 +73,11 @@
             android:exported="false"
             android:theme="@style/Theme.Moshi"
             android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".activities.licensePage.LicenseActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Moshi"
+            android:windowSoftInputMode="adjustResize" />
     </application>
 
 </manifest>

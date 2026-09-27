@@ -56,6 +56,7 @@ fun MainSettingsScreen(
     onModelManage: () -> Unit,
     onPrivacy: () -> Unit,
     onStorage: () -> Unit,
+    onLicense: () -> Unit,
     onPlaceholder: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -162,7 +163,7 @@ fun MainSettingsScreen(
                 titleRes = R.string.mine_about_license,
                 icon = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
                 showIcon = false,
-                onClick = onPlaceholder
+                onClick = onLicense
             )
             MineActionRow(
                 titleRes = R.string.mine_about_privacy,
@@ -378,6 +379,7 @@ private fun MainSettingsScreenPreview() {
             onModelManage = {},
             onPrivacy = {},
             onStorage = {},
+            onLicense = {},
             onPlaceholder = {}
         )
     }
