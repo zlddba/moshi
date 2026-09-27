@@ -77,3 +77,6 @@ val MoshiErrorDark = Color(0xFFFFB4AB)
 val MoshiOnErrorDark = Color(0xFF690005)
 val MoshiErrorContainerDark = Color(0xFF93000A)
 val MoshiOnErrorContainerDark = Color(0xFFFFDAD6)
+
+val MoshiLaunchBackground = Color(0xFF0A1512)
+val MoshiLaunchForeground = Color(0xFFF2F7F4)

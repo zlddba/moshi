@@ -160,6 +160,20 @@ fun FirstLaunchPageScreen(
                 )
             }
 
+            if (uiState.isLastPage) {
+                TextButton(
+                    onClick = { onEvent(FirstLaunchEvent.SkipClicked) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.first_launch_later_cloud),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
             Spacer(
                 modifier = Modifier
                     .fillMaxWidth()

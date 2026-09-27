@@ -29,6 +29,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -67,6 +68,7 @@ private val mainTabItems = listOf(
 @Composable
 fun MainPageScreen(modifier: Modifier = Modifier) {
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
+    var isCloudEngine by rememberSaveable { mutableStateOf(false) }
     val context = LocalContext.current
     val showComingSoon = {
         Toast.makeText(context, R.string.capture_coming_soon, Toast.LENGTH_SHORT).show()
@@ -90,12 +92,14 @@ fun MainPageScreen(modifier: Modifier = Modifier) {
         ) {
             when (selectedTab) {
                 0 -> MainHomeScreen(
-                    onNoteClick = { DetailActivity.start(context) }
+                    onNoteClick = { DetailActivity.start(context) },
+                    isCloudEngine = isCloudEngine
                 )
 
                 1 -> MainChatScreen(
                     onSourceClick = { DetailActivity.start(context) },
-                    onEngineClick = { CloudActivity.start(context) }
+                    onEngineClick = { CloudActivity.start(context) },
+                    onSettingsClick = { selectedTab = 3 }
                 )
 
                 2 -> MainCaptureScreen(
