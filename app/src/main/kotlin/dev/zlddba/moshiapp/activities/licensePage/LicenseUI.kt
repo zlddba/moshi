@@ -70,8 +70,10 @@ fun LicensePageScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var apacheExpanded by rememberSaveable { mutableStateOf(false) }
+    var apacheAppExpanded by rememberSaveable { mutableStateOf(false) }
+    var apacheDepExpanded by rememberSaveable { mutableStateOf(false) }
     var mitExpanded by rememberSaveable { mutableStateOf(false) }
+    var eplExpanded by rememberSaveable { mutableStateOf(false) }
 
     Column(
         modifier = modifier
@@ -112,6 +114,13 @@ fun LicensePageScreen(
                 lineHeight = 18.sp
             )
         }
+        Spacer(modifier = Modifier.height(12.dp))
+        LicenseExpandableCard(
+            title = stringResource(R.string.license_full_apache_app),
+            expanded = apacheAppExpanded,
+            onToggle = { apacheAppExpanded = !apacheAppExpanded },
+            text = stringResource(R.string.license_apache_text)
+        )
 
         Spacer(modifier = Modifier.height(16.dp))
         LicenseGroupTitle(titleRes = R.string.license_group_runtime)
@@ -136,9 +145,9 @@ fun LicensePageScreen(
         Spacer(modifier = Modifier.height(16.dp))
         LicenseGroupTitle(titleRes = R.string.license_group_full)
         LicenseExpandableCard(
-            title = stringResource(R.string.license_full_apache),
-            expanded = apacheExpanded,
-            onToggle = { apacheExpanded = !apacheExpanded },
+            title = stringResource(R.string.license_full_apache_dep),
+            expanded = apacheDepExpanded,
+            onToggle = { apacheDepExpanded = !apacheDepExpanded },
             text = stringResource(R.string.license_apache_text)
         )
         Spacer(modifier = Modifier.height(12.dp))
@@ -147,6 +156,13 @@ fun LicensePageScreen(
             expanded = mitExpanded,
             onToggle = { mitExpanded = !mitExpanded },
             text = stringResource(R.string.license_mit_text)
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+        LicenseExpandableCard(
+            title = stringResource(R.string.license_full_epl),
+            expanded = eplExpanded,
+            onToggle = { eplExpanded = !eplExpanded },
+            text = stringResource(R.string.license_epl_text)
         )
         Spacer(modifier = Modifier.height(32.dp))
     }
