@@ -6,22 +6,64 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import dev.zlddba.moshiapp.ui.theme.MoshiTheme
 
 class DetailActivity : ComponentActivity() {
+
+    private val viewModel: DetailViewModel by lazy {
+        ViewModelProvider(
+            this,
+            object : ViewModelProvider.Factory {
+                @Suppress("UNCHECKED_CAST")
+                override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                    return DetailViewModel(applicationContext) as T
+                }
+            }
+        )[DetailViewModel::class.java]
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        viewModel.onEvent(
+            DetailViewModel.DetailEvent.Init(
+                noteId = intent.getStringExtra(EXTRA_NOTE_ID),
+                chunkId = intent.getIntExtra(EXTRA_CHUNK_ID, -1),
+                keyword = intent.getStringExtra(EXTRA_KEYWORD)
+            )
+        )
         setContent {
             MoshiTheme {
-                DetailPageScreen(onBack = { finish() })
+                val uiState by viewModel.uiState.collectAsState()
+                DetailPageScreen(
+                    uiState = uiState,
+                    onBack = { finish() }
+                )
             }
         }
     }
 
     companion object {
+        private const val EXTRA_NOTE_ID = "note_id"
+        private const val EXTRA_CHUNK_ID = "chunk_id"
+        private const val EXTRA_KEYWORD = "keyword"
+
         fun start(context: Context) {
             context.startActivity(Intent(context, DetailActivity::class.java))
         }
+
+        fun createIntent(
+            context: Context,
+            noteId: String,
+            chunkId: Int,
+            keyword: String?
+        ): Intent = Intent(context, DetailActivity::class.java)
+            .putExtra(EXTRA_NOTE_ID, noteId)
+            .putExtra(EXTRA_CHUNK_ID, chunkId)
+            .putExtra(EXTRA_KEYWORD, keyword)
     }
 }

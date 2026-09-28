@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.zlddba.moshiapp.R
 import dev.zlddba.moshiapp.data.prefs.ModelPrefs
+import dev.zlddba.moshiapp.domain.index.IndexOrchestrator
 import dev.zlddba.moshiapp.ingest.models.ModelCatalog
 import dev.zlddba.moshiapp.ingest.models.ModelFileManager
 import kotlinx.coroutines.CancellationException
@@ -112,6 +113,9 @@ class ModelViewModel(context: Context) : ViewModel() {
                             bytesOnDisk = ModelFileManager.bytesOnDisk(appContext, id)
                         )
                     )
+                }
+                if (id == ModelCatalog.GECKO) {
+                    IndexOrchestrator.requestSweep()
                 }
             } catch (e: CancellationException) {
                 throw e

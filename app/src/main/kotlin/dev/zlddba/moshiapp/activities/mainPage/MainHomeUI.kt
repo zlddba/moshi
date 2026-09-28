@@ -16,8 +16,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Article
+import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.CloudSync
 import androidx.compose.material.icons.outlined.Image
@@ -26,6 +29,7 @@ import androidx.compose.material.icons.outlined.PictureAsPdf
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -43,6 +47,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -116,6 +121,7 @@ private fun sampleHomeUiState(): HomeUiState = HomeUiState(
 @Composable
 fun MainHomeScreen(
     onNoteClick: () -> Unit,
+    onSearchSubmit: (String) -> Unit,
     isCloudEngine: Boolean = false,
     modifier: Modifier = Modifier
 ) {
@@ -130,21 +136,13 @@ fun MainHomeScreen(
         HomeTopBar(isCloudEngine = isCloudEngine)
         HomeSearchBar(
             query = query,
-            onQueryChange = { query = it }
+            onQueryChange = { query = it },
+            onSubmit = { onSearchSubmit(query) }
         )
         HomeFilterRow(
             selectedFilter = selectedFilter,
             onFilterClick = { selectedFilter = it }
         )
-        if (query.isNotEmpty()) {
-            Text(
-                text = stringResource(R.string.home_card_search_result),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.Medium,
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
-            )
-        }
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 24.dp),
@@ -214,7 +212,8 @@ private fun HomeEngineBadge(isCloudEngine: Boolean) {
 @Composable
 private fun HomeSearchBar(
     query: String,
-    onQueryChange: (String) -> Unit
+    onQueryChange: (String) -> Unit,
+    onSubmit: () -> Unit
 ) {
     OutlinedTextField(
         value = query,
@@ -229,8 +228,18 @@ private fun HomeSearchBar(
                 contentDescription = stringResource(R.string.home_search_hint)
             )
         },
+        trailingIcon = {
+            IconButton(onClick = onSubmit) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Outlined.ArrowForward,
+                    contentDescription = stringResource(R.string.home_search_submit)
+                )
+            }
+        },
         singleLine = true,
-        shape = MoshiShapeLarge
+        shape = MoshiShapeLarge,
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+        keyboardActions = KeyboardActions(onSearch = { onSubmit() })
     )
 }
 
@@ -413,7 +422,7 @@ private fun rememberHomeEmptyState() {
 @Preview(showBackground = true, showSystemUi = true)
 private fun MainHomeScreenPreview() {
     MoshiTheme {
-        MainHomeScreen(onNoteClick = {})
+        MainHomeScreen(onNoteClick = {}, onSearchSubmit = {})
     }
 }
 
