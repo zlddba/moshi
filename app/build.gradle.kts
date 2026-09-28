@@ -17,6 +17,7 @@ kotlin {
 
 val appBaseName = "moshi"
 val appVersion = "1.0"
+val appId = "dev.zlddba.moshiapp"
 val splitAbis = listOf("arm64-v8a", "armeabi-v7a", "x86_64", "x86")
 
 android {
@@ -26,7 +27,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "dev.zlddba.moshiapp"
+        applicationId = appId
         minSdk = 24
         targetSdk = 37
         versionCode = 1
@@ -118,6 +119,17 @@ tasks.register("installArchApk") {
             apk.absolutePath
         ).inheritIO().start().waitFor()
         if (exit != 0) error("adb install 失败（exit=$exit）：${apk.name}")
+        val launch = ProcessBuilder(
+            adb.absolutePath,
+            "-s",
+            device,
+            "shell",
+            "am",
+            "start",
+            "-n",
+            "$appId/.activities.launchPage.LaunchActivity"
+        ).inheritIO().start().waitFor()
+        if (launch != 0) error("启动应用失败（exit=$launch）")
     }
 }
 
