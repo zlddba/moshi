@@ -14,6 +14,7 @@ coil = "3.6.3"
 openai = "4.1.0"
 ktor = "3.0.0"
 sherpaOnnx = "1.13.7"
+countly = "26.1.5"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -40,6 +41,7 @@ coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose-android", vers
 openai-client = { group = "com.aallam.openai", name = "openai-client", version.ref = "openai" }
 ktor-client-okhttp = { group = "io.ktor", name = "ktor-client-okhttp", version.ref = "ktor" }
 sherpa-onnx = { group = "com.github.k2fsa", name = "sherpa-onnx", version.ref = "sherpaOnnx" }
+countly-sdk = { group = "ly.count.android", name = "sdk", version.ref = "countly" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
