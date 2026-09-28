@@ -95,6 +95,7 @@ tasks.register("installArchApk") {
     val abi = providers.gradleProperty("apkAbi").orNull ?: "arm64-v8a"
     val projectPath = projectDir.absolutePath
     val buildPath = layout.buildDirectory.get().asFile.absolutePath
+    val applicationId = appId
     dependsOn("assembleDebug")
     doLast {
         if (device.isEmpty()) {
@@ -140,7 +141,7 @@ tasks.register("installArchApk") {
             "am",
             "start",
             "-n",
-            "$appId/.activities.launchPage.LaunchActivity"
+            "$applicationId/.activities.launchPage.LaunchActivity"
         ).inheritIO().start().waitFor()
         if (launch != 0) error("启动应用失败（exit=$launch）")
     }
@@ -187,4 +188,7 @@ dependencies {
     implementation(libs.androidx.room3.runtime)
     ksp(libs.androidx.room3.compiler)
     implementation(libs.pdfbox.android)
+    implementation(libs.google.localagents.rag)
+    implementation(libs.litertlm.android)
+    implementation(libs.protobuf.javalite)
 }
