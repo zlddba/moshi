@@ -5,6 +5,7 @@ import android.net.Uri
 import android.provider.OpenableColumns
 import androidx.room3.withWriteTransaction
 import dev.zlddba.moshiapp.data.db.ChunkEntity
+import dev.zlddba.moshiapp.data.db.KeywordIndex
 import dev.zlddba.moshiapp.data.db.MoshiDatabase
 import dev.zlddba.moshiapp.data.db.NoteEntity
 import dev.zlddba.moshiapp.domain.chunk.Chunker
@@ -15,11 +16,17 @@ import java.io.File
 import java.io.IOException
 import java.util.UUID
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.withContext
 
 object IngestRepository {
 
     const val MAX_FILE_BYTES = 20L * 1024 * 1024
+
+    private val _savedNotes = MutableSharedFlow<String>(extraBufferCapacity = 8)
+    val savedNotes: SharedFlow<String> = _savedNotes.asSharedFlow()
 
     sealed interface Stage {
         data object Parsing : Stage
@@ -134,7 +141,10 @@ object IngestRepository {
             database.noteDao().insert(note)
             database.chunkDao().insertAll(entities)
         }
-        return Summary(noteId, entities.size)
+        val stored = database.chunkDao().byNote(noteId)
+        KeywordIndex.insertChunks(context, stored)
+        _savedNotes.tryEmit(noteId)
+        return Summary(noteId, stored.size)
     }
 
     private fun checkSize(context: Context, uri: Uri) {
