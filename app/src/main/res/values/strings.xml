@@ -80,16 +80,44 @@
     <!-- 采集页 -->
     <string name="capture_title">采集知识</string>
     <string name="capture_subtitle">选择一种方式，把新知识收进库</string>
-    <string name="capture_text_title">文本粘贴</string>
-    <string name="capture_text_desc">直接粘贴文字片段</string>
+    <string name="capture_text_title">文本录入</string>
+    <string name="capture_text_desc">文字与 Markdown 录入</string>
     <string name="capture_file_title">文件导入</string>
     <string name="capture_file_desc">PDF / DOCX / MD / TXT</string>
-    <string name="capture_ocr_title">截图 OCR</string>
+    <string name="capture_ocr_title">OCR 采集</string>
     <string name="capture_ocr_desc">相册或拍照识别文字</string>
+    <string name="capture_ocr_camera">拍照</string>
+    <string name="capture_ocr_gallery">从相册选择</string>
+    <string name="capture_ocr_cancel">取消</string>
+    <string name="capture_ocr_no_camera">未找到可用相机</string>
     <string name="capture_voice_title">语音输入</string>
     <string name="capture_voice_desc">说话转成文字入库</string>
     <string name="capture_coming_soon">该功能稍后开放</string>
     <string name="capture_file_picked">已选择文件：%s</string>
+    <string name="capture_file_importing">正在导入…</string>
+    <string name="capture_import_parsing">解析文档</string>
+    <string name="capture_import_chunking">智能分块</string>
+    <string name="capture_import_writing">写入知识库</string>
+    <string name="capture_import_ocring">正在文字识别 第 %1$d/%2$d 页</string>
+    <string name="capture_file_success">已导入：%1$s（%2$d 块）</string>
+
+    <!-- 知识入库 -->
+    <string name="ingest_success">已加入知识库</string>
+    <string name="ingest_failed">导入失败</string>
+    <string name="ingest_empty">没有可导入的内容</string>
+    <string name="ingest_unsupported">暂不支持该文件类型</string>
+    <string name="ingest_too_large">文件过大，最大 20MB</string>
+    <string name="ingest_parse_failed">解析失败，文件可能已损坏或被加密</string>
+
+    <!-- 文本录入页 -->
+    <string name="text_title">文本录入</string>
+    <string name="text_tab_edit">编辑</string>
+    <string name="text_tab_preview">预览</string>
+    <string name="text_paste">粘贴</string>
+    <string name="text_input_hint">输入或粘贴文本，支持 Markdown</string>
+    <string name="text_preview_empty">暂无内容，切回编辑输入</string>
+    <string name="text_char_count">%1$d 字</string>
+    <string name="text_confirm">加入知识库</string>
 
     <!-- 我的页 -->
     <string name="mine_title">我的</string>
@@ -149,8 +177,8 @@
     <string name="ocr_source_note">来源备注（选填）</string>
     <string name="ocr_source_note_hint">例如：课堂 PPT 第 12 页</string>
     <string name="ocr_retake">重新识别</string>
+    <string name="ocr_recapture">重新采集</string>
     <string name="ocr_confirm">加入知识库</string>
-    <string name="ocr_demo_text">第四章 向量检索\n4.1 召回率与精确率的权衡\n在端侧场景下，通常先用轻量嵌入模型完成召回，再由重排模型对 Top-K 结果精排。</string>
     <string name="ocr_fail">识别失败，可重拍或手动输入</string>
 
     <!-- 语音确认页 -->

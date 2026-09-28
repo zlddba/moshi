@@ -7,6 +7,12 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.android.junit5) apply false
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.androidx.room3)
+}
+
+room3 {
+    schemaDirectory("$projectDir/schemas")
 }
 
 kotlin {
@@ -173,4 +179,12 @@ dependencies {
     implementation(libs.ktor.client.okhttp)
     implementation(libs.sherpa.onnx)
     implementation(libs.countly.sdk)
+    implementation(libs.mlkit.text.recognition.chinese)
+    implementation(libs.commonmark)
+    implementation(libs.commonmark.gfm.tables)
+    implementation(libs.commonmark.gfm.strikethrough)
+    implementation(libs.commonmark.autolink)
+    implementation(libs.androidx.room3.runtime)
+    ksp(libs.androidx.room3.compiler)
+    implementation(libs.pdfbox.android)
 }

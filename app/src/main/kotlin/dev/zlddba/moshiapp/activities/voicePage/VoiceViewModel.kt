@@ -8,9 +8,13 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.zlddba.moshiapp.R
+import dev.zlddba.moshiapp.data.db.NoteEntity
+import dev.zlddba.moshiapp.data.repo.IngestRepository
+import dev.zlddba.moshiapp.ingest.parse.IngestException
 import dev.zlddba.moshiapp.ingest.vision.AsrModelManager
 import dev.zlddba.moshiapp.ingest.vision.SpeechRecognizer
 import dev.zlddba.moshiapp.ingest.voice.VoiceRecorder
+import dev.zlddba.moshiapp.ui.IngestMessages
 import java.io.File
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -276,8 +280,24 @@ class VoiceViewModel(context: Context) : ViewModel() {
             return
         }
         stopPlayback()
-        sendEffect(VoiceEffect.ShowToast(R.string.voice_confirmed))
-        sendEffect(VoiceEffect.Close)
+        viewModelScope.launch {
+            try {
+                IngestRepository.importText(
+                    context = appContext,
+                    text = state.transcript,
+                    type = NoteEntity.TYPE_AUDIO,
+                    fallbackTitle = appContext.getString(R.string.voice_title)
+                )
+                sendEffect(VoiceEffect.ShowToast(R.string.ingest_success))
+                sendEffect(VoiceEffect.Close)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: IngestException) {
+                sendEffect(VoiceEffect.ShowToast(IngestMessages.errorOf(e.kind)))
+            } catch (e: Exception) {
+                sendEffect(VoiceEffect.ShowToast(R.string.ingest_failed))
+            }
+        }
     }
 
     private fun wavFile(): File = File(File(appContext.cacheDir, "voice"), RECORD_FILE_NAME)
