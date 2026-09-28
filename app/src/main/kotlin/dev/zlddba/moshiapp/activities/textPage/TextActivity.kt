@@ -1,6 +1,5 @@
-package dev.zlddba.moshiapp.activities.ocrPage
+package dev.zlddba.moshiapp.activities.textPage
 
-import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
@@ -18,28 +17,27 @@ import androidx.lifecycle.repeatOnLifecycle
 import dev.zlddba.moshiapp.ui.theme.MoshiTheme
 import kotlinx.coroutines.launch
 
-class OcrActivity : ComponentActivity() {
+class TextActivity : ComponentActivity() {
 
-    private val viewModel: OcrViewModel by lazy {
+    private val viewModel: TextViewModel by lazy {
         ViewModelProvider(
             this,
             object : ViewModelProvider.Factory {
                 @Suppress("UNCHECKED_CAST")
                 override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                    return OcrViewModel(applicationContext) as T
+                    return TextViewModel(applicationContext) as T
                 }
             }
-        )[OcrViewModel::class.java]
+        )[TextViewModel::class.java]
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        viewModel.onEvent(OcrViewModel.OcrEvent.Init(intent.getStringExtra(EXTRA_IMAGE_URI)))
         setContent {
             MoshiTheme {
                 val uiState by viewModel.uiState.collectAsState()
-                OcrPageScreen(
+                TextPageScreen(
                     uiState = uiState,
                     onBack = { finish() },
                     onEvent = viewModel::onEvent
@@ -51,20 +49,11 @@ class OcrActivity : ComponentActivity() {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.effects.collect { effect ->
                     when (effect) {
-                        OcrViewModel.OcrEffect.Close -> finish()
-
-                        OcrViewModel.OcrEffect.CloseWithResult -> {
-                            setResult(Activity.RESULT_OK)
-                            finish()
+                        is TextViewModel.TextEffect.ShowToast -> {
+                            Toast.makeText(applicationContext, effect.messageRes, Toast.LENGTH_SHORT)
+                                .show()
                         }
-
-                        is OcrViewModel.OcrEffect.ShowToast -> {
-                            Toast.makeText(
-                                this@OcrActivity,
-                                effect.messageRes,
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        }
+                        TextViewModel.TextEffect.Close -> finish()
                     }
                 }
             }
@@ -72,9 +61,8 @@ class OcrActivity : ComponentActivity() {
     }
 
     companion object {
-        private const val EXTRA_IMAGE_URI = "image_uri"
-
-        fun createIntent(context: Context, imageUri: String): Intent =
-            Intent(context, OcrActivity::class.java).putExtra(EXTRA_IMAGE_URI, imageUri)
+        fun start(context: Context) {
+            context.startActivity(Intent(context, TextActivity::class.java))
+        }
     }
 }

@@ -52,6 +52,11 @@
             android:theme="@style/Theme.Moshi"
             android:windowSoftInputMode="adjustResize" />
         <activity
+            android:name=".activities.textPage.TextActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Moshi"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
             android:name=".activities.voicePage.VoiceActivity"
             android:exported="false"
             android:theme="@style/Theme.Moshi"
@@ -81,6 +86,15 @@
             android:exported="false"
             android:theme="@style/Theme.Moshi"
             android:windowSoftInputMode="adjustResize" />
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
     </application>
 
 </manifest>
