@@ -1,3 +1,7 @@
+import com.android.build.api.variant.FilterConfiguration
+import java.io.File
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -11,6 +15,9 @@ kotlin {
     }
 }
 
+val appBaseName = "moshi"
+val appVersion = "1.0"
+val splitAbis = listOf("arm64-v8a", "armeabi-v7a", "x86_64", "x86")
 
 android {
     namespace = "dev.zlddba.moshiapp"
@@ -23,7 +30,7 @@ android {
         minSdk = 24
         targetSdk = 37
         versionCode = 1
-        versionName = "1.0"
+        versionName = appVersion
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -42,10 +49,76 @@ android {
     buildFeatures {
         compose = true
     }
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include(*splitAbis.toTypedArray())
+            isUniversalApk = false
+        }
+    }
+}
+
+androidComponents {
+    onVariants { variant ->
+        variant.outputs.forEach { output ->
+            val abi = output.filters
+                .firstOrNull { it.filterType == FilterConfiguration.FilterType.ABI }
+                ?.identifier ?: "universal"
+            output.outputFileName.set("$appBaseName-$appVersion-$abi.apk")
+        }
+    }
 }
 
 tasks.withType<Test> {
     useJUnitPlatform()
+}
+
+tasks.register("installArchApk") {
+    group = "build"
+    description = "构建 debug APK 并安装指定架构到指定设备：-PadbDevice=<序列号> -PapkAbi=<abi>"
+    val device = providers.gradleProperty("adbDevice").orNull.orEmpty()
+    val abi = providers.gradleProperty("apkAbi").orNull ?: "arm64-v8a"
+    val projectPath = projectDir.absolutePath
+    val buildPath = layout.buildDirectory.get().asFile.absolutePath
+    dependsOn("assembleDebug")
+    doLast {
+        if (device.isEmpty()) {
+            error("未指定设备：先 adb devices 查看序列号，再加 -PadbDevice=<序列号>")
+        }
+        val os = System.getProperty("os.name").orEmpty().lowercase()
+        val adbName = if (os.contains("windows")) "adb.exe" else "adb"
+        val sdkDir = System.getenv("ANDROID_HOME")
+            ?: System.getenv("ANDROID_SDK_ROOT")
+            ?: run {
+                val props = Properties()
+                val localFile = File(projectPath, "local.properties")
+                if (localFile.isFile) localFile.inputStream().use { props.load(it) }
+                props.getProperty("sdk.dir")
+            }
+        if (sdkDir.isNullOrEmpty()) {
+            error("未找到 Android SDK：请设置 ANDROID_HOME 或 local.properties 的 sdk.dir")
+        }
+        val adb = File(sdkDir, "platform-tools/$adbName")
+        if (!adb.isFile) error("未找到 adb：${adb.absolutePath}")
+        val apkDir = File(buildPath, "outputs/apk/debug")
+        val apks = apkDir.listFiles()?.filter { it.isFile && it.extension == "apk" }.orEmpty()
+        val apk = apks.firstOrNull { it.name.endsWith("-$abi.apk") }
+            ?: apks.firstOrNull {
+                it.name.contains(abi) && !(abi == "x86" && it.name.contains("x86_64"))
+            }
+            ?: error("未找到 $abi 架构的 APK：${apkDir.absolutePath}")
+        println("安装 ${apk.name} 到 $device")
+        val exit = ProcessBuilder(
+            adb.absolutePath,
+            "-s",
+            device,
+            "install",
+            "-r",
+            apk.absolutePath
+        ).inheritIO().start().waitFor()
+        if (exit != 0) error("adb install 失败（exit=$exit）：${apk.name}")
+    }
 }
 
 dependencies {
