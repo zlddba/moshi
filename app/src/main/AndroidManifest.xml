@@ -97,6 +97,11 @@
             android:exported="false"
             android:theme="@style/Theme.Moshi"
             android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".activities.policyPage.PolicyActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Moshi"
+            android:windowSoftInputMode="adjustResize" />
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
