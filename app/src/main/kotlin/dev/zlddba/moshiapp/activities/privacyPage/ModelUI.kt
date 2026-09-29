@@ -186,7 +186,7 @@ private fun ManagedModelCard(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Surface(
                     shape = MoshiShapeSmall,
-                    color = Color.Red
+                    color = Color.Transparent
                 ) {
                     if (iconRes != 0) {
                         Icon(

@@ -17,11 +17,15 @@
                 android:type="linear">
 
                 <item
-                    android:color="#FF7C4DFF"
+                    android:color="#FFFF4081"
                     android:offset="0" />
 
                 <item
                     android:color="#FFE040FB"
+                    android:offset="0.55" />
+
+                <item
+                    android:color="#FF7C4DFF"
                     android:offset="1" />
 
             </gradient>
@@ -30,8 +34,29 @@
 
     </path>
 
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M9,19a2,2 0 0 1 4,0v13a2,2 0 0 1 -4,0zM16.5,14a2,2 0 0 1 4,0v23a2,2 0 0 1 -4,0zM24,10a2,2 0 0 1 4,0v31a2,2 0 0 1 -4,0zM31.5,15a2,2 0 0 1 4,0v21a2,2 0 0 1 -4,0zM39,21a2,2 0 0 1 4,0v9a2,2 0 0 1 -4,0z" />
+    <path android:pathData="M9,19a2,2 0 0 1 4,0v13a2,2 0 0 1 -4,0zM16.5,14a2,2 0 0 1 4,0v23a2,2 0 0 1 -4,0zM24,10a2,2 0 0 1 4,0v31a2,2 0 0 1 -4,0zM31.5,15a2,2 0 0 1 4,0v21a2,2 0 0 1 -4,0zM39,21a2,2 0 0 1 4,0v9a2,2 0 0 1 -4,0z">
+
+        <aapt:attr name="android:fillColor">
+
+            <gradient
+                android:startX="9"
+                android:startY="10"
+                android:endX="43"
+                android:endY="41"
+                android:type="linear">
+
+                <item
+                    android:color="#FFFFFFFF"
+                    android:offset="0" />
+
+                <item
+                    android:color="#FFFCE4EC"
+                    android:offset="1" />
+
+            </gradient>
+
+        </aapt:attr>
+
+    </path>
 
 </vector>
