@@ -90,7 +90,8 @@ object IngestRepository {
         type: String,
         fallbackTitle: String,
         sourceNote: String? = null,
-        sourceUri: Uri? = null
+        sourceUri: Uri? = null,
+        isBuiltIn: Boolean = false
     ): Summary = withContext(Dispatchers.IO) {
         val content = text.trim()
         if (content.isEmpty()) throw IngestException(IngestException.Kind.EMPTY)
@@ -113,7 +114,8 @@ object IngestRepository {
             pageOffsets = emptyList(),
             chunks = chunks,
             sourceUri = storedSource,
-            sourceNote = sourceNote
+            sourceNote = sourceNote,
+            isBuiltIn = isBuiltIn
         )
     }
 
@@ -159,7 +161,8 @@ object IngestRepository {
         pageOffsets: List<Int>,
         chunks: List<Chunker.TextChunk>,
         sourceUri: String?,
-        sourceNote: String? = null
+        sourceNote: String? = null,
+        isBuiltIn: Boolean = false
     ): Summary {
         val database = MoshiDatabase.get(context)
         val now = System.currentTimeMillis()
@@ -170,6 +173,7 @@ object IngestRepository {
             content = content,
             sourceUri = sourceUri,
             sourceNote = sourceNote,
+            isBuiltIn = isBuiltIn,
             indexStatus = NoteEntity.STATUS_PENDING,
             createdAt = now,
             updatedAt = now

@@ -27,7 +27,8 @@ object RetrieveService {
         val text: String,
         val pageNo: Int?,
         val score: Float,
-        val isSensitive: Boolean = false
+        val isSensitive: Boolean = false,
+        val isBuiltIn: Boolean = false
     )
 
     suspend fun retrieve(context: Context, question: String, topK: Int = TOP_K): List<Hit> {
@@ -62,7 +63,8 @@ object RetrieveService {
                     text = chunk.text,
                     pageNo = chunk.pageNo,
                     score = score,
-                    isSensitive = note?.isSensitive == true
+                    isSensitive = note?.isSensitive == true,
+                    isBuiltIn = note?.isBuiltIn == true
                 )
             )
         }

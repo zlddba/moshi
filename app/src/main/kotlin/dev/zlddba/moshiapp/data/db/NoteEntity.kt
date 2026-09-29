@@ -14,6 +14,7 @@ data class NoteEntity(
     @ColumnInfo(name = "source_uri") val sourceUri: String? = null,
     @ColumnInfo(name = "source_note") val sourceNote: String? = null,
     @ColumnInfo(name = "is_sensitive", defaultValue = "0") val isSensitive: Boolean = false,
+    @ColumnInfo(name = "is_builtin", defaultValue = "0") val isBuiltIn: Boolean = false,
     @ColumnInfo(name = "is_encrypted", defaultValue = "0") val isEncrypted: Boolean = false,
     @ColumnInfo(name = "index_status", defaultValue = "PENDING") val indexStatus: String = STATUS_PENDING,
     @ColumnInfo(name = "created_at") val createdAt: Long,

@@ -53,7 +53,7 @@ class DetailViewModel(context: Context) : ViewModel() {
 
     private fun deleteNote() {
         val noteId = _uiState.value.noteId
-        if (noteId.isEmpty() || _deleted.value) return
+        if (noteId.isEmpty() || _uiState.value.isBuiltIn || _deleted.value) return
         viewModelScope.launch {
             IngestRepository.deleteNote(appContext, noteId)
             _deleted.value = true
@@ -115,6 +115,7 @@ class DetailViewModel(context: Context) : ViewModel() {
         return DetailUiState(
             noteId = note.id,
             isSensitive = note.isSensitive,
+            isBuiltIn = note.isBuiltIn,
             title = note.title,
             summary = note.summary.orEmpty(),
             heading = appContext.getString(R.string.detail_body_heading),

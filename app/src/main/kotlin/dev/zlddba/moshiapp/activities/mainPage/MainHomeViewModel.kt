@@ -74,7 +74,7 @@ class MainHomeViewModel(context: Context) : ViewModel() {
             val loaded = withContext(Dispatchers.IO) {
                 MoshiDatabase.get(appContext).noteDao().recentAll()
             }
-            notes = loaded
+            notes = loaded.filter { !it.isBuiltIn }
             emit()
         }
     }

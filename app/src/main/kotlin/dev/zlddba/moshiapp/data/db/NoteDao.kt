@@ -29,6 +29,9 @@ interface NoteDao {
     @Query("SELECT COUNT(*) FROM notes")
     suspend fun count(): Int
 
+    @Query("SELECT COUNT(*) FROM notes WHERE is_builtin = 1")
+    suspend fun builtinCount(): Int
+
     @Query("SELECT * FROM notes WHERE index_status != 'INDEXED'")
     suspend fun notIndexed(): List<NoteEntity>
 }

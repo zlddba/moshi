@@ -70,7 +70,8 @@ data class DetailUiState(
     val related: List<RelatedNote> = emptyList(),
     val highlight: String = "",
     val focusIndex: Int = -1,
-    val missing: Boolean = false
+    val missing: Boolean = false,
+    val isBuiltIn: Boolean = false
 ) {
     data class Paragraph(
         val text: String,
@@ -140,9 +141,13 @@ fun DetailPageScreen(
             onBack = onBack,
             menuExpanded = menuExpanded,
             onMenuToggle = { menuExpanded = it },
-            onDeleteClick = {
-                menuExpanded = false
-                deleteDialogVisible = true
+            onDeleteClick = if (uiState.isBuiltIn) {
+                null
+            } else {
+                {
+                    menuExpanded = false
+                    deleteDialogVisible = true
+                }
             }
         )
         LazyColumn(
@@ -244,7 +249,7 @@ private fun DetailTopBar(
     onBack: () -> Unit,
     menuExpanded: Boolean,
     onMenuToggle: (Boolean) -> Unit,
-    onDeleteClick: () -> Unit
+    onDeleteClick: (() -> Unit)?
 ) {
     Row(
         modifier = Modifier
@@ -265,27 +270,29 @@ private fun DetailTopBar(
             color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.weight(1f)
         )
-        Box {
-            IconButton(onClick = { onMenuToggle(true) }) {
-                Icon(
-                    imageVector = Icons.Outlined.MoreVert,
-                    contentDescription = stringResource(R.string.detail_more)
-                )
-            }
-            DropdownMenu(
-                expanded = menuExpanded,
-                onDismissRequest = { onMenuToggle(false) }
-            ) {
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.detail_delete)) },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Outlined.Delete,
-                            contentDescription = null
-                        )
-                    },
-                    onClick = onDeleteClick
-                )
+        if (onDeleteClick != null) {
+            Box {
+                IconButton(onClick = { onMenuToggle(true) }) {
+                    Icon(
+                        imageVector = Icons.Outlined.MoreVert,
+                        contentDescription = stringResource(R.string.detail_more)
+                    )
+                }
+                DropdownMenu(
+                    expanded = menuExpanded,
+                    onDismissRequest = { onMenuToggle(false) }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.detail_delete)) },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Outlined.Delete,
+                                contentDescription = null
+                            )
+                        },
+                        onClick = { onDeleteClick() }
+                    )
+                }
             }
         }
     }
