@@ -69,7 +69,8 @@ data class DetailUiState(
     val tags: List<String> = emptyList(),
     val related: List<RelatedNote> = emptyList(),
     val highlight: String = "",
-    val focusIndex: Int = -1
+    val focusIndex: Int = -1,
+    val missing: Boolean = false
 ) {
     data class Paragraph(
         val text: String,
@@ -116,6 +117,7 @@ fun DetailPageScreen(
     onBack: () -> Unit,
     onRelatedClick: () -> Unit = {},
     onToggleSensitive: () -> Unit = {},
+    onDelete: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
@@ -219,7 +221,12 @@ fun DetailPageScreen(
             title = { Text(stringResource(R.string.detail_delete)) },
             text = { Text(stringResource(R.string.detail_delete_confirm)) },
             confirmButton = {
-                TextButton(onClick = { deleteDialogVisible = false }) {
+                TextButton(
+                    onClick = {
+                        deleteDialogVisible = false
+                        onDelete()
+                    }
+                ) {
                     Text(stringResource(R.string.detail_confirm))
                 }
             },

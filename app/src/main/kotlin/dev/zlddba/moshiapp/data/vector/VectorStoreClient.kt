@@ -98,9 +98,48 @@ object VectorStoreClient {
                     }
                 }
                 Log.i(TAG, "insert ok size=${chunks.size} dim=$dim")
+                writeDimMarker(appContext, dim)
                 if (reset) InsertOutcome.DimReset else InsertOutcome.Ok
             }
         }
+    }
+
+    suspend fun deleteByNote(context: Context, noteId: String) {
+        withContext(Dispatchers.IO) {
+            mutex.withLock {
+                val appContext = context.applicationContext
+                if (store == null) {
+                    val dim = readDimMarker(appContext) ?: return@withLock
+                    if (dim <= 0) return@withLock
+                    val opened = openLocked(appContext, dim)
+                    if (opened !is OpenResult.Ready) return@withLock
+                }
+                try {
+                    store?.sqlQuery("DELETE FROM $TABLE_NAME WHERE note_id = '$noteId'")
+                    Log.i(TAG, "deleteByNote note=$noteId")
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Throwable) {
+                    Log.e(TAG, "deleteByNote failed note=$noteId", e)
+                }
+            }
+        }
+    }
+
+    private fun writeDimMarker(context: Context, dim: Int) {
+        try {
+            val directory = File(context.filesDir, "vectors")
+            directory.mkdirs()
+            File(directory, "dim.txt").writeText(dim.toString())
+        } catch (e: Throwable) {
+            Log.w(TAG, "writeDimMarker failed dim=$dim", e)
+        }
+    }
+
+    private fun readDimMarker(context: Context): Int? = try {
+        File(File(context.filesDir, "vectors"), "dim.txt").readText().trim().toIntOrNull()
+    } catch (e: Throwable) {
+        null
     }
 
     suspend fun search(context: Context, query: List<Float>, k: Int): List<VecHit> {

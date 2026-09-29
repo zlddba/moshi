@@ -8,6 +8,7 @@ import dev.zlddba.moshiapp.data.db.ChunkEntity
 import dev.zlddba.moshiapp.data.db.KeywordIndex
 import dev.zlddba.moshiapp.data.db.MoshiDatabase
 import dev.zlddba.moshiapp.data.db.NoteEntity
+import dev.zlddba.moshiapp.data.vector.VectorStoreClient
 import dev.zlddba.moshiapp.domain.chunk.Chunker
 import dev.zlddba.moshiapp.ingest.parse.IngestException
 import dev.zlddba.moshiapp.ingest.parse.ParsedDoc
@@ -27,6 +28,9 @@ object IngestRepository {
 
     private val _savedNotes = MutableSharedFlow<String>(extraBufferCapacity = 8)
     val savedNotes: SharedFlow<String> = _savedNotes.asSharedFlow()
+
+    private val _deletedNotes = MutableSharedFlow<String>(extraBufferCapacity = 8)
+    val deletedNotes: SharedFlow<String> = _deletedNotes.asSharedFlow()
 
     sealed interface Stage {
         data object Parsing : Stage
@@ -111,6 +115,33 @@ object IngestRepository {
             sourceUri = storedSource,
             sourceNote = sourceNote
         )
+    }
+
+    suspend fun deleteNote(context: Context, noteId: String) {
+        withContext(Dispatchers.IO) {
+            val database = MoshiDatabase.get(context)
+            val note = database.noteDao().byId(noteId) ?: return@withContext
+            database.withWriteTransaction {
+                database.chunkDao().deleteByNote(noteId)
+                database.noteDao().deleteById(noteId)
+            }
+            KeywordIndex.deleteNote(context, noteId)
+            VectorStoreClient.deleteByNote(context, noteId)
+            deleteStoredSource(context, note.sourceUri)
+            _deletedNotes.tryEmit(noteId)
+        }
+    }
+
+    private fun deleteStoredSource(context: Context, sourceUri: String?) {
+        if (sourceUri.isNullOrBlank()) return
+        try {
+            val notesDir = File(context.filesDir, "notes")
+            val file = File(sourceUri)
+            if (file.parentFile?.canonicalPath == notesDir.canonicalPath) {
+                file.delete()
+            }
+        } catch (e: Throwable) {
+        }
     }
 
     private fun sourceFormatOf(type: String): String = when (type) {

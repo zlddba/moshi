@@ -13,6 +13,9 @@ interface ChunkDao {
     @Query("SELECT * FROM chunks WHERE note_id = :noteId ORDER BY seq")
     suspend fun byNote(noteId: String): List<ChunkEntity>
 
+    @Query("DELETE FROM chunks WHERE note_id = :noteId")
+    suspend fun deleteByNote(noteId: String)
+
     @Query("SELECT * FROM chunks WHERE id = :chunkId")
     suspend fun byId(chunkId: Int): ChunkEntity?
 

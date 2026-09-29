@@ -23,6 +23,7 @@
     <string name="home_search_hint">语义搜索你的知识</string>
     <string name="home_filter_timeline">时间线</string>
     <string name="home_filter_category">分类</string>
+    <string name="home_deleted">已删除「%1$s」</string>
     <string name="home_filter_tag">标签</string>
     <string name="home_badge_local">本地</string>
     <string name="home_badge_cloud">云端</string>
@@ -185,6 +186,8 @@
     <string name="detail_related_score_2">相似度 87%</string>
     <string name="detail_delete">删除</string>
     <string name="detail_delete_confirm">确定删除这条知识吗？删除后不可恢复。</string>
+    <string name="detail_deleted">已删除</string>
+    <string name="detail_missing">笔记不存在或已删除</string>
     <string name="detail_cancel">取消</string>
     <string name="detail_confirm">确定</string>
     <string name="detail_content_heading">安装与初始化</string>

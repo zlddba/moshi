@@ -159,6 +159,17 @@ fun MainPageScreen(modifier: Modifier = Modifier) {
             }
         }
     }
+    LaunchedEffect(Unit) {
+        homeViewModel.effects.collect { effect ->
+            when (effect) {
+                is MainHomeViewModel.HomeEffect.Deleted -> Toast.makeText(
+                    context,
+                    context.getString(R.string.home_deleted, effect.title),
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
+    }
     LaunchedEffect(selectedTab) {
         engineMode = cloudPrefs.load().mode
         chatViewModel.onEvent(ChatViewModel.ChatEvent.RefreshCloud)

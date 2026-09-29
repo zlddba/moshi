@@ -40,6 +40,16 @@ object KeywordIndex {
             likeSearch(db, terms, k)
         }
 
+    fun deleteNote(context: Context, noteId: String) {
+        val db = open(context) ?: return
+        for (table in listOf(FTS_TABLE, PLAIN_TABLE)) {
+            try {
+                db.execSQL("DELETE FROM $table WHERE note_id = ?", arrayOf<Any>(noteId))
+            } catch (e: Throwable) {
+            }
+        }
+    }
+
     fun insertChunks(context: Context, chunks: List<ChunkEntity>) {
         if (chunks.isEmpty()) return
         val db = open(context) ?: return

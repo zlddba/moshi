@@ -10,9 +10,13 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -21,6 +25,11 @@ class MainHomeViewModel(context: Context) : ViewModel() {
 
     sealed interface HomeEvent {
         data class FilterChanged(val index: Int) : HomeEvent
+        data class DeleteRequested(val noteId: String, val title: String) : HomeEvent
+    }
+
+    sealed interface HomeEffect {
+        data class Deleted(val title: String) : HomeEffect
     }
 
     private val appContext = context.applicationContext
@@ -30,10 +39,13 @@ class MainHomeViewModel(context: Context) : ViewModel() {
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
+    private val _effects = MutableSharedFlow<HomeEffect>(extraBufferCapacity = 4)
+    val effects: SharedFlow<HomeEffect> = _effects.asSharedFlow()
+
     init {
         refresh()
         viewModelScope.launch {
-            IngestRepository.savedNotes.collect {
+            merge(IngestRepository.savedNotes, IngestRepository.deletedNotes).collect {
                 refresh()
             }
         }
@@ -45,6 +57,15 @@ class MainHomeViewModel(context: Context) : ViewModel() {
                 filter = event.index
                 emit()
             }
+
+            is HomeEvent.DeleteRequested -> deleteNote(event)
+        }
+    }
+
+    private fun deleteNote(event: HomeEvent.DeleteRequested) {
+        viewModelScope.launch {
+            IngestRepository.deleteNote(appContext, event.noteId)
+            _effects.tryEmit(HomeEffect.Deleted(event.title))
         }
     }
 

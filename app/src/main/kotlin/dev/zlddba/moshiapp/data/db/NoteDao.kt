@@ -17,6 +17,9 @@ interface NoteDao {
     @Query("UPDATE notes SET is_sensitive = :sensitive WHERE id = :id")
     suspend fun updateSensitive(id: String, sensitive: Boolean)
 
+    @Query("DELETE FROM notes WHERE id = :id")
+    suspend fun deleteById(id: String)
+
     @Query("SELECT * FROM notes ORDER BY created_at DESC")
     suspend fun recentAll(): List<NoteEntity>
 

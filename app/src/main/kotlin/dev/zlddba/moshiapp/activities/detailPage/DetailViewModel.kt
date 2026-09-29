@@ -7,6 +7,7 @@ import dev.zlddba.moshiapp.R
 import dev.zlddba.moshiapp.data.db.ChunkEntity
 import dev.zlddba.moshiapp.data.db.MoshiDatabase
 import dev.zlddba.moshiapp.data.db.NoteEntity
+import dev.zlddba.moshiapp.data.repo.IngestRepository
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -28,6 +29,8 @@ class DetailViewModel(context: Context) : ViewModel() {
         ) : DetailEvent
 
         data object ToggleSensitive : DetailEvent
+
+        data object Delete : DetailEvent
     }
 
     private val appContext = context.applicationContext
@@ -35,12 +38,25 @@ class DetailViewModel(context: Context) : ViewModel() {
     private val _uiState = MutableStateFlow(sampleDetailUiState(context))
     val uiState: StateFlow<DetailUiState> = _uiState.asStateFlow()
 
+    private val _deleted = MutableStateFlow(false)
+    val deleted: StateFlow<Boolean> = _deleted.asStateFlow()
+
     private var initialized = false
 
     fun onEvent(event: DetailEvent) {
         when (event) {
             is DetailEvent.Init -> init(event)
             DetailEvent.ToggleSensitive -> toggleSensitive()
+            DetailEvent.Delete -> deleteNote()
+        }
+    }
+
+    private fun deleteNote() {
+        val noteId = _uiState.value.noteId
+        if (noteId.isEmpty() || _deleted.value) return
+        viewModelScope.launch {
+            IngestRepository.deleteNote(appContext, noteId)
+            _deleted.value = true
         }
     }
 
@@ -62,7 +78,11 @@ class DetailViewModel(context: Context) : ViewModel() {
             val database = MoshiDatabase.get(appContext)
             val note = withContext(Dispatchers.IO) {
                 database.noteDao().byId(noteId)
-            } ?: return@launch
+            }
+            if (note == null) {
+                _uiState.update { it.copy(missing = true) }
+                return@launch
+            }
             val chunks = withContext(Dispatchers.IO) {
                 database.chunkDao().byNote(noteId)
             }
