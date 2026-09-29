@@ -1,5 +1,6 @@
 package dev.zlddba.moshiapp.activities.privacyPage
 
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -11,15 +12,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Book
-import androidx.compose.material.icons.outlined.CloudSync
-import androidx.compose.material.icons.outlined.Mic
-import androidx.compose.material.icons.outlined.School
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
@@ -30,7 +27,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -84,7 +82,7 @@ fun ModelPageScreen(
         ModelGroup(titleRes = R.string.model_group_llm) {
             ManagedModelCard(
                 modelId = ModelCatalog.GEMMA,
-                icon = Icons.Outlined.School,
+                iconRes = R.drawable.gemmaicon,
                 nameRes = R.string.model_name_gemma,
                 versionRes = R.string.model_version_gemma,
                 sizeRes = R.string.model_size_gemma,
@@ -96,7 +94,7 @@ fun ModelPageScreen(
             Spacer(modifier = Modifier.height(10.dp))
             ManagedModelCard(
                 modelId = ModelCatalog.QWEN,
-                icon = Icons.Outlined.Book,
+                iconRes = R.drawable.qwicons,
                 nameRes = R.string.model_name_qwen,
                 versionRes = R.string.model_version_qwen,
                 sizeRes = R.string.model_size_qwen,
@@ -110,7 +108,7 @@ fun ModelPageScreen(
         ModelGroup(titleRes = R.string.model_group_embed) {
             ManagedModelCard(
                 modelId = ModelCatalog.GECKO,
-                icon = Icons.Outlined.CloudSync,
+                iconRes = R.drawable.geckoicon,
                 nameRes = R.string.model_name_embed,
                 versionRes = R.string.model_version_embed,
                 sizeRes = R.string.model_size_embed,
@@ -124,7 +122,7 @@ fun ModelPageScreen(
         ModelGroup(titleRes = R.string.model_group_asr) {
             ManagedModelCard(
                 modelId = ModelCatalog.SENSE_VOICE,
-                icon = Icons.Outlined.Mic,
+                iconRes = R.drawable.sensevoiceicon,
                 nameRes = R.string.model_name_asr,
                 versionRes = R.string.model_version_asr,
                 sizeRes = R.string.model_size_asr,
@@ -163,7 +161,7 @@ private fun GroupLabel(titleRes: Int) {
 @Composable
 private fun ManagedModelCard(
     modelId: String,
-    icon: ImageVector,
+    @DrawableRes iconRes: Int = 0,
     nameRes: Int,
     versionRes: Int,
     sizeRes: Int,
@@ -188,14 +186,18 @@ private fun ManagedModelCard(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Surface(
                     shape = MoshiShapeSmall,
-                    color = MaterialTheme.colorScheme.primaryContainer
+                    color = Color.Red
                 ) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.padding(10.dp)
-                    )
+                    if (iconRes != 0) {
+                        Icon(
+                            painter = painterResource(iconRes),
+                            contentDescription = null,
+                            tint = Color.Unspecified,
+                            modifier = Modifier
+                                .padding(10.dp)
+                                .size(24.dp)
+                        )
+                    }
                 }
                 Spacer(modifier = Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {

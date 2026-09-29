@@ -7,13 +7,29 @@ import org.junit.jupiter.api.Test
 class RetrieveServiceTest {
 
     @Test
-    fun `chunk in both lists ranks above single list chunk`() {
+    fun `single list hit far below dual list top is dropped by relative gate`() {
         val fused = RetrieveService.fuse(listOf(1), listOf(1, 2), 5)
+        assertEquals(1, fused.size)
+        assertEquals(1, fused[0].first)
+        assertEquals(1.0f, fused[0].second, 0.0001f)
+    }
+
+    @Test
+    fun `mutually confirmed neighbors within relative gate are kept`() {
+        val fused = RetrieveService.fuse(listOf(1, 2), listOf(1, 2), 5)
         assertEquals(2, fused.size)
         assertEquals(1, fused[0].first)
         assertEquals(2, fused[1].first)
-        assertEquals(1.0f, fused[0].second, 0.0001f)
-        assertEquals(61f / 124f, fused[1].second, 0.0001f)
+        assertTrue(fused[1].second >= RetrieveService.RELATIVE_RATIO * fused[0].second)
+    }
+
+    @Test
+    fun `relative gate uses top score of the current query`() {
+        val fused = RetrieveService.fuse(listOf(7), emptyList(), 5)
+        val top = fused.maxOf { it.second }
+        for ((_, score) in fused) {
+            assertTrue(score >= RetrieveService.RELATIVE_RATIO * top)
+        }
     }
 
     @Test

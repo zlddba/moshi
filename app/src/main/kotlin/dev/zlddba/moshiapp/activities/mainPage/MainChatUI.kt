@@ -1,6 +1,7 @@
 package dev.zlddba.moshiapp.activities.mainPage
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,6 +31,8 @@ import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.CloudSync
 import androidx.compose.material.icons.outlined.DeleteSweep
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.KeyboardArrowDown
+import androidx.compose.material.icons.outlined.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Shield
@@ -164,7 +167,9 @@ fun MainChatScreen(
             role = ChatViewModel.ChatUiState.Role.ASSISTANT,
             text = uiState.streamingText.ifEmpty {
                 stringResource(R.string.chat_generating)
-            }
+            },
+            thinking = uiState.streamingThinking,
+            autoExpandThinking = uiState.streamingText.isEmpty()
         )
     } else {
         uiState.messages
@@ -267,6 +272,8 @@ fun MainChatScreen(
                     ChatViewModel.ChatUiState.Role.USER -> UserMessage(text = message.text)
                     ChatViewModel.ChatUiState.Role.ASSISTANT -> AssistantMessage(
                         text = message.text,
+                        thinking = message.thinking,
+                        autoExpandThinking = message.autoExpandThinking,
                         sources = message.sources,
                         onSourceClick = { onEvent(ChatViewModel.ChatEvent.SourceClick(it)) }
                     )
@@ -523,6 +530,8 @@ private fun UserMessage(text: String) {
 @Composable
 private fun AssistantMessage(
     text: String,
+    thinking: String,
+    autoExpandThinking: Boolean,
     sources: List<ChatViewModel.ChatUiState.ChatSource>,
     onSourceClick: (ChatViewModel.ChatUiState.ChatSource) -> Unit
 ) {
@@ -533,13 +542,54 @@ private fun AssistantMessage(
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
             modifier = Modifier.widthIn(max = 320.dp)
         ) {
-            Text(
-                text = text,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-                lineHeight = 22.sp
-            )
+            Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
+                if (thinking.isNotBlank()) {
+                    var thinkingExpanded by rememberSaveable { mutableStateOf(autoExpandThinking) }
+                    LaunchedEffect(autoExpandThinking) {
+                        thinkingExpanded = autoExpandThinking
+                    }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { thinkingExpanded = !thinkingExpanded },
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = stringResource(R.string.chat_thinking),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Icon(
+                            imageVector = if (thinkingExpanded) {
+                                Icons.Outlined.KeyboardArrowUp
+                            } else {
+                                Icons.Outlined.KeyboardArrowDown
+                            },
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    if (thinkingExpanded) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = thinking,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            lineHeight = 20.sp
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+                Text(
+                    text = text,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    lineHeight = 22.sp
+                )
+            }
         }
         if (sources.isNotEmpty()) {
             Spacer(modifier = Modifier.height(8.dp))

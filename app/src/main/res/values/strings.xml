@@ -94,6 +94,7 @@
     <string name="chat_model_download">去下载</string>
     <string name="chat_excerpt_label">以下为知识库检索到的相关片段：</string>
     <string name="chat_generate_failed">答案生成失败，已降级为片段展示</string>
+    <string name="chat_thinking">思考过程</string>
 
     <!-- 采集页 -->
     <string name="capture_title">采集知识</string>

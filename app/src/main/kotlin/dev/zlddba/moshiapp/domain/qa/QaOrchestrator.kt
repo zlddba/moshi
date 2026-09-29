@@ -20,16 +20,57 @@ object QaOrchestrator {
     private const val MAX_CONTEXT_CHARS = 3000
     private const val MAX_SNIPPET_CHARS = 600
     private const val SYSTEM_PROMPT =
-        "你是「默识」的本地知识助手。请仅依据下列知识库片段回答问题：" +
-            "使用中文，回答准确、简洁；" +
-            "如果片段中没有足够依据，必须明确说明资料不足，" +
-            "不得编造，也不得引入片段之外的知识。"
+        "你是「默识」的本地知识助手。输出必须严格遵循以下两部分的固定格式，不得输出其他内容：" +
+            "[THINKING] 通读下方知识片段，归纳、比较、推断，写出分析过程；" +
+            "[ANSWER] 给出最终结论，先说结论、再给依据，中文、准确、简洁。" +
+            "要求：结论必须能由片段支撑，可换用自己的表述，不要整段照搬；" +
+            "不得引入片段之外的事实，不得编造；" +
+            "如果片段与问题无关或依据不足，[ANSWER] 必须逐字固定输出：" +
+            "知识库中没有找到相关内容" +
+            "，不得使用任何其他措辞，不得输出这句话以外的内容。"
+
+    private const val MARK_THINK = "[THINKING]"
+    private const val MARK_ANSWER = "[ANSWER]"
 
     sealed interface Outcome {
         data object Refusal : Outcome
         data class ModelMissing(val hits: List<RetrieveService.Hit>) : Outcome
         data class Excerpt(val hits: List<RetrieveService.Hit>) : Outcome
         data class Generated(val hits: List<RetrieveService.Hit>) : Outcome
+    }
+
+    data class ParsedAnswer(val thinking: String, val answer: String)
+
+    fun parseAnswer(raw: String): ParsedAnswer {
+        val text = raw.trim()
+        val thinkIdx = text.indexOf(MARK_THINK)
+        val answerIdx = text.lastIndexOf(MARK_ANSWER)
+        if (answerIdx >= 0) {
+            val thinking = if (thinkIdx in 0 until answerIdx) {
+                text.substring(thinkIdx + MARK_THINK.length, answerIdx).stripHeadingColon()
+            } else {
+                ""
+            }
+            return ParsedAnswer(
+                thinking = thinking,
+                answer = text.substring(answerIdx + MARK_ANSWER.length).stripHeadingColon()
+            )
+        }
+        if (thinkIdx >= 0) {
+            return ParsedAnswer(
+                thinking = text.substring(thinkIdx + MARK_THINK.length).stripHeadingColon(),
+                answer = ""
+            )
+        }
+        return ParsedAnswer(thinking = "", answer = text)
+    }
+
+    private fun String.stripHeadingColon(): String {
+        var value = trim()
+        while (value.isNotEmpty() && (value.first() == '：' || value.first() == ':')) {
+            value = value.substring(1).trimStart()
+        }
+        return value
     }
 
     suspend fun ask(
