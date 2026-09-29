@@ -21,6 +21,9 @@ object LiteRtLlmEngine : LlmEngine {
     private var engine: Engine? = null
 
     @Volatile
+    private var loadedModelId: String? = null
+
+    @Volatile
     private var conversation: Conversation? = null
 
     @Volatile
@@ -87,16 +90,23 @@ object LiteRtLlmEngine : LlmEngine {
     }
 
     private fun ensureEngine(appContext: Context): Engine? {
-        engine?.let { return it }
+        val wanted = ModelPrefs(appContext).currentLlm()
+        engine?.let { current ->
+            if (loadedModelId == wanted) return current
+        }
         synchronized(lock) {
-            engine?.let { return it }
+            engine?.let { current ->
+                if (loadedModelId == wanted) return current
+            }
+            if (engine != null) {
+                Log.i(TAG, "model changed $loadedModelId -> $wanted, rebuilding engine")
+            }
             releaseLocked()
             val kind = backendKind
-            val modelId = ModelPrefs(appContext).currentLlm()
-            if (!ModelFileManager.isReady(appContext, modelId)) return null
-            val modelFile = ModelCatalog.descriptor(modelId).files.firstOrNull() ?: return null
+            if (!ModelFileManager.isReady(appContext, wanted)) return null
+            val modelFile = ModelCatalog.descriptor(wanted).files.firstOrNull() ?: return null
             val modelPath = ModelFileManager
-                .file(appContext, modelId, modelFile.name)
+                .file(appContext, wanted, modelFile.name)
                 .absolutePath
             return try {
                 val created = Engine(
@@ -107,7 +117,8 @@ object LiteRtLlmEngine : LlmEngine {
                 )
                 created.initialize()
                 engine = created
-                Log.i(TAG, "engine ready backend=${kind.name} model=$modelId")
+                loadedModelId = wanted
+                Log.i(TAG, "engine ready backend=${kind.name} model=$wanted")
                 created
             } catch (t: Throwable) {
                 Log.w(TAG, "engine init failed backend=${kind.name}", t)
@@ -147,6 +158,7 @@ object LiteRtLlmEngine : LlmEngine {
             }
         }
         engine = null
+        loadedModelId = null
     }
 
     private fun closeConversationLocked() {

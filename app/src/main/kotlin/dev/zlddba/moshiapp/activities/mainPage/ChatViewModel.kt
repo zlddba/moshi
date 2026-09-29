@@ -29,6 +29,7 @@ class ChatViewModel(context: Context) : ViewModel() {
         val backend: String = BackendKind.CPU.name,
         val messages: List<ChatMessage> = emptyList(),
         val streamingText: String = "",
+        val streamingThinking: String = "",
         val isGenerating: Boolean = false,
         val modelMissing: Boolean = false
     ) {
@@ -37,7 +38,9 @@ class ChatViewModel(context: Context) : ViewModel() {
         data class ChatMessage(
             val role: Role,
             val text: String = "",
-            val sources: List<ChatSource> = emptyList()
+            val thinking: String = "",
+            val sources: List<ChatSource> = emptyList(),
+            val autoExpandThinking: Boolean = false
         )
 
         data class ChatSource(
@@ -109,6 +112,7 @@ class ChatViewModel(context: Context) : ViewModel() {
         viewModelScope.launch(Dispatchers.IO) {
             LiteRtLlmEngine.setBackend(BackendKind.from(modelPrefs.currentBackend()))
             LiteRtLlmEngine.warmUp(appContext)
+            _uiState.update { it.copy(backend = LiteRtLlmEngine.currentBackend().name) }
         }
     }
 
@@ -125,14 +129,25 @@ class ChatViewModel(context: Context) : ViewModel() {
         )
         synchronized(streamBuffer) { streamBuffer.setLength(0) }
         _uiState.update {
-            it.copy(isGenerating = true, streamingText = "", modelMissing = false)
+            it.copy(
+                isGenerating = true,
+                streamingText = "",
+                streamingThinking = "",
+                modelMissing = false
+            )
         }
         generationJob = viewModelScope.launch(Dispatchers.IO) {
             val ticker = launch {
                 while (true) {
                     delay(STREAM_TICK_MS)
                     val snapshot = synchronized(streamBuffer) { streamBuffer.toString() }
-                    _uiState.update { state -> state.copy(streamingText = snapshot) }
+                    val parsed = QaOrchestrator.parseAnswer(snapshot)
+                    _uiState.update { state ->
+                        state.copy(
+                            streamingText = parsed.answer,
+                            streamingThinking = parsed.thinking
+                        )
+                    }
                 }
             }
             val outcome = try {
@@ -182,17 +197,31 @@ class ChatViewModel(context: Context) : ViewModel() {
                         }
                         sendEffect(ChatEffect.ShowToast(R.string.chat_generate_failed))
                     } else {
-                        appendMessage(
-                            ChatUiState.ChatMessage(
-                                role = ChatUiState.Role.ASSISTANT,
-                                text = generated,
-                                sources = outcome.hits.map { it.toSource() }
+                        val parsed = QaOrchestrator.parseAnswer(generated)
+                        val answer = parsed.answer.ifBlank { generated }
+                        if (isInsufficient(answer)) {
+                            appendMessage(
+                                ChatUiState.ChatMessage(
+                                    role = ChatUiState.Role.REFUSAL,
+                                    text = appContext.getString(R.string.chat_refusal)
+                                )
                             )
-                        )
+                        } else {
+                            appendMessage(
+                                ChatUiState.ChatMessage(
+                                    role = ChatUiState.Role.ASSISTANT,
+                                    text = answer,
+                                    thinking = parsed.thinking,
+                                    sources = outcome.hits.map { it.toSource() }
+                                )
+                            )
+                        }
                     }
                 }
             }
-            _uiState.update { it.copy(isGenerating = false, streamingText = "") }
+            _uiState.update {
+                it.copy(isGenerating = false, streamingText = "", streamingThinking = "")
+            }
         }
     }
 
@@ -206,14 +235,18 @@ class ChatViewModel(context: Context) : ViewModel() {
             if (!_uiState.value.isGenerating) return
             val partial = synchronized(streamBuffer) { streamBuffer.toString() }
             if (partial.isNotBlank()) {
+                val parsed = QaOrchestrator.parseAnswer(partial)
                 appendMessage(
                     ChatUiState.ChatMessage(
                         role = ChatUiState.Role.ASSISTANT,
-                        text = partial
+                        text = parsed.answer.ifBlank { partial },
+                        thinking = parsed.thinking
                     )
                 )
             }
-            _uiState.update { it.copy(isGenerating = false, streamingText = "") }
+            _uiState.update {
+                it.copy(isGenerating = false, streamingText = "", streamingThinking = "")
+            }
         }
     }
 
@@ -225,6 +258,7 @@ class ChatViewModel(context: Context) : ViewModel() {
             it.copy(
                 messages = emptyList(),
                 streamingText = "",
+                streamingThinking = "",
                 isGenerating = false,
                 modelMissing = false
             )
@@ -243,6 +277,7 @@ class ChatViewModel(context: Context) : ViewModel() {
         viewModelScope.launch(Dispatchers.IO) {
             LiteRtLlmEngine.setBackend(kind)
             LiteRtLlmEngine.warmUp(appContext)
+            _uiState.update { it.copy(backend = LiteRtLlmEngine.currentBackend().name) }
         }
     }
 
@@ -252,6 +287,12 @@ class ChatViewModel(context: Context) : ViewModel() {
             text = QaOrchestrator.excerptText(appContext, hits),
             sources = hits.map { it.toSource() }
         )
+
+    private fun isInsufficient(answer: String): Boolean =
+        answer.contains(appContext.getString(R.string.chat_refusal)) ||
+            answer.contains("资料不足") ||
+            answer.contains("没有找到相关内容") ||
+            answer.contains("未找到相关内容")
 
     private fun RetrieveService.Hit.toSource(): ChatUiState.ChatSource =
         ChatUiState.ChatSource(
