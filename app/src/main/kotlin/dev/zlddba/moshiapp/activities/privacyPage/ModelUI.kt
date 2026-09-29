@@ -131,6 +131,18 @@ fun ModelPageScreen(
                 switchable = false,
                 onEvent = onEvent
             )
+            Spacer(modifier = Modifier.height(10.dp))
+            ManagedModelCard(
+                modelId = ModelCatalog.STREAM_ASR,
+                iconRes = R.drawable.sensevoiceicon,
+                nameRes = R.string.model_name_stream_asr,
+                versionRes = R.string.model_version_stream_asr,
+                sizeRes = R.string.model_size_stream_asr,
+                state = uiState.streamAsr,
+                current = false,
+                switchable = false,
+                onEvent = onEvent
+            )
         }
         Spacer(modifier = Modifier.height(32.dp))
     }

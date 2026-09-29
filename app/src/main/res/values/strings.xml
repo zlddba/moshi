@@ -66,6 +66,9 @@
     <string name="chat_input_hint">输入你的问题…</string>
     <string name="chat_send">发送</string>
     <string name="chat_voice_input">语音输入</string>
+    <string name="chat_voice_recording_hint">正在录音，点击麦克风结束</string>
+    <string name="chat_voice_model_missing">语音模型尚未下载，请先在模型管理中下载</string>
+    <string name="chat_voice_empty">没有识别到内容</string>
     <string name="chat_clear">清空会话</string>
     <string name="chat_clear_confirm">确定清空全部问答记录？</string>
     <string name="chat_confirm">确认</string>
@@ -385,6 +388,9 @@
     <string name="model_group_asr">语音模型</string>
     <string name="model_name_asr">SenseVoice 中文语音模型</string>
     <string name="model_size_asr">230 MB</string>
+    <string name="model_name_stream_asr">实时语音输入模型</string>
+    <string name="model_version_stream_asr">14M int8</string>
+    <string name="model_size_stream_asr">25 MB</string>
     <string name="model_status_downloading_pct">下载中 %1$d%%</string>
     <string name="model_download_fail">模型下载失败，请稍后重试</string>
     <string name="model_cancel_download">取消下载</string>

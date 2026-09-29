@@ -1,5 +1,6 @@
 package dev.zlddba.moshiapp.activities.mainPage
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.ActivityNotFoundException
@@ -136,6 +137,11 @@ fun MainPageScreen(modifier: Modifier = Modifier) {
         }
     )
     val chatUiState by chatViewModel.uiState.collectAsState()
+    val audioPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        chatViewModel.onEvent(ChatViewModel.ChatEvent.PermissionResult(granted))
+    }
     val homeViewModel: MainHomeViewModel = viewModel(
         factory = object : ViewModelProvider.Factory {
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -159,6 +165,9 @@ fun MainPageScreen(modifier: Modifier = Modifier) {
                 )
 
                 ChatViewModel.ChatEffect.OpenModelPage -> ModelActivity.start(context)
+
+                ChatViewModel.ChatEffect.RequestAudioPermission ->
+                    audioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
 
                 is ChatViewModel.ChatEffect.ShowToast -> Toast.makeText(
                     context,

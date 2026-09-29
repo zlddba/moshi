@@ -160,7 +160,6 @@ fun MainChatScreen(
     onSettingsClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var input by rememberSaveable { mutableStateOf("") }
     var showClearDialog by remember { mutableStateOf(false) }
     val displayMessages = if (uiState.isGenerating) {
         uiState.messages + ChatViewModel.ChatUiState.ChatMessage(
@@ -286,15 +285,13 @@ fun MainChatScreen(
             ModelMissingCard(onDownloadClick = { onEvent(ChatViewModel.ChatEvent.DownloadModel) })
         }
         ChatInputBar(
-            value = input,
-            onValueChange = { input = it },
+            value = uiState.draft,
+            onValueChange = { onEvent(ChatViewModel.ChatEvent.DraftChanged(it)) },
             isGenerating = uiState.isGenerating,
-            onSendClick = {
-                val text = input
-                input = ""
-                onEvent(ChatViewModel.ChatEvent.Send(text))
-            },
-            onStopClick = { onEvent(ChatViewModel.ChatEvent.Stop) }
+            voicePhase = uiState.voicePhase,
+            onSendClick = { onEvent(ChatViewModel.ChatEvent.Send(uiState.draft)) },
+            onStopClick = { onEvent(ChatViewModel.ChatEvent.Stop) },
+            onMicClick = { onEvent(ChatViewModel.ChatEvent.VoiceInput) }
         )
     }
 }
@@ -689,10 +686,19 @@ private fun ChatInputBar(
     value: String,
     onValueChange: (String) -> Unit,
     isGenerating: Boolean,
+    voicePhase: ChatViewModel.ChatUiState.VoiceInputPhase,
     onSendClick: () -> Unit,
-    onStopClick: () -> Unit
+    onStopClick: () -> Unit,
+    onMicClick: () -> Unit
 ) {
     val canSend = value.isNotBlank() && !isGenerating
+    val placeholderText = when (voicePhase) {
+        ChatViewModel.ChatUiState.VoiceInputPhase.RECORDING ->
+            stringResource(R.string.chat_voice_recording_hint)
+
+        ChatViewModel.ChatUiState.VoiceInputPhase.IDLE ->
+            stringResource(R.string.chat_input_hint)
+    }
     Surface(color = MaterialTheme.colorScheme.surface, shadowElevation = 8.dp) {
         Row(
             modifier = Modifier
@@ -704,17 +710,31 @@ private fun ChatInputBar(
                 value = value,
                 onValueChange = onValueChange,
                 modifier = Modifier.weight(1f),
-                placeholder = { Text(stringResource(R.string.chat_input_hint)) },
+                placeholder = { Text(placeholderText) },
                 maxLines = 4,
                 shape = MoshiShapeLarge,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                 keyboardActions = KeyboardActions(onSend = { if (canSend) onSendClick() })
             )
-            IconButton(onClick = {}, enabled = !isGenerating) {
-                Icon(
-                    imageVector = Icons.Outlined.Mic,
-                    contentDescription = stringResource(R.string.chat_voice_input)
-                )
+            if (voicePhase == ChatViewModel.ChatUiState.VoiceInputPhase.RECORDING) {
+                IconButton(onClick = onMicClick) {
+                    Icon(
+                        imageVector = Icons.Outlined.Stop,
+                        contentDescription = stringResource(R.string.voice_stop_record),
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                }
+            } else {
+                IconButton(
+                    onClick = onMicClick,
+                    enabled = !isGenerating &&
+                        voicePhase == ChatViewModel.ChatUiState.VoiceInputPhase.IDLE
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Mic,
+                        contentDescription = stringResource(R.string.chat_voice_input)
+                    )
+                }
             }
             if (isGenerating) {
                 Surface(

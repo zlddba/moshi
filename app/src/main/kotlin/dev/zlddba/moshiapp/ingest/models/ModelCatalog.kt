@@ -6,6 +6,7 @@ object ModelCatalog {
     const val QWEN = "qwen3_06b"
     const val GECKO = "gecko_110m"
     const val SENSE_VOICE = "sense_voice"
+    const val STREAM_ASR = "stream_asr"
 
     val LLM_IDS = listOf(GEMMA, QWEN)
 
@@ -75,7 +76,7 @@ object ModelCatalog {
                 ModelFile(
                     name = "model.int8.onnx",
                     bytes = 239_233_841L,
-                    sha256 = "c71f0ce00bec95b07744e116345e33d8cbbe08cef896382cf907bf4b51a2cd51"
+                    sha256 = null
                 ),
                 ModelFile(
                     name = "tokens.txt",
@@ -86,6 +87,35 @@ object ModelCatalog {
             urlPrefixes = listOf(
                 "https://hf-mirror.com/csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17/resolve/main",
                 "https://huggingface.co/csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17/resolve/main"
+            )
+        ),
+        Descriptor(
+            id = STREAM_ASR,
+            files = listOf(
+                ModelFile(
+                    name = "encoder-epoch-99-avg-1.int8.onnx",
+                    bytes = 21_621_684L,
+                    sha256 = "1c556ea57cec304e55ec4b72e52c1cc098bb01476ed7d90f3de939fe126487b1"
+                ),
+                ModelFile(
+                    name = "decoder-epoch-99-avg-1.int8.onnx",
+                    bytes = 1_888_682L,
+                    sha256 = "22f123bb8cba9b38974b3df18a3f45e7081f4985ebb2e075d9f21f618c468bbf"
+                ),
+                ModelFile(
+                    name = "joiner-epoch-99-avg-1.int8.onnx",
+                    bytes = 1_795_562L,
+                    sha256 = "a7cf9d82757bdcf786059454495a9ca95e4bd7347f72473fc08d794475c36169"
+                ),
+                ModelFile(
+                    name = "tokens.txt",
+                    bytes = 48_697L,
+                    sha256 = null
+                )
+            ),
+            urlPrefixes = listOf(
+                "https://hf-mirror.com/csukuangfj/sherpa-onnx-streaming-zipformer-zh-14M-2023-02-23/resolve/main",
+                "https://huggingface.co/csukuangfj/sherpa-onnx-streaming-zipformer-zh-14M-2023-02-23/resolve/main"
             )
         )
     )
