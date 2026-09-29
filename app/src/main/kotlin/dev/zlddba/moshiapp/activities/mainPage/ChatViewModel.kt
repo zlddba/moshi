@@ -1,7 +1,10 @@
 package dev.zlddba.moshiapp.activities.mainPage
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
 import android.util.Log
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.zlddba.moshiapp.R
@@ -15,6 +18,8 @@ import dev.zlddba.moshiapp.domain.qa.QaOrchestrator
 import dev.zlddba.moshiapp.domain.retrieve.RetrieveService
 import dev.zlddba.moshiapp.engine.local.BackendKind
 import dev.zlddba.moshiapp.engine.local.LiteRtLlmEngine
+import dev.zlddba.moshiapp.ingest.vision.StreamAsrModelManager
+import dev.zlddba.moshiapp.ingest.vision.StreamingSpeechRecognizer
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -39,9 +44,13 @@ class ChatViewModel(context: Context) : ViewModel() {
         val streamingText: String = "",
         val streamingThinking: String = "",
         val isGenerating: Boolean = false,
-        val modelMissing: Boolean = false
+        val modelMissing: Boolean = false,
+        val draft: String = "",
+        val voicePhase: VoiceInputPhase = VoiceInputPhase.IDLE
     ) {
         enum class Role { USER, ASSISTANT, REFUSAL }
+
+        enum class VoiceInputPhase { IDLE, RECORDING }
 
         data class ChatMessage(
             val role: Role,
@@ -68,6 +77,9 @@ class ChatViewModel(context: Context) : ViewModel() {
         data object DownloadModel : ChatEvent
         data class BackendSelected(val kind: BackendKind) : ChatEvent
         data class SourceClick(val source: ChatUiState.ChatSource) : ChatEvent
+        data object VoiceInput : ChatEvent
+        data class PermissionResult(val granted: Boolean) : ChatEvent
+        data class DraftChanged(val text: String) : ChatEvent
     }
 
     sealed interface ChatEffect {
@@ -79,6 +91,7 @@ class ChatViewModel(context: Context) : ViewModel() {
 
         data object OpenModelPage : ChatEffect
         data class ShowToast(val messageRes: Int) : ChatEffect
+        data object RequestAudioPermission : ChatEffect
     }
 
     private val appContext = context.applicationContext
@@ -96,6 +109,12 @@ class ChatViewModel(context: Context) : ViewModel() {
     private val commitLock = Any()
     private var generationJob: Job? = null
     private var warmedUp = false
+    private var streamingAsr: StreamingSpeechRecognizer? = null
+    private var voiceBase = ""
+    private var voiceTimerJob: Job? = null
+
+    @Volatile
+    private var voiceText = ""
 
     private sealed interface PersistOp {
         data object Load : PersistOp
@@ -150,6 +169,17 @@ class ChatViewModel(context: Context) : ViewModel() {
                     keyword = lastQuestion()
                 )
             )
+
+            ChatEvent.VoiceInput -> toggleVoiceInput()
+            is ChatEvent.PermissionResult -> {
+                if (event.granted) {
+                    startVoiceRecording()
+                } else {
+                    sendEffect(ChatEffect.ShowToast(R.string.voice_permission_denied))
+                }
+            }
+
+            is ChatEvent.DraftChanged -> _uiState.update { it.copy(draft = event.text) }
         }
     }
 
@@ -185,6 +215,7 @@ class ChatViewModel(context: Context) : ViewModel() {
         synchronized(streamBuffer) { streamBuffer.setLength(0) }
         _uiState.update {
             it.copy(
+                draft = "",
                 isGenerating = true,
                 streamingText = "",
                 streamingThinking = "",
@@ -302,6 +333,85 @@ class ChatViewModel(context: Context) : ViewModel() {
             _uiState.update {
                 it.copy(isGenerating = false, streamingText = "", streamingThinking = "")
             }
+        }
+    }
+
+    private fun toggleVoiceInput() {
+        when (_uiState.value.voicePhase) {
+            ChatUiState.VoiceInputPhase.IDLE -> beginVoiceInput()
+            ChatUiState.VoiceInputPhase.RECORDING -> stopVoiceRecording()
+        }
+    }
+
+    private fun beginVoiceInput() {
+        if (_uiState.value.isGenerating) return
+        if (!StreamAsrModelManager.isReady(appContext)) {
+            sendEffect(ChatEffect.ShowToast(R.string.chat_voice_model_missing))
+            sendEffect(ChatEffect.OpenModelPage)
+            return
+        }
+        val granted = ContextCompat.checkSelfPermission(
+            appContext,
+            Manifest.permission.RECORD_AUDIO
+        ) == PackageManager.PERMISSION_GRANTED
+        if (granted) {
+            startVoiceRecording()
+        } else {
+            sendEffect(ChatEffect.RequestAudioPermission)
+        }
+    }
+
+    private fun startVoiceRecording() {
+        if (_uiState.value.voicePhase != ChatUiState.VoiceInputPhase.IDLE) return
+        val recognizer = streamingAsr ?: StreamingSpeechRecognizer(
+            StreamAsrModelManager.encoderFile(appContext),
+            StreamAsrModelManager.decoderFile(appContext),
+            StreamAsrModelManager.joinerFile(appContext),
+            StreamAsrModelManager.tokensFile(appContext)
+        ).also { streamingAsr = it }
+        voiceBase = _uiState.value.draft
+        voiceText = ""
+        val started = recognizer.start(
+            onPartial = { text -> publishVoiceText(text) },
+            onError = { handleVoiceError() }
+        )
+        if (!started) {
+            sendEffect(ChatEffect.ShowToast(R.string.voice_record_fail))
+            return
+        }
+        _uiState.update { it.copy(voicePhase = ChatUiState.VoiceInputPhase.RECORDING) }
+        voiceTimerJob = viewModelScope.launch {
+            delay(VOICE_MAX_RECORD_MS)
+            stopVoiceRecording()
+        }
+    }
+
+    private fun publishVoiceText(text: String) {
+        voiceText = text
+        val base = voiceBase
+        val merged = when {
+            text.isBlank() -> base
+            base.isBlank() -> text
+            else -> base.trimEnd() + " " + text
+        }
+        _uiState.update { it.copy(draft = merged) }
+    }
+
+    private fun handleVoiceError() {
+        voiceTimerJob?.cancel()
+        voiceTimerJob = null
+        _uiState.update { it.copy(voicePhase = ChatUiState.VoiceInputPhase.IDLE) }
+        sendEffect(ChatEffect.ShowToast(R.string.voice_engine_fail))
+    }
+
+    private fun stopVoiceRecording() {
+        if (_uiState.value.voicePhase != ChatUiState.VoiceInputPhase.RECORDING) return
+        voiceTimerJob?.cancel()
+        voiceTimerJob = null
+        streamingAsr?.stop()
+        _uiState.update { it.copy(voicePhase = ChatUiState.VoiceInputPhase.IDLE) }
+        if (voiceText.isBlank()) {
+            sendEffect(ChatEffect.ShowToast(R.string.chat_voice_empty))
         }
     }
 
@@ -443,10 +553,17 @@ class ChatViewModel(context: Context) : ViewModel() {
         }
     }
 
+    override fun onCleared() {
+        voiceTimerJob?.cancel()
+        streamingAsr?.release()
+        streamingAsr = null
+    }
+
     private companion object {
         const val TAG = "ChatViewModel"
         const val STREAM_TICK_MS = 60L
         const val HISTORY_LOAD = 200
         const val HISTORY_KEEP = 500
+        const val VOICE_MAX_RECORD_MS = 30_000L
     }
 }

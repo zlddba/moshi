@@ -33,6 +33,7 @@ class ModelViewModel(context: Context) : ViewModel() {
         val qwen: ModelCardState = ModelCardState(),
         val gecko: ModelCardState = ModelCardState(),
         val asr: ModelCardState = ModelCardState(),
+        val streamAsr: ModelCardState = ModelCardState(),
         val currentLlm: String = ModelCatalog.GEMMA
     )
 
@@ -72,6 +73,7 @@ class ModelViewModel(context: Context) : ViewModel() {
         qwen = cardStateOf(ModelCatalog.QWEN),
         gecko = cardStateOf(ModelCatalog.GECKO),
         asr = cardStateOf(ModelCatalog.SENSE_VOICE),
+        streamAsr = cardStateOf(ModelCatalog.STREAM_ASR),
         currentLlm = modelPrefs.currentLlm()
     )
 
@@ -181,6 +183,7 @@ class ModelViewModel(context: Context) : ViewModel() {
         ModelCatalog.GEMMA -> R.string.model_name_gemma
         ModelCatalog.QWEN -> R.string.model_name_qwen
         ModelCatalog.GECKO -> R.string.model_name_embed
+        ModelCatalog.STREAM_ASR -> R.string.model_name_stream_asr
         else -> R.string.model_name_asr
     }
 
@@ -188,6 +191,7 @@ class ModelViewModel(context: Context) : ViewModel() {
         ModelCatalog.GEMMA -> gemma
         ModelCatalog.QWEN -> qwen
         ModelCatalog.GECKO -> gecko
+        ModelCatalog.STREAM_ASR -> streamAsr
         else -> asr
     }
 
@@ -195,6 +199,7 @@ class ModelViewModel(context: Context) : ViewModel() {
         ModelCatalog.GEMMA -> copy(gemma = card)
         ModelCatalog.QWEN -> copy(qwen = card)
         ModelCatalog.GECKO -> copy(gecko = card)
+        ModelCatalog.STREAM_ASR -> copy(streamAsr = card)
         else -> copy(asr = card)
     }
 
