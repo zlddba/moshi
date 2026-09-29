@@ -26,7 +26,8 @@ object VectorStoreClient {
 
     data class VecHit(
         val chunkId: Int,
-        val noteId: String
+        val noteId: String,
+        val similarity: Float
     )
 
     sealed interface InsertOutcome {
@@ -128,7 +129,8 @@ object VectorStoreClient {
                             ?: return@mapNotNull null
                         val noteId = metadata["note_id"] as? String
                             ?: return@mapNotNull null
-                        VecHit(chunkId, noteId)
+                        val similarity = metadataSimilarity(metadata["temp_similarity_score"])
+                        VecHit(chunkId, noteId, similarity)
                     }
                     Log.i(TAG, "search hits=${found.size} k=$k dim=${query.size}")
                     found
@@ -146,6 +148,12 @@ object VectorStoreClient {
         is Number -> value.toInt()
         is String -> value.toIntOrNull()
         else -> null
+    }
+
+    private fun metadataSimilarity(value: Any?): Float = when (value) {
+        is Number -> value.toFloat()
+        is String -> value.toFloatOrNull() ?: 0f
+        else -> 0f
     }
 
     private fun openLocked(context: Context, dim: Int): OpenResult {

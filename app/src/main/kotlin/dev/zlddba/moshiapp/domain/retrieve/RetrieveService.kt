@@ -13,6 +13,8 @@ object RetrieveService {
     const val VEC_RECALL_K = 20
     const val KW_RECALL_K = 20
     const val RELEVANCE_THRESHOLD = 0.35f
+    const val VEC_SIM_MIN = 0.5f
+    const val RELATIVE_RATIO = 0.8f
 
     private const val TAG = "RetrieveService"
     private const val RRF_K = 60
@@ -35,7 +37,12 @@ object RetrieveService {
         Log.i(TAG, "recall vec=${vecIds.size} kw=${kwIds.size} query=$query")
         if (vecIds.isEmpty() && kwIds.isEmpty()) return emptyList()
         val fused = fuse(vecIds, kwIds, topK)
-        Log.i(TAG, "fused=${fused.size} scores=${fused.map { it.second }}")
+        val topScore = fused.maxOfOrNull { it.second } ?: 0f
+        Log.i(
+            TAG,
+            "fused=${fused.size} scores=${fused.map { it.second }} " +
+                "top=$topScore gate=${maxOf(RELEVANCE_THRESHOLD, RELATIVE_RATIO * topScore)}"
+        )
         if (fused.isEmpty()) return emptyList()
         val chunkDao = MoshiDatabase.get(appContext).chunkDao()
         val noteDao = MoshiDatabase.get(appContext).noteDao()
@@ -62,9 +69,14 @@ object RetrieveService {
 
     internal suspend fun recallVector(context: Context, query: String): List<Int> {
         val vector = GeckoEmbedding.embedQuery(context, query) ?: return emptyList()
-        return VectorStoreClient.search(context, vector, VEC_RECALL_K)
-            .map { it.chunkId }
-            .distinct()
+        val hits = VectorStoreClient.search(context, vector, VEC_RECALL_K)
+        val kept = hits.filter { it.similarity >= VEC_SIM_MIN }
+        Log.i(
+            TAG,
+            "vec gate kept=${kept.size}/${hits.size} simMin=$VEC_SIM_MIN " +
+                "sims=${hits.map { it.similarity }}"
+        )
+        return kept.map { it.chunkId }.distinct()
     }
 
     internal suspend fun recallKeyword(context: Context, query: String): List<Int> {
@@ -77,10 +89,14 @@ object RetrieveService {
         val scores = HashMap<Int, Float>()
         accumulate(scores, vecIds)
         accumulate(scores, kwIds)
+        if (scores.isEmpty()) return emptyList()
         val maxRaw = 2f / (RRF_K + 1)
-        return scores.entries
+        val normalized = scores.entries
             .map { entry -> entry.key to (entry.value / maxRaw) }
-            .filter { it.second >= RELEVANCE_THRESHOLD }
+        val top = normalized.maxOf { it.second }
+        val gate = maxOf(RELEVANCE_THRESHOLD, RELATIVE_RATIO * top)
+        return normalized
+            .filter { it.second >= gate }
             .sortedByDescending { it.second }
             .take(topK)
     }
