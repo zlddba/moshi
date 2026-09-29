@@ -127,6 +127,15 @@ fun MainPageScreen(modifier: Modifier = Modifier) {
         }
     )
     val chatUiState by chatViewModel.uiState.collectAsState()
+    val homeViewModel: MainHomeViewModel = viewModel(
+        factory = object : ViewModelProvider.Factory {
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                @Suppress("UNCHECKED_CAST")
+                return MainHomeViewModel(context) as T
+            }
+        }
+    )
+    val homeUiState by homeViewModel.uiState.collectAsState()
     LaunchedEffect(Unit) {
         chatViewModel.onEvent(ChatViewModel.ChatEvent.Init)
         chatViewModel.effects.collect { effect ->
@@ -153,6 +162,7 @@ fun MainPageScreen(modifier: Modifier = Modifier) {
     LaunchedEffect(selectedTab) {
         engineMode = cloudPrefs.load().mode
         chatViewModel.onEvent(ChatViewModel.ChatEvent.RefreshCloud)
+        homeViewModel.refresh()
     }
     val lifecycleOwner = context as? LifecycleOwner
     if (lifecycleOwner != null) {
@@ -161,6 +171,7 @@ fun MainPageScreen(modifier: Modifier = Modifier) {
                 if (event == Lifecycle.Event.ON_RESUME) {
                     engineMode = cloudPrefs.load().mode
                     chatViewModel.onEvent(ChatViewModel.ChatEvent.RefreshCloud)
+                    homeViewModel.refresh()
                 }
             }
             lifecycleOwner.lifecycle.addObserver(observer)
@@ -279,7 +290,18 @@ fun MainPageScreen(modifier: Modifier = Modifier) {
             }
             when (selectedTab) {
                 0 -> MainHomeScreen(
-                    onNoteClick = { DetailActivity.start(context) },
+                    uiState = homeUiState,
+                    onEvent = homeViewModel::onEvent,
+                    onNoteClick = { noteId ->
+                        context.startActivity(
+                            DetailActivity.createIntent(
+                                context = context,
+                                noteId = noteId,
+                                chunkId = -1,
+                                keyword = null
+                            )
+                        )
+                    },
                     onSearchSubmit = { query -> SearchActivity.start(context, query) },
                     isCloudEngine = chatUiState.isCloudEngine
                 )
