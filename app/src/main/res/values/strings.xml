@@ -163,6 +163,7 @@
     <string name="mine_about_version">版本</string>
     <string name="mine_about_license">开源许可</string>
     <string name="mine_about_privacy">隐私政策</string>
+    <string name="mine_about_help">使用帮助</string>
 
     <!-- 知识详情页 -->
     <string name="detail_title">知识详情</string>
@@ -295,6 +296,11 @@
     <string name="license_full_epl">EPL-2.0（第三方 · JUnit Jupiter）</string>
     <string name="license_link_hint">点击条目将跳转浏览器打开官方许可原文，应用内不保存全文。</string>
     <string name="license_open">在浏览器打开</string>
+
+    <!-- 使用帮助页 -->
+    <string name="help_title">使用帮助</string>
+    <string name="help_back">返回</string>
+    <string name="help_missing">帮助内容暂时无法加载。</string>
 
     <!-- 隐私政策页 -->
     <string name="policy_title">隐私政策</string>

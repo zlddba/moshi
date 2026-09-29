@@ -59,6 +59,7 @@ fun MainSettingsScreen(
     onStorage: () -> Unit,
     onLicense: () -> Unit,
     onPolicy: () -> Unit,
+    onHelp: () -> Unit,
     onPlaceholder: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -153,6 +154,12 @@ fun MainSettingsScreen(
         Spacer(modifier = Modifier.height(16.dp))
         MineGroupTitle(titleRes = R.string.mine_group_about)
         MineGroup {
+            MineActionRow(
+                titleRes = R.string.mine_about_help,
+                icon = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
+                showIcon = false,
+                onClick = onHelp
+            )
             MineActionRow(
                 titleRes = R.string.mine_about_version,
                 icon = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
@@ -384,6 +391,7 @@ private fun MainSettingsScreenPreview() {
             onStorage = {},
             onLicense = {},
             onPolicy = {},
+            onHelp = {},
             onPlaceholder = {}
         )
     }
