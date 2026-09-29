@@ -60,12 +60,13 @@ fun MainSettingsScreen(
     onLicense: () -> Unit,
     onPolicy: () -> Unit,
     onHelp: () -> Unit,
+    telemetry: Boolean,
+    onTelemetryChange: (Boolean) -> Unit,
     onPlaceholder: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var forceLocal by rememberSaveable { mutableStateOf(true) }
     var encrypt by rememberSaveable { mutableStateOf(false) }
-    var telemetry by rememberSaveable { mutableStateOf(false) }
 
     Column(
         modifier = modifier
@@ -118,7 +119,7 @@ fun MainSettingsScreen(
             MineSwitchRow(
                 titleRes = R.string.mine_privacy_telemetry,
                 checked = telemetry,
-                onCheckedChange = { telemetry = it }
+                onCheckedChange = onTelemetryChange
             )
             MineActionRow(
                 titleRes = R.string.mine_privacy_entry,
@@ -392,6 +393,8 @@ private fun MainSettingsScreenPreview() {
             onLicense = {},
             onPolicy = {},
             onHelp = {},
+            telemetry = true,
+            onTelemetryChange = {},
             onPlaceholder = {}
         )
     }
