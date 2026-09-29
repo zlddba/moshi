@@ -79,6 +79,7 @@ data class DetailUiState(
     )
 
     data class RelatedNote(
+        val noteId: String = "",
         val title: String,
         val score: String
     )
@@ -116,7 +117,7 @@ fun sampleDetailUiState(context: Context): DetailUiState = DetailUiState(
 fun DetailPageScreen(
     uiState: DetailUiState,
     onBack: () -> Unit,
-    onRelatedClick: () -> Unit = {},
+    onRelatedClick: (String) -> Unit = {},
     onToggleSensitive: () -> Unit = {},
     onDelete: () -> Unit = {},
     modifier: Modifier = Modifier
@@ -504,7 +505,7 @@ private fun DetailTagSection(tags: List<String>) {
 @Composable
 private fun DetailRelatedSection(
     related: List<DetailUiState.RelatedNote>,
-    onRelatedClick: () -> Unit
+    onRelatedClick: (String) -> Unit
 ) {
     Column {
         Text(
@@ -517,7 +518,7 @@ private fun DetailRelatedSection(
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             related.forEach { note ->
                 Surface(
-                    onClick = onRelatedClick,
+                    onClick = { onRelatedClick(note.noteId) },
                     shape = MoshiShapeSmall,
                     color = MaterialTheme.colorScheme.surface,
                     border = BorderStroke(

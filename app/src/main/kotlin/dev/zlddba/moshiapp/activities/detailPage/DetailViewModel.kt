@@ -8,6 +8,7 @@ import dev.zlddba.moshiapp.data.db.ChunkEntity
 import dev.zlddba.moshiapp.data.db.MoshiDatabase
 import dev.zlddba.moshiapp.data.db.NoteEntity
 import dev.zlddba.moshiapp.data.repo.IngestRepository
+import dev.zlddba.moshiapp.domain.retrieve.RetrieveService
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -87,6 +88,34 @@ class DetailViewModel(context: Context) : ViewModel() {
                 database.chunkDao().byNote(noteId)
             }
             _uiState.update { buildState(note, chunks, event) }
+            loadRelated(note, chunks)
+        }
+    }
+
+    private fun loadRelated(note: NoteEntity, chunks: List<ChunkEntity>) {
+        val queryText = note.content
+            .ifBlank { chunks.joinToString(separator = "\n") { it.text } }
+            .take(RELATED_QUERY_CHARS)
+        if (queryText.isBlank()) return
+        viewModelScope.launch {
+            val related = withContext(Dispatchers.IO) {
+                RetrieveService.relatedNotes(appContext, note.id, queryText)
+            }
+            if (related.isEmpty()) return@launch
+            _uiState.update { state ->
+                state.copy(
+                    related = related.map { item ->
+                        DetailUiState.RelatedNote(
+                            noteId = item.noteId,
+                            title = item.title,
+                            score = appContext.getString(
+                                R.string.detail_related_score_fmt,
+                                (item.similarity * 100).toInt().coerceIn(0, 100)
+                            )
+                        )
+                    }
+                )
+            }
         }
     }
 
@@ -135,4 +164,8 @@ class DetailViewModel(context: Context) : ViewModel() {
 
     private fun formatTime(timestamp: Long): String =
         SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.CHINA).format(Date(timestamp))
+
+    companion object {
+        private const val RELATED_QUERY_CHARS = 1200
+    }
 }
