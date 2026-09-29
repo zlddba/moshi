@@ -63,6 +63,16 @@ class DetailActivity : ComponentActivity() {
                 DetailPageScreen(
                     uiState = uiState,
                     onBack = { finish() },
+                    onRelatedClick = { noteId ->
+                        startActivity(
+                            createIntent(
+                                context = this@DetailActivity,
+                                noteId = noteId,
+                                chunkId = -1,
+                                keyword = null
+                            )
+                        )
+                    },
                     onToggleSensitive = {
                         viewModel.onEvent(DetailViewModel.DetailEvent.ToggleSensitive)
                     },

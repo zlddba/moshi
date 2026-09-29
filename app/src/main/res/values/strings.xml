@@ -184,6 +184,7 @@
     <string name="detail_related_2">LiteRT-LM 部署踩坑</string>
     <string name="detail_related_score_1">相似度 92%</string>
     <string name="detail_related_score_2">相似度 87%</string>
+    <string name="detail_related_score_fmt">相似度 %1$d%%</string>
     <string name="detail_delete">删除</string>
     <string name="detail_delete_confirm">确定删除这条知识吗？删除后不可恢复。</string>
     <string name="detail_deleted">已删除</string>

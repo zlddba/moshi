@@ -16,6 +16,8 @@ object RetrieveService {
     const val RELEVANCE_THRESHOLD = 0.35f
     const val VEC_SIM_MIN = 0.5f
     const val RELATIVE_RATIO = 0.8f
+    const val RELATED_TOP_K = 3
+    const val RELATED_RECALL_K = 24
 
     private const val TAG = "RetrieveService"
     private const val RRF_K = 60
@@ -29,6 +31,12 @@ object RetrieveService {
         val score: Float,
         val isSensitive: Boolean = false,
         val isBuiltIn: Boolean = false
+    )
+
+    data class RelatedNote(
+        val noteId: String,
+        val title: String,
+        val similarity: Float
     )
 
     suspend fun retrieve(context: Context, question: String, topK: Int = TOP_K): List<Hit> {
@@ -69,6 +77,39 @@ object RetrieveService {
             )
         }
         return hits
+    }
+
+    suspend fun relatedNotes(
+        context: Context,
+        noteId: String,
+        queryText: String,
+        topK: Int = RELATED_TOP_K
+    ): List<RelatedNote> {
+        val query = queryText.trim()
+        if (query.isEmpty() || noteId.isEmpty() || topK <= 0) return emptyList()
+        val appContext = context.applicationContext
+        val vector = GeckoEmbedding.embedQuery(appContext, query) ?: return emptyList()
+        val hits = VectorStoreClient.search(appContext, vector, RELATED_RECALL_K)
+        if (hits.isEmpty()) return emptyList()
+        val best = HashMap<String, Float>()
+        for (hit in hits) {
+            if (hit.noteId == noteId) continue
+            val previous = best[hit.noteId]
+            if (previous == null || hit.similarity > previous) {
+                best[hit.noteId] = hit.similarity
+            }
+        }
+        if (best.isEmpty()) return emptyList()
+        val noteDao = MoshiDatabase.get(appContext).noteDao()
+        val related = best.mapNotNull { (otherId, similarity) ->
+            val note = noteDao.byId(otherId) ?: return@mapNotNull null
+            if (note.isBuiltIn) return@mapNotNull null
+            RelatedNote(noteId = note.id, title = note.title, similarity = similarity)
+        }
+            .sortedByDescending { it.similarity }
+            .take(topK)
+        Log.i(TAG, "relatedNotes note=$noteId hits=${hits.size} kept=${related.size}")
+        return related
     }
 
     internal suspend fun recallVector(context: Context, query: String): List<Int> {
