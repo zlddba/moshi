@@ -50,6 +50,16 @@ object KeywordIndex {
         }
     }
 
+    fun clearAll(context: Context) {
+        val db = open(context) ?: return
+        for (table in listOf(FTS_TABLE, PLAIN_TABLE)) {
+            try {
+                db.execSQL("DELETE FROM $table")
+            } catch (e: Throwable) {
+            }
+        }
+    }
+
     fun insertChunks(context: Context, chunks: List<ChunkEntity>) {
         if (chunks.isEmpty()) return
         val db = open(context) ?: return

@@ -49,6 +49,11 @@ class MainHomeViewModel(context: Context) : ViewModel() {
                 refresh()
             }
         }
+        viewModelScope.launch {
+            IngestRepository.libraryCleared.collect {
+                refresh()
+            }
+        }
     }
 
     fun onEvent(event: HomeEvent) {

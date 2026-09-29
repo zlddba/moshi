@@ -86,6 +86,7 @@ import dev.zlddba.moshiapp.MoshiApplication
 import dev.zlddba.moshiapp.data.prefs.CloudConfigPrefs
 import dev.zlddba.moshiapp.data.prefs.TelemetryPrefs
 import dev.zlddba.moshiapp.data.repo.IngestRepository
+import dev.zlddba.moshiapp.domain.utils.AppInfoHelper
 import dev.zlddba.moshiapp.ingest.parse.IngestException
 import dev.zlddba.moshiapp.ui.IngestMessages
 import dev.zlddba.moshiapp.ui.theme.MoshiShapeMedium
@@ -123,7 +124,9 @@ fun MainPageScreen(modifier: Modifier = Modifier) {
     val cloudPrefs = remember { CloudConfigPrefs(context) }
     val telemetryPrefs = remember { TelemetryPrefs(context) }
     var engineMode by rememberSaveable { mutableIntStateOf(cloudPrefs.load().mode) }
+    var forceLocalEnabled by rememberSaveable { mutableStateOf(cloudPrefs.load().forceLocal) }
     var telemetryEnabled by rememberSaveable { mutableStateOf(telemetryPrefs.isEnabled()) }
+    val versionName = remember(context) { AppInfoHelper.getAppVersionName(context) }
     val chatViewModel: ChatViewModel = viewModel(
         factory = object : ViewModelProvider.Factory {
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -178,6 +181,7 @@ fun MainPageScreen(modifier: Modifier = Modifier) {
     }
     LaunchedEffect(selectedTab) {
         engineMode = cloudPrefs.load().mode
+        forceLocalEnabled = cloudPrefs.load().forceLocal
         chatViewModel.onEvent(ChatViewModel.ChatEvent.RefreshCloud)
         homeViewModel.refresh()
     }
@@ -187,6 +191,7 @@ fun MainPageScreen(modifier: Modifier = Modifier) {
             val observer = LifecycleEventObserver { _, event ->
                 if (event == Lifecycle.Event.ON_RESUME) {
                     engineMode = cloudPrefs.load().mode
+                    forceLocalEnabled = cloudPrefs.load().forceLocal
                     chatViewModel.onEvent(ChatViewModel.ChatEvent.RefreshCloud)
                     homeViewModel.refresh()
                 }
@@ -195,11 +200,28 @@ fun MainPageScreen(modifier: Modifier = Modifier) {
             onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
         }
     }
-    val showComingSoon = {
-        Toast.makeText(context, R.string.capture_coming_soon, Toast.LENGTH_SHORT).show()
-    }
     var importStage by remember { mutableStateOf<IngestRepository.Stage?>(null) }
     val importScope = rememberCoroutineScope()
+    val exportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
+        if (uri != null) {
+            importScope.launch {
+                try {
+                    val count = IngestRepository.exportJson(context, uri)
+                    Toast.makeText(
+                        context,
+                        context.getString(R.string.storage_export_success, count),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    Toast.makeText(context, R.string.storage_export_failed, Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
     val filePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri ->
@@ -356,7 +378,34 @@ fun MainPageScreen(modifier: Modifier = Modifier) {
                         telemetryEnabled = enabled
                         (context.applicationContext as MoshiApplication).applyTelemetry(enabled)
                     },
-                    onPlaceholder = showComingSoon
+                    forceLocal = forceLocalEnabled,
+                    onForceLocalChange = { enabled ->
+                        forceLocalEnabled = enabled
+                        cloudPrefs.save(cloudPrefs.load().copy(forceLocal = enabled))
+                        chatViewModel.onEvent(ChatViewModel.ChatEvent.RefreshCloud)
+                    },
+                    versionName = versionName,
+                    onExport = { exportLauncher.launch(IngestRepository.exportSuggestionName()) },
+                    onClearConfirmed = {
+                        importScope.launch {
+                            try {
+                                IngestRepository.clearAll(context)
+                                Toast.makeText(
+                                    context,
+                                    R.string.storage_clear_success,
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            } catch (e: CancellationException) {
+                                throw e
+                            } catch (e: Exception) {
+                                Toast.makeText(
+                                    context,
+                                    R.string.storage_clear_failed,
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        }
+                    }
                 )
             }
         }

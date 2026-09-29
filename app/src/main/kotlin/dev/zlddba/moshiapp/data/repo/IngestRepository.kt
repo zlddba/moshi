@@ -15,12 +15,17 @@ import dev.zlddba.moshiapp.ingest.parse.ParsedDoc
 import dev.zlddba.moshiapp.ingest.parse.ParserRegistry
 import java.io.File
 import java.io.IOException
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import java.util.UUID
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.withContext
+import org.json.JSONArray
+import org.json.JSONObject
 
 object IngestRepository {
 
@@ -31,6 +36,9 @@ object IngestRepository {
 
     private val _deletedNotes = MutableSharedFlow<String>(extraBufferCapacity = 8)
     val deletedNotes: SharedFlow<String> = _deletedNotes.asSharedFlow()
+
+    private val _libraryCleared = MutableSharedFlow<Unit>(extraBufferCapacity = 2)
+    val libraryCleared: SharedFlow<Unit> = _libraryCleared.asSharedFlow()
 
     sealed interface Stage {
         data object Parsing : Stage
@@ -145,6 +153,73 @@ object IngestRepository {
         } catch (e: Throwable) {
         }
     }
+
+    suspend fun clearAll(context: Context) {
+        withContext(Dispatchers.IO) {
+            val appContext = context.applicationContext
+            val database = MoshiDatabase.get(appContext)
+            database.withWriteTransaction {
+                database.chunkDao().deleteAll()
+                database.noteDao().deleteAll()
+            }
+            KeywordIndex.clearAll(appContext)
+            VectorStoreClient.clearAll(appContext)
+            deleteStoredSources(appContext)
+            _libraryCleared.tryEmit(Unit)
+            HelpSeeder.start(appContext)
+        }
+    }
+
+    private fun deleteStoredSources(context: Context) {
+        try {
+            val notesDir = File(context.filesDir, "notes")
+            notesDir.listFiles()?.forEach { file ->
+                if (file.isFile) file.delete()
+            }
+        } catch (e: Throwable) {
+        }
+    }
+
+    suspend fun exportJson(context: Context, uri: Uri): Int = withContext(Dispatchers.IO) {
+        val appContext = context.applicationContext
+        val database = MoshiDatabase.get(appContext)
+        val notes = database.noteDao().recentAll().filterNot { it.isBuiltIn }
+        val root = JSONObject()
+        root.put("app", "moshi")
+        root.put("format", 1)
+        root.put("exported_at", System.currentTimeMillis())
+        val noteArray = JSONArray()
+        for (note in notes) {
+            val noteObj = JSONObject()
+            noteObj.put("id", note.id)
+            noteObj.put("type", note.type)
+            noteObj.put("title", note.title)
+            noteObj.put("content", note.content)
+            noteObj.put("created_at", note.createdAt)
+            note.sourceNote?.let { noteObj.put("source_note", it) }
+            val chunkArray = JSONArray()
+            for (chunk in database.chunkDao().byNote(note.id)) {
+                val chunkObj = JSONObject()
+                chunkObj.put("seq", chunk.seq)
+                chunkObj.put("text", chunk.text)
+                chunk.pageNo?.let { chunkObj.put("page_no", it) }
+                chunkArray.put(chunkObj)
+            }
+            noteObj.put("chunks", chunkArray)
+            noteArray.put(noteObj)
+        }
+        root.put("notes", noteArray)
+        val output = appContext.contentResolver.openOutputStream(uri, "wt")
+            ?: appContext.contentResolver.openOutputStream(uri)
+            ?: throw IOException()
+        output.use { sink ->
+            sink.write(root.toString(2).toByteArray(Charsets.UTF_8))
+        }
+        notes.size
+    }
+
+    fun exportSuggestionName(): String =
+        "moshi-backup-" + SimpleDateFormat("yyyyMMdd-HHmm", Locale.US).format(Date()) + ".json"
 
     private fun sourceFormatOf(type: String): String = when (type) {
         NoteEntity.TYPE_AUDIO -> "wav"

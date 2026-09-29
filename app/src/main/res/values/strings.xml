@@ -112,7 +112,6 @@
     <string name="capture_ocr_no_camera">未找到可用相机</string>
     <string name="capture_voice_title">语音输入</string>
     <string name="capture_voice_desc">说话转成文字入库</string>
-    <string name="capture_coming_soon">该功能稍后开放</string>
     <string name="capture_file_picked">已选择文件：%s</string>
     <string name="capture_file_importing">正在导入…</string>
     <string name="capture_import_parsing">解析文档</string>
@@ -339,16 +338,23 @@
     <string name="storage_back">返回</string>
     <string name="storage_stats_label">存储统计</string>
     <string name="storage_stat_notes">知识条目</string>
-    <string name="storage_stat_notes_value">128 条</string>
+    <string name="storage_stat_notes_value">%1$d 条</string>
     <string name="storage_stat_chunks">向量分块</string>
-    <string name="storage_stat_chunks_value">1,024 个</string>
+    <string name="storage_stat_chunks_value">%1$d 个</string>
     <string name="storage_stat_size">占用空间</string>
-    <string name="storage_stat_size_value">3.6 MB</string>
+    <string name="storage_size_b">%1$s B</string>
+    <string name="storage_size_kb">%1$s KB</string>
+    <string name="storage_size_mb">%1$s MB</string>
+    <string name="storage_size_gb">%1$s GB</string>
     <string name="storage_export">导出备份</string>
     <string name="storage_export_desc">导出为 JSON 文件，仅保存在本机</string>
+    <string name="storage_export_success">已导出 %1$d 条知识</string>
+    <string name="storage_export_failed">导出失败，请重试</string>
     <string name="storage_clear">一键清空</string>
     <string name="storage_clear_desc">删除全部知识、分块与问答记录</string>
     <string name="storage_clear_confirm">确定清空全部数据吗？此操作不可恢复。</string>
+    <string name="storage_clear_success">已清空全部数据</string>
+    <string name="storage_clear_failed">清空失败，请重试</string>
     <string name="storage_cancel">取消</string>
     <string name="storage_confirm">确定</string>
 

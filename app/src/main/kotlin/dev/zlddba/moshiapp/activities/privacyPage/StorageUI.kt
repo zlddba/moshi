@@ -1,7 +1,6 @@
 package dev.zlddba.moshiapp.activities.privacyPage
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -9,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -16,9 +16,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Save
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -42,30 +42,32 @@ import dev.zlddba.moshiapp.ui.theme.MoshiTheme
 
 private data class StorageStat(
     val labelRes: Int,
-    val valueRes: Int
-)
-
-private val storageStats = listOf(
-    StorageStat(
-        labelRes = R.string.storage_stat_notes,
-        valueRes = R.string.storage_stat_notes_value
-    ),
-    StorageStat(
-        labelRes = R.string.storage_stat_chunks,
-        valueRes = R.string.storage_stat_chunks_value
-    ),
-    StorageStat(
-        labelRes = R.string.storage_stat_size,
-        valueRes = R.string.storage_stat_size_value
-    )
+    val value: String
 )
 
 @Composable
 fun StoragePageScreen(
+    uiState: StorageViewModel.StorageUiState,
     onBack: () -> Unit,
+    onExport: () -> Unit,
+    onClearConfirmed: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var clearDialogVisible by remember { mutableStateOf(false) }
+    val stats = listOf(
+        StorageStat(
+            labelRes = R.string.storage_stat_notes,
+            value = stringResource(R.string.storage_stat_notes_value, uiState.noteCount)
+        ),
+        StorageStat(
+            labelRes = R.string.storage_stat_chunks,
+            value = stringResource(R.string.storage_stat_chunks_value, uiState.chunkCount)
+        ),
+        StorageStat(
+            labelRes = R.string.storage_stat_size,
+            value = uiState.sizeText
+        )
+    )
 
     Column(
         modifier = modifier
@@ -100,7 +102,7 @@ fun StoragePageScreen(
             modifier = Modifier.fillMaxWidth()
         ) {
             Column {
-                storageStats.forEachIndexed { index, stat ->
+                stats.forEachIndexed { index, stat ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -114,14 +116,14 @@ fun StoragePageScreen(
                             modifier = Modifier.weight(1f)
                         )
                         Text(
-                            text = stringResource(stat.valueRes),
+                            text = stat.value,
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
                         )
                     }
-                    if (index < storageStats.lastIndex) {
-                        androidx.compose.material3.HorizontalDivider(
+                    if (index < stats.lastIndex) {
+                        HorizontalDivider(
                             modifier = Modifier.padding(horizontal = 16.dp),
                             color = MaterialTheme.colorScheme.outlineVariant
                         )
@@ -142,7 +144,8 @@ fun StoragePageScreen(
             titleRes = R.string.storage_export,
             descRes = R.string.storage_export_desc,
             icon = Icons.Outlined.Save,
-            onClick = {}
+            enabled = !uiState.busy,
+            onClick = onExport
         )
 
         Spacer(modifier = Modifier.height(20.dp))
@@ -158,6 +161,7 @@ fun StoragePageScreen(
             descRes = R.string.storage_clear_desc,
             icon = Icons.Outlined.Delete,
             danger = true,
+            enabled = !uiState.busy,
             onClick = { clearDialogVisible = true }
         )
         Spacer(modifier = Modifier.height(32.dp))
@@ -169,7 +173,10 @@ fun StoragePageScreen(
             title = { Text(stringResource(R.string.storage_clear)) },
             text = { Text(stringResource(R.string.storage_clear_confirm)) },
             confirmButton = {
-                TextButton(onClick = { clearDialogVisible = false }) {
+                TextButton(onClick = {
+                    clearDialogVisible = false
+                    onClearConfirmed()
+                }) {
                     Text(stringResource(R.string.storage_confirm))
                 }
             },
@@ -188,6 +195,7 @@ private fun StorageActionCard(
     descRes: Int,
     icon: ImageVector,
     danger: Boolean = false,
+    enabled: Boolean = true,
     onClick: () -> Unit
 ) {
     val contentColor = if (danger) MaterialTheme.colorScheme.secondary
@@ -195,6 +203,7 @@ private fun StorageActionCard(
 
     Surface(
         onClick = onClick,
+        enabled = enabled,
         shape = MoshiShapeMedium,
         color = MaterialTheme.colorScheme.surface,
         border = androidx.compose.foundation.BorderStroke(
@@ -237,6 +246,15 @@ private fun StorageActionCard(
 @Preview(showBackground = true, showSystemUi = true)
 private fun StoragePageScreenPreview() {
     MoshiTheme {
-        StoragePageScreen(onBack = {})
+        StoragePageScreen(
+            uiState = StorageViewModel.StorageUiState(
+                noteCount = 128,
+                chunkCount = 1024,
+                sizeText = "3.6 MB"
+            ),
+            onBack = {},
+            onExport = {},
+            onClearConfirmed = {}
+        )
     }
 }

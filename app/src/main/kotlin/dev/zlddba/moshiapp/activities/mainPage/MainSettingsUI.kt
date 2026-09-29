@@ -20,14 +20,17 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.CloudSync
 import androidx.compose.material.icons.outlined.Shield
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -62,11 +65,15 @@ fun MainSettingsScreen(
     onHelp: () -> Unit,
     telemetry: Boolean,
     onTelemetryChange: (Boolean) -> Unit,
-    onPlaceholder: () -> Unit,
+    forceLocal: Boolean,
+    onForceLocalChange: (Boolean) -> Unit,
+    versionName: String,
+    onExport: () -> Unit,
+    onClearConfirmed: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var forceLocal by rememberSaveable { mutableStateOf(true) }
     var encrypt by rememberSaveable { mutableStateOf(false) }
+    var clearDialogVisible by remember { mutableStateOf(false) }
 
     Column(
         modifier = modifier
@@ -109,7 +116,7 @@ fun MainSettingsScreen(
             MineSwitchRow(
                 titleRes = R.string.mine_privacy_force_local,
                 checked = forceLocal,
-                onCheckedChange = { forceLocal = it }
+                onCheckedChange = onForceLocalChange
             )
             MineSwitchRow(
                 titleRes = R.string.mine_privacy_encrypt,
@@ -142,13 +149,13 @@ fun MainSettingsScreen(
                 titleRes = R.string.mine_storage_export,
                 icon = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
                 showIcon = false,
-                onClick = onPlaceholder
+                onClick = onExport
             )
             MineActionRow(
                 titleRes = R.string.mine_storage_clear,
                 icon = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
                 showIcon = false,
-                onClick = onPlaceholder
+                onClick = { clearDialogVisible = true }
             )
         }
 
@@ -165,8 +172,8 @@ fun MainSettingsScreen(
                 titleRes = R.string.mine_about_version,
                 icon = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
                 showIcon = false,
-                value = "1.0.0",
-                onClick = onPlaceholder
+                value = versionName,
+                onClick = {}
             )
             MineActionRow(
                 titleRes = R.string.mine_about_license,
@@ -182,6 +189,27 @@ fun MainSettingsScreen(
             )
         }
         Spacer(modifier = Modifier.height(32.dp))
+    }
+
+    if (clearDialogVisible) {
+        AlertDialog(
+            onDismissRequest = { clearDialogVisible = false },
+            title = { Text(stringResource(R.string.storage_clear)) },
+            text = { Text(stringResource(R.string.storage_clear_confirm)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    clearDialogVisible = false
+                    onClearConfirmed()
+                }) {
+                    Text(stringResource(R.string.storage_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { clearDialogVisible = false }) {
+                    Text(stringResource(R.string.storage_cancel))
+                }
+            }
+        )
     }
 }
 
@@ -395,7 +423,11 @@ private fun MainSettingsScreenPreview() {
             onHelp = {},
             telemetry = true,
             onTelemetryChange = {},
-            onPlaceholder = {}
+            forceLocal = true,
+            onForceLocalChange = {},
+            versionName = "1.0.0",
+            onExport = {},
+            onClearConfirmed = {}
         )
     }
 }

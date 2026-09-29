@@ -16,6 +16,12 @@ interface ChunkDao {
     @Query("DELETE FROM chunks WHERE note_id = :noteId")
     suspend fun deleteByNote(noteId: String)
 
+    @Query("DELETE FROM chunks")
+    suspend fun deleteAll()
+
+    @Query("SELECT COUNT(*) FROM chunks")
+    suspend fun count(): Int
+
     @Query("SELECT * FROM chunks WHERE id = :chunkId")
     suspend fun byId(chunkId: Int): ChunkEntity?
 

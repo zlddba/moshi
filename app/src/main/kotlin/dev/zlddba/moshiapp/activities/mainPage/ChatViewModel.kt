@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import dev.zlddba.moshiapp.R
 import dev.zlddba.moshiapp.data.prefs.CloudConfigPrefs
 import dev.zlddba.moshiapp.data.prefs.ModelPrefs
+import dev.zlddba.moshiapp.data.repo.IngestRepository
 import dev.zlddba.moshiapp.domain.qa.QaOrchestrator
 import dev.zlddba.moshiapp.domain.retrieve.RetrieveService
 import dev.zlddba.moshiapp.engine.local.BackendKind
@@ -89,6 +90,14 @@ class ChatViewModel(context: Context) : ViewModel() {
     private val commitLock = Any()
     private var generationJob: Job? = null
     private var warmedUp = false
+
+    init {
+        viewModelScope.launch {
+            IngestRepository.libraryCleared.collect {
+                clear()
+            }
+        }
+    }
 
     fun onEvent(event: ChatEvent) {
         when (event) {
