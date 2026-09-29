@@ -161,6 +161,7 @@ object IngestRepository {
             database.withWriteTransaction {
                 database.chunkDao().deleteAll()
                 database.noteDao().deleteAll()
+                database.qaLogDao().deleteAll()
             }
             KeywordIndex.clearAll(appContext)
             VectorStoreClient.clearAll(appContext)
