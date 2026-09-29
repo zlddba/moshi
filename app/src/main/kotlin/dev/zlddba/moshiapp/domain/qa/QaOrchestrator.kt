@@ -3,8 +3,13 @@ package dev.zlddba.moshiapp.domain.qa
 import android.content.Context
 import android.util.Log
 import dev.zlddba.moshiapp.R
+import dev.zlddba.moshiapp.data.prefs.CloudConfigPrefs
 import dev.zlddba.moshiapp.data.prefs.ModelPrefs
 import dev.zlddba.moshiapp.domain.retrieve.RetrieveService
+import dev.zlddba.moshiapp.engine.cloud.CloudAnswer
+import dev.zlddba.moshiapp.engine.cloud.CloudConfig
+import dev.zlddba.moshiapp.engine.cloud.CloudGateway
+import dev.zlddba.moshiapp.engine.cloud.OpenAiCloudGateway
 import dev.zlddba.moshiapp.engine.local.LiteRtLlmEngine
 import dev.zlddba.moshiapp.ingest.models.ModelFileManager
 import kotlinx.coroutines.CancellationException
@@ -20,7 +25,7 @@ object QaOrchestrator {
     private const val MAX_CONTEXT_CHARS = 3000
     private const val MAX_SNIPPET_CHARS = 600
     private const val SYSTEM_PROMPT =
-        "你是「默识」的本地知识助手。输出必须严格遵循以下两部分的固定格式，不得输出其他内容：" +
+        "你是「默识」的知识助手。输出必须严格遵循以下两部分的固定格式，不得输出其他内容：" +
             "[THINKING] 通读下方知识片段，归纳、比较、推断，写出分析过程；" +
             "[ANSWER] 给出最终结论，先说结论、再给依据，中文、准确、简洁。" +
             "要求：结论必须能由片段支撑，可换用自己的表述，不要整段照搬；" +
@@ -31,6 +36,8 @@ object QaOrchestrator {
 
     private const val MARK_THINK = "[THINKING]"
     private const val MARK_ANSWER = "[ANSWER]"
+
+    private val cloudGateway: CloudGateway = OpenAiCloudGateway()
 
     sealed interface Outcome {
         data object Refusal : Outcome
@@ -73,6 +80,12 @@ object QaOrchestrator {
         return value
     }
 
+    internal fun shouldUseCloud(config: CloudConfig, hits: List<RetrieveService.Hit>): Boolean {
+        if (!config.usesCloud() || !config.isComplete()) return false
+        if (config.forceLocal && hits.any { it.isSensitive }) return false
+        return true
+    }
+
     suspend fun ask(
         context: Context,
         question: String,
@@ -82,11 +95,42 @@ object QaOrchestrator {
         return try {
             val hits = RetrieveService.retrieve(appContext, question, QA_TOP_K)
             if (hits.isEmpty()) return Outcome.Refusal
+            val cloudConfig = CloudConfigPrefs(appContext).load()
+            if (shouldUseCloud(cloudConfig, hits)) {
+                val answer = withContext(Dispatchers.IO) {
+                    cloudGateway.ask(
+                        config = cloudConfig,
+                        systemPrompt = SYSTEM_PROMPT,
+                        userPrompt = buildUserPrompt(question, hits),
+                        onToken = onToken
+                    )
+                }
+                when (answer) {
+                    is CloudAnswer.Success -> {
+                        Log.i(
+                            TAG,
+                            "cloud answer len=${answer.raw.length} " +
+                                "mode=${cloudConfig.mode} hits=${hits.size}"
+                        )
+                        return Outcome.Generated(hits)
+                    }
+
+                    is CloudAnswer.Failure -> {
+                        Log.e(
+                            TAG,
+                            "cloud failed status=${answer.statusCode} mode=${cloudConfig.mode}"
+                        )
+                        if (cloudConfig.mode == CloudConfig.MODE_CLOUD) {
+                            return Outcome.Excerpt(hits)
+                        }
+                    }
+                }
+            }
             val modelId = ModelPrefs(appContext).currentLlm()
             if (!ModelFileManager.isReady(appContext, modelId)) {
                 return Outcome.ModelMissing(hits)
             }
-            val prompt = buildPrompt(question, hits)
+            val prompt = SYSTEM_PROMPT + "\n\n" + buildUserPrompt(question, hits)
             withContext(Dispatchers.IO) {
                 try {
                     LiteRtLlmEngine.generate(appContext, prompt, onToken)
@@ -117,9 +161,8 @@ object QaOrchestrator {
         return builder.toString()
     }
 
-    private fun buildPrompt(question: String, hits: List<RetrieveService.Hit>): String {
-        val builder = StringBuilder(SYSTEM_PROMPT)
-        builder.append("\n\n【知识片段】\n")
+    internal fun buildUserPrompt(question: String, hits: List<RetrieveService.Hit>): String {
+        val builder = StringBuilder("【知识片段】\n")
         var budget = MAX_CONTEXT_CHARS
         hits.forEachIndexed { index, hit ->
             if (budget <= 0) return@forEachIndexed

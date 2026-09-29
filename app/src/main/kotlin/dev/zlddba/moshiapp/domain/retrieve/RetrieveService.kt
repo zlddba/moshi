@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import dev.zlddba.moshiapp.data.db.KeywordIndex
 import dev.zlddba.moshiapp.data.db.MoshiDatabase
+import dev.zlddba.moshiapp.data.db.NoteEntity
 import dev.zlddba.moshiapp.data.vector.VectorStoreClient
 import dev.zlddba.moshiapp.engine.embedding.GeckoEmbedding
 
@@ -25,7 +26,8 @@ object RetrieveService {
         val noteTitle: String,
         val text: String,
         val pageNo: Int?,
-        val score: Float
+        val score: Float,
+        val isSensitive: Boolean = false
     )
 
     suspend fun retrieve(context: Context, question: String, topK: Int = TOP_K): List<Hit> {
@@ -46,21 +48,21 @@ object RetrieveService {
         if (fused.isEmpty()) return emptyList()
         val chunkDao = MoshiDatabase.get(appContext).chunkDao()
         val noteDao = MoshiDatabase.get(appContext).noteDao()
-        val titleCache = HashMap<String, String>()
+        val noteCache = HashMap<String, NoteEntity>()
         val hits = ArrayList<Hit>(fused.size)
         for ((chunkId, score) in fused) {
             val chunk = chunkDao.byId(chunkId) ?: continue
-            val title = titleCache.getOrPut(chunk.noteId) {
-                noteDao.byId(chunk.noteId)?.title.orEmpty()
-            }
+            val note = noteCache[chunk.noteId]
+                ?: noteDao.byId(chunk.noteId)?.also { noteCache[chunk.noteId] = it }
             hits.add(
                 Hit(
                     chunkId = chunk.id,
                     noteId = chunk.noteId,
-                    noteTitle = title,
+                    noteTitle = note?.title.orEmpty(),
                     text = chunk.text,
                     pageNo = chunk.pageNo,
-                    score = score
+                    score = score,
+                    isSensitive = note?.isSensitive == true
                 )
             )
         }

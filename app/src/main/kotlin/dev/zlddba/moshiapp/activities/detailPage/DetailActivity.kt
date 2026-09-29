@@ -41,7 +41,10 @@ class DetailActivity : ComponentActivity() {
                 val uiState by viewModel.uiState.collectAsState()
                 DetailPageScreen(
                     uiState = uiState,
-                    onBack = { finish() }
+                    onBack = { finish() },
+                    onToggleSensitive = {
+                        viewModel.onEvent(DetailViewModel.DetailEvent.ToggleSensitive)
+                    }
                 )
             }
         }

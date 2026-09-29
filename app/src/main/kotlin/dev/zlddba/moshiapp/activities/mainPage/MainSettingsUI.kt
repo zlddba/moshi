@@ -27,7 +27,6 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -52,6 +51,8 @@ private data class MineAction(
 
 @Composable
 fun MainSettingsScreen(
+    engineMode: Int,
+    onEngineModeSelect: (Int) -> Unit,
     onCloudConfig: () -> Unit,
     onModelManage: () -> Unit,
     onPrivacy: () -> Unit,
@@ -63,7 +64,6 @@ fun MainSettingsScreen(
     var forceLocal by rememberSaveable { mutableStateOf(true) }
     var encrypt by rememberSaveable { mutableStateOf(false) }
     var telemetry by rememberSaveable { mutableStateOf(false) }
-    var engineMode by rememberSaveable { mutableIntStateOf(1) }
 
     Column(
         modifier = modifier
@@ -86,7 +86,7 @@ fun MainSettingsScreen(
         MineGroup {
             EngineModeRow(
                 selectedIndex = engineMode,
-                onSelect = { engineMode = it }
+                onSelect = onEngineModeSelect
             )
             MineActionRow(
                 titleRes = R.string.mine_cloud_config,
@@ -375,6 +375,8 @@ private fun EngineModeRow(
 private fun MainSettingsScreenPreview() {
     MoshiTheme {
         MainSettingsScreen(
+            engineMode = 1,
+            onEngineModeSelect = {},
             onCloudConfig = {},
             onModelManage = {},
             onPrivacy = {},

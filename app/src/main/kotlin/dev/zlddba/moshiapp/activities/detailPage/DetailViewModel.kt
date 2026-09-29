@@ -26,6 +26,8 @@ class DetailViewModel(context: Context) : ViewModel() {
             val chunkId: Int,
             val keyword: String?
         ) : DetailEvent
+
+        data object ToggleSensitive : DetailEvent
     }
 
     private val appContext = context.applicationContext
@@ -38,6 +40,17 @@ class DetailViewModel(context: Context) : ViewModel() {
     fun onEvent(event: DetailEvent) {
         when (event) {
             is DetailEvent.Init -> init(event)
+            DetailEvent.ToggleSensitive -> toggleSensitive()
+        }
+    }
+
+    private fun toggleSensitive() {
+        val noteId = _uiState.value.noteId
+        if (noteId.isEmpty()) return
+        val next = !_uiState.value.isSensitive
+        _uiState.update { it.copy(isSensitive = next) }
+        viewModelScope.launch(Dispatchers.IO) {
+            MoshiDatabase.get(appContext).noteDao().updateSensitive(noteId, next)
         }
     }
 
@@ -80,6 +93,8 @@ class DetailViewModel(context: Context) : ViewModel() {
             }
         }
         return DetailUiState(
+            noteId = note.id,
+            isSensitive = note.isSensitive,
             title = note.title,
             summary = note.summary.orEmpty(),
             heading = appContext.getString(R.string.detail_body_heading),

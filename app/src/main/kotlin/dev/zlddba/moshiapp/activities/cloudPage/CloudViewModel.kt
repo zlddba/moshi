@@ -34,6 +34,7 @@ class CloudViewModel(
         val apiKey: String = "",
         val modelName: String = "",
         val forceLocal: Boolean = true,
+        val mode: Int = CloudConfig.MODE_LOCAL,
         val keyVisible: Boolean = false,
         val testState: TestState = TestState.Idle
     )
@@ -43,6 +44,7 @@ class CloudViewModel(
         data class ApiKeyChanged(val value: String) : CloudEvent
         data class ModelNameChanged(val value: String) : CloudEvent
         data class ForceLocalChanged(val value: Boolean) : CloudEvent
+        data class EnabledChanged(val value: Boolean) : CloudEvent
         data object KeyVisibilityToggled : CloudEvent
         data class PresetClicked(val baseUrl: String) : CloudEvent
         data object TestClicked : CloudEvent
@@ -66,7 +68,8 @@ class CloudViewModel(
                 baseUrl = saved.baseUrl,
                 apiKey = saved.apiKey,
                 modelName = saved.modelName,
-                forceLocal = saved.forceLocal
+                forceLocal = saved.forceLocal,
+                mode = saved.mode
             )
         }
     }
@@ -87,6 +90,16 @@ class CloudViewModel(
 
             is CloudEvent.ForceLocalChanged -> _cloudUiState.update {
                 it.copy(forceLocal = event.value)
+            }
+
+            is CloudEvent.EnabledChanged -> _cloudUiState.update {
+                it.copy(
+                    mode = when {
+                        !event.value -> CloudConfig.MODE_LOCAL
+                        it.mode == CloudConfig.MODE_CLOUD -> CloudConfig.MODE_CLOUD
+                        else -> CloudConfig.MODE_HYBRID
+                    }
+                )
             }
 
             CloudEvent.KeyVisibilityToggled -> _cloudUiState.update {
@@ -134,7 +147,8 @@ class CloudViewModel(
                 baseUrl = state.baseUrl,
                 apiKey = state.apiKey,
                 modelName = state.modelName,
-                forceLocal = state.forceLocal
+                forceLocal = state.forceLocal,
+                mode = state.mode
             )
             val result = cloudGateway.testConnection(config)
             val testState = when (result) {
@@ -163,7 +177,8 @@ class CloudViewModel(
                 baseUrl = state.baseUrl,
                 apiKey = state.apiKey,
                 modelName = state.modelName,
-                forceLocal = state.forceLocal
+                forceLocal = state.forceLocal,
+                mode = state.mode
             )
         )
         viewModelScope.launch {

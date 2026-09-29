@@ -14,6 +14,9 @@ interface NoteDao {
     @Query("UPDATE notes SET index_status = :status WHERE id = :id")
     suspend fun updateStatus(id: String, status: String)
 
+    @Query("UPDATE notes SET is_sensitive = :sensitive WHERE id = :id")
+    suspend fun updateSensitive(id: String, sensitive: Boolean)
+
     @Query("SELECT * FROM notes WHERE id = :id")
     suspend fun byId(id: String): NoteEntity?
 
