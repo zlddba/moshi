@@ -1,9 +1,12 @@
 package dev.zlddba.moshiapp.activities.detailPage
 
+import android.content.Context
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,8 +16,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
@@ -28,9 +32,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -38,7 +44,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -50,42 +59,78 @@ import dev.zlddba.moshiapp.ui.theme.MoshiShapeSmall
 import dev.zlddba.moshiapp.ui.theme.MoshiTheme
 
 data class DetailUiState(
-    val titleRes: Int = R.string.home_card_title_1,
-    val summaryRes: Int = R.string.detail_summary_demo,
-    val contentHeadingRes: Int = R.string.detail_content_heading,
-    val contentBodyRes: Int = R.string.detail_content_body,
-    val tags: List<Int> = listOf(R.string.home_card_tag_db, R.string.home_card_tag_ml),
-    val related: List<RelatedNote> = emptyList()
+    val noteId: String = "",
+    val isSensitive: Boolean = false,
+    val title: String = "",
+    val summary: String = "",
+    val heading: String = "",
+    val paragraphs: List<Paragraph> = emptyList(),
+    val sources: List<String> = emptyList(),
+    val tags: List<String> = emptyList(),
+    val related: List<RelatedNote> = emptyList(),
+    val highlight: String = "",
+    val focusIndex: Int = -1,
+    val missing: Boolean = false,
+    val isBuiltIn: Boolean = false
 ) {
+    data class Paragraph(
+        val text: String,
+        val pageNo: Int? = null
+    )
+
     data class RelatedNote(
-        val titleRes: Int,
-        val scoreRes: Int
+        val noteId: String = "",
+        val title: String,
+        val score: String
     )
 }
 
-@Composable
-fun sampleDetailUiState(): DetailUiState = DetailUiState(
+fun sampleDetailUiState(context: Context): DetailUiState = DetailUiState(
+    title = context.getString(R.string.home_card_title_1),
+    summary = context.getString(R.string.detail_summary_demo),
+    heading = context.getString(R.string.detail_content_heading),
+    paragraphs = listOf(
+        DetailUiState.Paragraph(text = context.getString(R.string.detail_content_body))
+    ),
+    sources = listOf(
+        context.getString(R.string.detail_source_type),
+        context.getString(R.string.detail_source_time),
+        context.getString(R.string.detail_source_note)
+    ),
+    tags = listOf(
+        context.getString(R.string.home_card_tag_db),
+        context.getString(R.string.home_card_tag_ml)
+    ),
     related = listOf(
         DetailUiState.RelatedNote(
-            titleRes = R.string.detail_related_1,
-            scoreRes = R.string.detail_related_score_1
+            title = context.getString(R.string.detail_related_1),
+            score = context.getString(R.string.detail_related_score_1)
         ),
         DetailUiState.RelatedNote(
-            titleRes = R.string.detail_related_2,
-            scoreRes = R.string.detail_related_score_2
+            title = context.getString(R.string.detail_related_2),
+            score = context.getString(R.string.detail_related_score_2)
         )
     )
 )
 
 @Composable
 fun DetailPageScreen(
+    uiState: DetailUiState,
     onBack: () -> Unit,
-    onRelatedClick: () -> Unit = {},
+    onRelatedClick: (String) -> Unit = {},
+    onToggleSensitive: () -> Unit = {},
+    onDelete: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val uiState = sampleDetailUiState()
     var menuExpanded by remember { mutableStateOf(false) }
     var deleteDialogVisible by remember { mutableStateOf(false) }
+    val listState = rememberLazyListState()
+
+    LaunchedEffect(uiState.focusIndex) {
+        if (uiState.focusIndex >= 0) {
+            listState.animateScrollToItem(uiState.focusIndex + 1)
+        }
+    }
 
     Column(
         modifier = modifier
@@ -97,41 +142,82 @@ fun DetailPageScreen(
             onBack = onBack,
             menuExpanded = menuExpanded,
             onMenuToggle = { menuExpanded = it },
-            onDeleteClick = {
-                menuExpanded = false
-                deleteDialogVisible = true
+            onDeleteClick = if (uiState.isBuiltIn) {
+                null
+            } else {
+                {
+                    menuExpanded = false
+                    deleteDialogVisible = true
+                }
             }
         )
-        Column(
+        LazyColumn(
+            state = listState,
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp)
+                .padding(horizontal = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            contentPadding = PaddingValues(top = 8.dp, bottom = 32.dp)
         ) {
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = stringResource(uiState.titleRes),
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            DetailSummaryCard(summaryRes = uiState.summaryRes)
-            Spacer(modifier = Modifier.height(16.dp))
-            DetailContent(
-                headingRes = uiState.contentHeadingRes,
-                bodyRes = uiState.contentBodyRes
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            DetailSourceCard()
-            Spacer(modifier = Modifier.height(16.dp))
-            DetailTagSection(tags = uiState.tags)
-            Spacer(modifier = Modifier.height(16.dp))
-            DetailRelatedSection(
-                related = uiState.related,
-                onRelatedClick = onRelatedClick
-            )
-            Spacer(modifier = Modifier.height(32.dp))
+            item {
+                Column {
+                    Text(
+                        text = uiState.title,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    if (uiState.summary.isNotBlank()) {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        DetailSummaryCard(summary = uiState.summary)
+                    }
+                    if (uiState.heading.isNotBlank()) {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = uiState.heading,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+            }
+            itemsIndexed(
+                items = uiState.paragraphs,
+                key = { index, _ -> "paragraph-$index" }
+            ) { _, paragraph ->
+                DetailParagraph(
+                    text = paragraph.text,
+                    pageNo = paragraph.pageNo,
+                    highlight = uiState.highlight
+                )
+            }
+            if (uiState.sources.isNotEmpty()) {
+                item {
+                    DetailSourceCard(rows = uiState.sources)
+                }
+            }
+            if (uiState.noteId.isNotBlank()) {
+                item {
+                    DetailSensitiveCard(
+                        isSensitive = uiState.isSensitive,
+                        onToggle = onToggleSensitive
+                    )
+                }
+            }
+            if (uiState.tags.isNotEmpty()) {
+                item {
+                    DetailTagSection(tags = uiState.tags)
+                }
+            }
+            if (uiState.related.isNotEmpty()) {
+                item {
+                    DetailRelatedSection(
+                        related = uiState.related,
+                        onRelatedClick = onRelatedClick
+                    )
+                }
+            }
         }
     }
 
@@ -141,7 +227,12 @@ fun DetailPageScreen(
             title = { Text(stringResource(R.string.detail_delete)) },
             text = { Text(stringResource(R.string.detail_delete_confirm)) },
             confirmButton = {
-                TextButton(onClick = { deleteDialogVisible = false }) {
+                TextButton(
+                    onClick = {
+                        deleteDialogVisible = false
+                        onDelete()
+                    }
+                ) {
                     Text(stringResource(R.string.detail_confirm))
                 }
             },
@@ -159,7 +250,7 @@ private fun DetailTopBar(
     onBack: () -> Unit,
     menuExpanded: Boolean,
     onMenuToggle: (Boolean) -> Unit,
-    onDeleteClick: () -> Unit
+    onDeleteClick: (() -> Unit)?
 ) {
     Row(
         modifier = Modifier
@@ -180,34 +271,36 @@ private fun DetailTopBar(
             color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.weight(1f)
         )
-        Box {
-            IconButton(onClick = { onMenuToggle(true) }) {
-                Icon(
-                    imageVector = Icons.Outlined.MoreVert,
-                    contentDescription = stringResource(R.string.detail_more)
-                )
-            }
-            DropdownMenu(
-                expanded = menuExpanded,
-                onDismissRequest = { onMenuToggle(false) }
-            ) {
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.detail_delete)) },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Outlined.Delete,
-                            contentDescription = null
-                        )
-                    },
-                    onClick = onDeleteClick
-                )
+        if (onDeleteClick != null) {
+            Box {
+                IconButton(onClick = { onMenuToggle(true) }) {
+                    Icon(
+                        imageVector = Icons.Outlined.MoreVert,
+                        contentDescription = stringResource(R.string.detail_more)
+                    )
+                }
+                DropdownMenu(
+                    expanded = menuExpanded,
+                    onDismissRequest = { onMenuToggle(false) }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.detail_delete)) },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Outlined.Delete,
+                                contentDescription = null
+                            )
+                        },
+                        onClick = { onDeleteClick() }
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-private fun DetailSummaryCard(summaryRes: Int) {
+private fun DetailSummaryCard(summary: String) {
     Surface(
         shape = MoshiShapeMedium,
         color = MaterialTheme.colorScheme.primaryContainer,
@@ -230,7 +323,7 @@ private fun DetailSummaryCard(summaryRes: Int) {
             }
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = stringResource(summaryRes),
+                text = summary,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
                 lineHeight = 22.sp
@@ -240,17 +333,54 @@ private fun DetailSummaryCard(summaryRes: Int) {
 }
 
 @Composable
-private fun DetailContent(headingRes: Int, bodyRes: Int) {
+private fun DetailParagraph(
+    text: String,
+    pageNo: Int?,
+    highlight: String
+) {
+    val markBackground = MaterialTheme.colorScheme.primaryContainer
+    val markColor = MaterialTheme.colorScheme.onPrimaryContainer
+    val annotated = remember(text, highlight) {
+        buildAnnotatedString {
+            append(text)
+            if (highlight.isNotBlank()) {
+                var index = text.indexOf(highlight, ignoreCase = true)
+                while (index >= 0) {
+                    addStyle(
+                        SpanStyle(
+                            background = markBackground,
+                            color = markColor,
+                            fontWeight = FontWeight.Medium
+                        ),
+                        index,
+                        index + highlight.length
+                    )
+                    index = text.indexOf(
+                        highlight,
+                        index + highlight.length,
+                        ignoreCase = true
+                    )
+                }
+            }
+        }
+    }
+
     Column {
+        val page = pageNo
+        if (page != null) {
+            Text(
+                text = stringResource(R.string.detail_page, page),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .clip(MoshiShapePill)
+                    .background(MaterialTheme.colorScheme.primaryContainer)
+                    .padding(horizontal = 8.dp, vertical = 3.dp)
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+        }
         Text(
-            text = stringResource(headingRes),
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = stringResource(bodyRes),
+            text = annotated,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             lineHeight = 24.sp
@@ -259,11 +389,49 @@ private fun DetailContent(headingRes: Int, bodyRes: Int) {
 }
 
 @Composable
-private fun DetailSourceCard() {
+private fun DetailSensitiveCard(
+    isSensitive: Boolean,
+    onToggle: () -> Unit
+) {
     Surface(
         shape = MoshiShapeMedium,
         color = MaterialTheme.colorScheme.surface,
-        border = androidx.compose.foundation.BorderStroke(
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant
+        ),
+        shadowElevation = 2.dp,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.detail_sensitive),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = stringResource(R.string.detail_sensitive_desc),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    lineHeight = 18.sp
+                )
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Switch(checked = isSensitive, onCheckedChange = { onToggle() })
+        }
+    }
+}
+
+@Composable
+private fun DetailSourceCard(rows: List<String>) {
+    Surface(
+        shape = MoshiShapeMedium,
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(
             1.dp,
             MaterialTheme.colorScheme.outlineVariant
         ),
@@ -278,13 +446,9 @@ private fun DetailSourceCard() {
                 color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.height(8.dp))
-            listOf(
-                R.string.detail_source_type,
-                R.string.detail_source_time,
-                R.string.detail_source_note
-            ).forEach { res ->
+            rows.forEach { row ->
                 Text(
-                    text = stringResource(res),
+                    text = row,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(vertical = 2.dp)
@@ -295,7 +459,7 @@ private fun DetailSourceCard() {
 }
 
 @Composable
-private fun DetailTagSection(tags: List<Int>) {
+private fun DetailTagSection(tags: List<String>) {
     Column {
         Text(
             text = stringResource(R.string.detail_tag_edit),
@@ -305,13 +469,13 @@ private fun DetailTagSection(tags: List<Int>) {
             modifier = Modifier.padding(bottom = 8.dp)
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            tags.forEach { tagRes ->
+            tags.forEach { tag ->
                 Surface(
                     shape = MoshiShapePill,
                     color = MaterialTheme.colorScheme.secondaryContainer
                 ) {
                     Text(
-                        text = stringResource(tagRes),
+                        text = tag,
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSecondaryContainer,
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
@@ -322,7 +486,7 @@ private fun DetailTagSection(tags: List<Int>) {
                 onClick = {},
                 shape = MoshiShapePill,
                 color = MaterialTheme.colorScheme.surface,
-                border = androidx.compose.foundation.BorderStroke(
+                border = BorderStroke(
                     1.dp,
                     MaterialTheme.colorScheme.outlineVariant
                 )
@@ -341,7 +505,7 @@ private fun DetailTagSection(tags: List<Int>) {
 @Composable
 private fun DetailRelatedSection(
     related: List<DetailUiState.RelatedNote>,
-    onRelatedClick: () -> Unit
+    onRelatedClick: (String) -> Unit
 ) {
     Column {
         Text(
@@ -354,10 +518,10 @@ private fun DetailRelatedSection(
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             related.forEach { note ->
                 Surface(
-                    onClick = onRelatedClick,
+                    onClick = { onRelatedClick(note.noteId) },
                     shape = MoshiShapeSmall,
                     color = MaterialTheme.colorScheme.surface,
-                    border = androidx.compose.foundation.BorderStroke(
+                    border = BorderStroke(
                         1.dp,
                         MaterialTheme.colorScheme.outlineVariant
                     ),
@@ -383,13 +547,13 @@ private fun DetailRelatedSection(
                         }
                         Spacer(modifier = Modifier.width(12.dp))
                         Text(
-                            text = stringResource(note.titleRes),
+                            text = note.title,
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.weight(1f)
                         )
                         Text(
-                            text = stringResource(note.scoreRes),
+                            text = note.score,
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -410,6 +574,9 @@ private fun DetailRelatedSection(
 @Preview(showBackground = true, showSystemUi = true)
 private fun DetailPageScreenPreview() {
     MoshiTheme {
-        DetailPageScreen(onBack = {})
+        DetailPageScreen(
+            uiState = sampleDetailUiState(LocalContext.current),
+            onBack = {}
+        )
     }
 }

@@ -23,6 +23,7 @@
     <string name="home_search_hint">语义搜索你的知识</string>
     <string name="home_filter_timeline">时间线</string>
     <string name="home_filter_category">分类</string>
+    <string name="home_deleted">已删除「%1$s」</string>
     <string name="home_filter_tag">标签</string>
     <string name="home_badge_local">本地</string>
     <string name="home_badge_cloud">云端</string>
@@ -48,7 +49,15 @@
     <string name="home_card_summary_4">转写完成，识别置信度高，可直接编辑后入库</string>
     <string name="home_card_tag_4">工作</string>
     <string name="home_card_time_4">昨天 15:40</string>
-    <string name="home_card_search_result">找到 3 条相关知识</string>
+    <string name="home_search_submit">搜索</string>
+
+    <!-- 语义搜索页 -->
+    <string name="search_title">搜索</string>
+    <string name="search_back">返回</string>
+    <string name="search_submit">搜索</string>
+    <string name="search_idle">输入问题后回车，从知识库中检索相关知识</string>
+    <string name="search_result_count">找到 %1$d 条相关知识</string>
+    <string name="search_score">相关度 %1$d%%</string>
 
     <!-- 智能问答页 -->
     <string name="chat_title">智能问答</string>
@@ -57,6 +66,9 @@
     <string name="chat_input_hint">输入你的问题…</string>
     <string name="chat_send">发送</string>
     <string name="chat_voice_input">语音输入</string>
+    <string name="chat_voice_recording_hint">正在录音，点击麦克风结束</string>
+    <string name="chat_voice_model_missing">语音模型尚未下载，请先在模型管理中下载</string>
+    <string name="chat_voice_empty">没有识别到内容</string>
     <string name="chat_clear">清空会话</string>
     <string name="chat_clear_confirm">确定清空全部问答记录？</string>
     <string name="chat_confirm">确认</string>
@@ -76,19 +88,58 @@
     <string name="chat_answer_demo_4">sqlite-vec 与 Room 同库、零额外部署，适合先跑通闭环；usearch 查询更快但要引入 native 库。建议先 sqlite-vec，集成受阻再切 usearch。</string>
     <string name="chat_source_note_4">向量检索技术调研 · 第 5 段</string>
     <string name="chat_welcome">问点什么吧，答案只来自你的知识库</string>
+    <string name="chat_backend_menu">推理后端</string>
+    <string name="chat_backend_cpu">CPU</string>
+    <string name="chat_backend_gpu">GPU</string>
+    <string name="chat_backend_npu">NPU</string>
+    <string name="chat_stop">停止生成</string>
+    <string name="chat_generating">正在生成…</string>
+    <string name="chat_model_missing">当前模型未下载，暂无法生成答案</string>
+    <string name="chat_model_download">去下载</string>
+    <string name="chat_excerpt_label">以下为知识库检索到的相关片段：</string>
+    <string name="chat_generate_failed">答案生成失败，已降级为片段展示</string>
+    <string name="chat_thinking">思考过程</string>
 
     <!-- 采集页 -->
     <string name="capture_title">采集知识</string>
     <string name="capture_subtitle">选择一种方式，把新知识收进库</string>
-    <string name="capture_text_title">文本粘贴</string>
-    <string name="capture_text_desc">直接粘贴文字片段</string>
+    <string name="capture_text_title">文本录入</string>
+    <string name="capture_text_desc">文字与 Markdown 录入</string>
     <string name="capture_file_title">文件导入</string>
     <string name="capture_file_desc">PDF / DOCX / MD / TXT</string>
-    <string name="capture_ocr_title">截图 OCR</string>
+    <string name="capture_ocr_title">OCR 采集</string>
     <string name="capture_ocr_desc">相册或拍照识别文字</string>
+    <string name="capture_ocr_camera">拍照</string>
+    <string name="capture_ocr_gallery">从相册选择</string>
+    <string name="capture_ocr_cancel">取消</string>
+    <string name="capture_ocr_no_camera">未找到可用相机</string>
     <string name="capture_voice_title">语音输入</string>
     <string name="capture_voice_desc">说话转成文字入库</string>
-    <string name="capture_coming_soon">该功能稍后开放</string>
+    <string name="capture_file_picked">已选择文件：%s</string>
+    <string name="capture_file_importing">正在导入…</string>
+    <string name="capture_import_parsing">解析文档</string>
+    <string name="capture_import_chunking">智能分块</string>
+    <string name="capture_import_writing">写入知识库</string>
+    <string name="capture_import_ocring">正在文字识别 第 %1$d/%2$d 页</string>
+    <string name="capture_file_success">已导入：%1$s（%2$d 块）</string>
+
+    <!-- 知识入库 -->
+    <string name="ingest_success">已加入知识库</string>
+    <string name="ingest_failed">导入失败</string>
+    <string name="ingest_empty">没有可导入的内容</string>
+    <string name="ingest_unsupported">暂不支持该文件类型</string>
+    <string name="ingest_too_large">文件过大，最大 20MB</string>
+    <string name="ingest_parse_failed">解析失败，文件可能已损坏或被加密</string>
+
+    <!-- 文本录入页 -->
+    <string name="text_title">文本录入</string>
+    <string name="text_tab_edit">编辑</string>
+    <string name="text_tab_preview">预览</string>
+    <string name="text_paste">粘贴</string>
+    <string name="text_input_hint">输入或粘贴文本，支持 Markdown</string>
+    <string name="text_preview_empty">暂无内容，切回编辑输入</string>
+    <string name="text_char_count">%1$d 字</string>
+    <string name="text_confirm">加入知识库</string>
 
     <!-- 我的页 -->
     <string name="mine_title">我的</string>
@@ -114,6 +165,7 @@
     <string name="mine_about_version">版本</string>
     <string name="mine_about_license">开源许可</string>
     <string name="mine_about_privacy">隐私政策</string>
+    <string name="mine_about_help">使用帮助</string>
 
     <!-- 知识详情页 -->
     <string name="detail_title">知识详情</string>
@@ -123,6 +175,8 @@
     <string name="detail_summary_note">摘要由本地模型生成</string>
     <string name="detail_summary_demo">本文整理了 SQLite 向量扩展的安装方式、虚拟表创建与 KNN 查询写法，并给出在 Android 端集成时的注意事项。</string>
     <string name="detail_source_label">来源信息</string>
+    <string name="detail_sensitive">标记为敏感</string>
+    <string name="detail_sensitive_desc">敏感笔记不上传云端，问答强制走本地引擎</string>
     <string name="detail_source_type">类型：文本</string>
     <string name="detail_source_time">采集时间：今天 09:24</string>
     <string name="detail_source_note">来源：手动粘贴</string>
@@ -133,11 +187,19 @@
     <string name="detail_related_2">LiteRT-LM 部署踩坑</string>
     <string name="detail_related_score_1">相似度 92%</string>
     <string name="detail_related_score_2">相似度 87%</string>
+    <string name="detail_related_score_fmt">相似度 %1$d%%</string>
     <string name="detail_delete">删除</string>
     <string name="detail_delete_confirm">确定删除这条知识吗？删除后不可恢复。</string>
+    <string name="detail_deleted">已删除</string>
+    <string name="detail_missing">笔记不存在或已删除</string>
     <string name="detail_cancel">取消</string>
     <string name="detail_confirm">确定</string>
     <string name="detail_content_heading">安装与初始化</string>
+    <string name="detail_body_heading">正文</string>
+    <string name="detail_page">第 %1$d 页</string>
+    <string name="detail_source_type_fmt">类型：%1$s</string>
+    <string name="detail_source_time_fmt">采集时间：%1$s</string>
+    <string name="detail_source_note_fmt">来源：%1$s</string>
     <string name="detail_content_body">通过 SQL 扩展方式加载 sqlite-vec 后，即可创建 vec0 虚拟表。虚拟表需要预先声明向量维度与距离度量，插入数据时向量以 BLOB 形式存储。\n\n查询阶段使用 KNN 语法，在 WHERE 孹句中指定 ORDER BY distance LIMIT n 即可召回最近邻。注意向量列不支持常规索引，写入量大时建议批量事务提交。</string>
 
     <!-- OCR 确认页 -->
@@ -148,8 +210,8 @@
     <string name="ocr_source_note">来源备注（选填）</string>
     <string name="ocr_source_note_hint">例如：课堂 PPT 第 12 页</string>
     <string name="ocr_retake">重新识别</string>
+    <string name="ocr_recapture">重新采集</string>
     <string name="ocr_confirm">加入知识库</string>
-    <string name="ocr_demo_text">第四章 向量检索\n4.1 召回率与精确率的权衡\n在端侧场景下，通常先用轻量嵌入模型完成召回，再由重排模型对 Top-K 结果精排。</string>
     <string name="ocr_fail">识别失败，可重拍或手动输入</string>
 
     <!-- 语音确认页 -->
@@ -164,6 +226,24 @@
     <string name="voice_confirm">加入知识库</string>
     <string name="voice_demo_text">今天实验的结论是，把分块长度控制在五百字左右的时候，召回效果最稳定，太长的段落会让向量的语义被稀释。</string>
     <string name="voice_transcribe_fail">转写失败，可重新录制或手动输入</string>
+    <string name="voice_model_title">端侧语音模型</string>
+    <string name="voice_model_desc">首次使用需下载一次中文语音模型（约230MB），下载完成后完全离线可用</string>
+    <string name="voice_model_download">下载模型</string>
+    <string name="voice_model_downloading">正在下载 %1$d%%</string>
+    <string name="voice_model_download_fail">模型下载失败，请稍后重试</string>
+    <string name="voice_ready_title">语音转文字</string>
+    <string name="voice_ready_hint">录音结束自动生成文字，可修改后加入知识库</string>
+    <string name="voice_start_record">开始录音</string>
+    <string name="voice_recording_hint">正在录音，点击按钮结束</string>
+    <string name="voice_stop_record">结束录音</string>
+    <string name="voice_transcribing">正在转写…</string>
+    <string name="voice_permission_denied">未获得麦克风权限，无法录音</string>
+    <string name="voice_record_fail">录音失败，请重试</string>
+    <string name="voice_engine_fail">端侧引擎初始化失败，请重新进入页面</string>
+    <string name="voice_empty_text">请输入转写文字</string>
+    <string name="voice_confirmed">已确认，入库功能待接入</string>
+    <string name="voice_pause">暂停</string>
+    <string name="voice_play_fail">录音播放失败</string>
 
     <!-- 云端 API 配置页 -->
     <string name="cloud_title">云端 API 配置</string>
@@ -176,6 +256,8 @@
     <string name="cloud_api_key_hide">隐藏</string>
     <string name="cloud_model_name">模型名称</string>
     <string name="cloud_model_name_hint">deepseek-chat</string>
+    <string name="cloud_enable">启用云端引擎</string>
+    <string name="cloud_enable_desc">默认关闭；开启后仅发送「问题 + 命中片段」，敏感知识仍走端侧</string>
     <string name="cloud_force_local">敏感内容强制端侧</string>
     <string name="cloud_force_local_desc">标记为敏感的知识即使用云端引擎也走本地</string>
     <string name="cloud_preset_hint">国内端点可快捷填充</string>
@@ -218,6 +300,30 @@
     <string name="license_link_hint">点击条目将跳转浏览器打开官方许可原文，应用内不保存全文。</string>
     <string name="license_open">在浏览器打开</string>
 
+    <!-- 使用帮助页 -->
+    <string name="help_title">使用帮助</string>
+    <string name="help_back">返回</string>
+    <string name="help_missing">帮助内容暂时无法加载。</string>
+
+    <!-- 隐私政策页 -->
+    <string name="policy_title">隐私政策</string>
+    <string name="policy_back">返回</string>
+    <string name="policy_updated">生效日期：2026 年 9 月 29 日</string>
+    <string name="policy_intro">《默识》坚持端侧优先：默认模式下，解析、分块、向量检索与问答全部在你的设备上完成。本政策说明我们如何处理你在使用过程中产生的数据。</string>
+    <string name="policy_group_storage">数据存储</string>
+    <string name="policy_storage_body">你的笔记、导入的文档、截图 OCR 与语音转写结果，全部保存在本机应用私有目录中。本地模式不申请网络权限，知识数据永不上传；卸载应用或在应用内删除后，对应数据将从本机移除。</string>
+    <string name="policy_group_permission">权限使用</string>
+    <string name="policy_permission_body">相机与麦克风权限仅在你使用截图识别、拍照导入与语音转写时申请，用于在本机把内容转成知识文本；不会用于身份识别，也不会在后台采集。</string>
+    <string name="policy_group_cloud">云端增强（可选，默认关闭）</string>
+    <string name="policy_cloud_body">云端问答需你手动开启，并自行配置接口地址与密钥。开启后仅向你配置的端点发送「问题 + 检索命中的相关片段」，原始知识数据不出端；标记为敏感的知识强制走端侧引擎；接口密钥仅保存在本机，你可随时关闭云端。</string>
+    <string name="policy_group_third">第三方组件</string>
+    <string name="policy_third_body">端侧推理、嵌入与向量检索在设备本地完成；本应用不包含广告 SDK，知识库内容与问答内容永不上传。匿名使用统计默认开启，仅收集页面访问等使用行为，不含任何知识库内容，可随时在「我的 → 匿名使用统计」中关闭；关闭后立即停止上报，也不会把你知识库的内容共享给其他应用。</string>
+    <string name="policy_group_rights">你的权利</string>
+    <string name="policy_rights_body">你可以随时查看并删除本机上的任意知识；删除会同时清除它的分块、关键词索引与向量记录。修改引擎模式等隐私开关立即生效，无需重启。</string>
+    <string name="policy_group_update">政策更新</string>
+    <string name="policy_update_body">政策如有更新，将在本页面展示最新版本并注明生效日期；更新后继续使用视为接受本政策。</string>
+    <string name="policy_note">本政策仅适用于《默识》当前版本；应用内的云端增强由你自行配置，其数据处理以你所配置端点的规则为准。</string>
+
     <!-- 隐私与安全设置页 -->
     <string name="privacy_title">隐私与安全</string>
     <string name="privacy_back">返回</string>
@@ -235,16 +341,23 @@
     <string name="storage_back">返回</string>
     <string name="storage_stats_label">存储统计</string>
     <string name="storage_stat_notes">知识条目</string>
-    <string name="storage_stat_notes_value">128 条</string>
+    <string name="storage_stat_notes_value">%1$d 条</string>
     <string name="storage_stat_chunks">向量分块</string>
-    <string name="storage_stat_chunks_value">1,024 个</string>
+    <string name="storage_stat_chunks_value">%1$d 个</string>
     <string name="storage_stat_size">占用空间</string>
-    <string name="storage_stat_size_value">3.6 MB</string>
+    <string name="storage_size_b">%1$s B</string>
+    <string name="storage_size_kb">%1$s KB</string>
+    <string name="storage_size_mb">%1$s MB</string>
+    <string name="storage_size_gb">%1$s GB</string>
     <string name="storage_export">导出备份</string>
     <string name="storage_export_desc">导出为 JSON 文件，仅保存在本机</string>
+    <string name="storage_export_success">已导出 %1$d 条知识</string>
+    <string name="storage_export_failed">导出失败，请重试</string>
     <string name="storage_clear">一键清空</string>
     <string name="storage_clear_desc">删除全部知识、分块与问答记录</string>
     <string name="storage_clear_confirm">确定清空全部数据吗？此操作不可恢复。</string>
+    <string name="storage_clear_success">已清空全部数据</string>
+    <string name="storage_clear_failed">清空失败，请重试</string>
     <string name="storage_cancel">取消</string>
     <string name="storage_confirm">确定</string>
 
@@ -256,15 +369,32 @@
     <string name="model_name_qwen">Qwen3-0.6B</string>
     <string name="model_name_embed">Gecko 110M 嵌入模型</string>
     <string name="model_status_ready">已就绪</string>
-    <string name="model_status_downloading">下载中 62%</string>
     <string name="model_status_not_installed">未安装</string>
-    <string name="model_size_gemma">1.7 GB</string>
-    <string name="model_size_qwen">410 MB</string>
-    <string name="model_size_embed">96 MB</string>
+    <string name="model_size_gemma">2.6 GB</string>
+    <string name="model_size_qwen">498 MB</string>
+    <string name="model_size_embed">115 MB</string>
+    <string name="model_version_fmt">版本 %1$s</string>
+    <string name="model_version_gemma">E2B-it</string>
+    <string name="model_version_qwen">0.6B int4</string>
+    <string name="model_version_embed">110M INT8</string>
+    <string name="model_version_asr">2024-07-17</string>
+    <string name="model_occupied_fmt">已占用 %1$s</string>
     <string name="model_group_llm">生成模型</string>
     <string name="model_group_embed">嵌入模型</string>
     <string name="model_low_end_hint">低端设备可降级到 Qwen3-0.6B，或使用关键词检索模式</string>
     <string name="model_download">下载</string>
     <string name="model_delete">删除</string>
     <string name="model_switch">切换</string>
+    <string name="model_group_asr">语音模型</string>
+    <string name="model_name_asr">SenseVoice 中文语音模型</string>
+    <string name="model_size_asr">230 MB</string>
+    <string name="model_name_stream_asr">实时语音输入模型</string>
+    <string name="model_version_stream_asr">14M int8</string>
+    <string name="model_size_stream_asr">25 MB</string>
+    <string name="model_status_downloading_pct">下载中 %1$d%%</string>
+    <string name="model_download_fail">模型下载失败，请稍后重试</string>
+    <string name="model_cancel_download">取消下载</string>
+    <string name="model_download_busy">已有模型正在下载，请稍候</string>
+    <string name="model_switched">已切换到 %1$s</string>
+    <string name="model_deleted">已删除 %1$s</string>
 </resources>

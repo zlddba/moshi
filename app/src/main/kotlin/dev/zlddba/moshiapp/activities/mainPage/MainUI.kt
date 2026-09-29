@@ -1,7 +1,18 @@
 package dev.zlddba.moshiapp.activities.mainPage
 
+import android.Manifest
+import android.annotation.SuppressLint
+import android.app.Activity
+import android.content.ActivityNotFoundException
+import android.content.Context
+import android.net.Uri
+import android.provider.OpenableColumns
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -19,17 +30,27 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Chat
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.CameraAlt
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.PhotoLibrary
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -42,17 +63,39 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.content.FileProvider
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.zlddba.moshiapp.R
 import dev.zlddba.moshiapp.activities.cloudPage.CloudActivity
 import dev.zlddba.moshiapp.activities.detailPage.DetailActivity
 import dev.zlddba.moshiapp.activities.licensePage.LicenseActivity
+import dev.zlddba.moshiapp.activities.helpPage.HelpActivity
 import dev.zlddba.moshiapp.activities.ocrPage.OcrActivity
+import dev.zlddba.moshiapp.activities.policyPage.PolicyActivity
 import dev.zlddba.moshiapp.activities.privacyPage.ModelActivity
 import dev.zlddba.moshiapp.activities.privacyPage.PrivacyActivity
 import dev.zlddba.moshiapp.activities.privacyPage.StorageActivity
+import dev.zlddba.moshiapp.activities.searchPage.SearchActivity
+import dev.zlddba.moshiapp.activities.textPage.TextActivity
 import dev.zlddba.moshiapp.activities.voicePage.VoiceActivity
+import dev.zlddba.moshiapp.MoshiApplication
+import dev.zlddba.moshiapp.data.prefs.CloudConfigPrefs
+import dev.zlddba.moshiapp.data.prefs.TelemetryPrefs
+import dev.zlddba.moshiapp.data.repo.IngestRepository
+import dev.zlddba.moshiapp.domain.utils.AppInfoHelper
+import dev.zlddba.moshiapp.ingest.parse.IngestException
+import dev.zlddba.moshiapp.ui.IngestMessages
+import dev.zlddba.moshiapp.ui.theme.MoshiShapeMedium
 import dev.zlddba.moshiapp.ui.theme.MoshiShapePill
 import dev.zlddba.moshiapp.ui.theme.MoshiTheme
+import java.io.File
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.launch
 
 private data class MainTabItem(
     val icon: ImageVector,
@@ -66,13 +109,193 @@ private val mainTabItems = listOf(
     MainTabItem(icon = Icons.Outlined.Person, labelRes = R.string.main_tab_mine)
 )
 
+private fun uriDisplayName(context: Context, uri: Uri): String? =
+    context.contentResolver
+        .query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
+        ?.use { cursor ->
+            val index = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+            if (cursor.moveToFirst() && index >= 0) cursor.getString(index) else null
+        }
+
+@SuppressLint("LocalContextGetResourceValueCall")
 @Composable
 fun MainPageScreen(modifier: Modifier = Modifier) {
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
-    var isCloudEngine by rememberSaveable { mutableStateOf(false) }
     val context = LocalContext.current
-    val showComingSoon = {
-        Toast.makeText(context, R.string.capture_coming_soon, Toast.LENGTH_SHORT).show()
+    val cloudPrefs = remember { CloudConfigPrefs(context) }
+    val telemetryPrefs = remember { TelemetryPrefs(context) }
+    var engineMode by rememberSaveable { mutableIntStateOf(cloudPrefs.load().mode) }
+    var forceLocalEnabled by rememberSaveable { mutableStateOf(cloudPrefs.load().forceLocal) }
+    var telemetryEnabled by rememberSaveable { mutableStateOf(telemetryPrefs.isEnabled()) }
+    val versionName = remember(context) { AppInfoHelper.getAppVersionName(context) }
+    val chatViewModel: ChatViewModel = viewModel(
+        factory = object : ViewModelProvider.Factory {
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                @Suppress("UNCHECKED_CAST")
+                return ChatViewModel(context) as T
+            }
+        }
+    )
+    val chatUiState by chatViewModel.uiState.collectAsState()
+    val audioPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        chatViewModel.onEvent(ChatViewModel.ChatEvent.PermissionResult(granted))
+    }
+    val homeViewModel: MainHomeViewModel = viewModel(
+        factory = object : ViewModelProvider.Factory {
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                @Suppress("UNCHECKED_CAST")
+                return MainHomeViewModel(context) as T
+            }
+        }
+    )
+    val homeUiState by homeViewModel.uiState.collectAsState()
+    LaunchedEffect(Unit) {
+        chatViewModel.onEvent(ChatViewModel.ChatEvent.Init)
+        chatViewModel.effects.collect { effect ->
+            when (effect) {
+                is ChatViewModel.ChatEffect.OpenDetail -> context.startActivity(
+                    DetailActivity.createIntent(
+                        context = context,
+                        noteId = effect.noteId,
+                        chunkId = effect.chunkId,
+                        keyword = effect.keyword
+                    )
+                )
+
+                ChatViewModel.ChatEffect.OpenModelPage -> ModelActivity.start(context)
+
+                ChatViewModel.ChatEffect.RequestAudioPermission ->
+                    audioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+
+                is ChatViewModel.ChatEffect.ShowToast -> Toast.makeText(
+                    context,
+                    effect.messageRes,
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
+    }
+    LaunchedEffect(Unit) {
+        homeViewModel.effects.collect { effect ->
+            when (effect) {
+                is MainHomeViewModel.HomeEffect.Deleted -> Toast.makeText(
+                    context,
+                    context.getString(R.string.home_deleted, effect.title),
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
+    }
+    LaunchedEffect(selectedTab) {
+        engineMode = cloudPrefs.load().mode
+        forceLocalEnabled = cloudPrefs.load().forceLocal
+        chatViewModel.onEvent(ChatViewModel.ChatEvent.RefreshCloud)
+        homeViewModel.refresh()
+    }
+    val lifecycleOwner = context as? LifecycleOwner
+    if (lifecycleOwner != null) {
+        DisposableEffect(lifecycleOwner) {
+            val observer = LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_RESUME) {
+                    engineMode = cloudPrefs.load().mode
+                    forceLocalEnabled = cloudPrefs.load().forceLocal
+                    chatViewModel.onEvent(ChatViewModel.ChatEvent.RefreshCloud)
+                    homeViewModel.refresh()
+                }
+            }
+            lifecycleOwner.lifecycle.addObserver(observer)
+            onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+        }
+    }
+    var importStage by remember { mutableStateOf<IngestRepository.Stage?>(null) }
+    val importScope = rememberCoroutineScope()
+    val exportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
+        if (uri != null) {
+            importScope.launch {
+                try {
+                    val count = IngestRepository.exportJson(context, uri)
+                    Toast.makeText(
+                        context,
+                        context.getString(R.string.storage_export_success, count),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    Toast.makeText(context, R.string.storage_export_failed, Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null && importStage == null) {
+            val name = uriDisplayName(context, uri) ?: uri.lastPathSegment.orEmpty()
+            val mime = context.contentResolver.getType(uri)
+            importScope.launch {
+                try {
+                    val summary = IngestRepository.importFile(context, uri, name, mime) { stage ->
+                        importStage = stage
+                    }
+                    importStage = null
+                    Toast.makeText(
+                        context,
+                        context.getString(R.string.capture_file_success, name, summary.chunkCount),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                } catch (e: CancellationException) {
+                    importStage = null
+                    throw e
+                } catch (e: IngestException) {
+                    importStage = null
+                    Toast.makeText(context, IngestMessages.errorOf(e.kind), Toast.LENGTH_SHORT).show()
+                } catch (e: Exception) {
+                    importStage = null
+                    Toast.makeText(context, R.string.ingest_failed, Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
+    var ocrSourceDialog by remember { mutableStateOf(false) }
+    var pendingCameraUri by rememberSaveable { mutableStateOf("") }
+    val ocrPageLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            ocrSourceDialog = true
+        }
+    }
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success ->
+        if (success && pendingCameraUri.isNotEmpty()) {
+            ocrPageLauncher.launch(OcrActivity.createIntent(context, pendingCameraUri))
+        }
+    }
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        if (uri != null) {
+            ocrPageLauncher.launch(OcrActivity.createIntent(context, uri.toString()))
+        }
+    }
+    val launchCamera = {
+        ocrSourceDialog = false
+        try {
+            val dir = File(context.cacheDir, "ocr").apply { mkdirs() }
+            val file = File.createTempFile("shot_", ".jpg", dir)
+            val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+            pendingCameraUri = uri.toString()
+            cameraLauncher.launch(uri)
+        } catch (_: ActivityNotFoundException) {
+            Toast.makeText(context, R.string.capture_ocr_no_camera, Toast.LENGTH_SHORT).show()
+        }
     }
 
     Scaffold(
@@ -91,35 +314,141 @@ fun MainPageScreen(modifier: Modifier = Modifier) {
                 .consumeWindowInsets(innerPadding)
                 .fillMaxSize()
         ) {
+            val stage = importStage
+            if (stage != null) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 4.dp)
+                ) {
+                    LinearProgressIndicator(
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = if (stage is IngestRepository.Stage.Ocring) {
+                            stringResource(R.string.capture_import_ocring, stage.page, stage.total)
+                        } else {
+                            stringResource(stageLabelRes(stage))
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.outline
+                    )
+                }
+            }
             when (selectedTab) {
                 0 -> MainHomeScreen(
-                    onNoteClick = { DetailActivity.start(context) },
-                    isCloudEngine = isCloudEngine
+                    uiState = homeUiState,
+                    onEvent = homeViewModel::onEvent,
+                    onNoteClick = { noteId ->
+                        context.startActivity(
+                            DetailActivity.createIntent(
+                                context = context,
+                                noteId = noteId,
+                                chunkId = -1,
+                                keyword = null
+                            )
+                        )
+                    },
+                    onSearchSubmit = { query -> SearchActivity.start(context, query) },
+                    isCloudEngine = chatUiState.isCloudEngine
                 )
 
                 1 -> MainChatScreen(
-                    onSourceClick = { DetailActivity.start(context) },
+                    uiState = chatUiState,
+                    onEvent = chatViewModel::onEvent,
                     onEngineClick = { CloudActivity.start(context) },
                     onSettingsClick = { selectedTab = 3 }
                 )
 
                 2 -> MainCaptureScreen(
-                    onTextClick = showComingSoon,
-                    onFileClick = showComingSoon,
-                    onOcrClick = { OcrActivity.start(context) },
+                    onTextClick = { TextActivity.start(context) },
+                    onFileClick = { filePickerLauncher.launch(arrayOf("*/*")) },
+                    onOcrClick = { ocrSourceDialog = true },
                     onVoiceClick = { VoiceActivity.start(context) }
                 )
 
                 else -> MainSettingsScreen(
+                    engineMode = engineMode,
+                    onEngineModeSelect = { mode ->
+                        engineMode = mode
+                        cloudPrefs.save(cloudPrefs.load().copy(mode = mode))
+                        chatViewModel.onEvent(ChatViewModel.ChatEvent.RefreshCloud)
+                    },
                     onCloudConfig = { CloudActivity.start(context) },
                     onModelManage = { ModelActivity.start(context) },
                     onPrivacy = { PrivacyActivity.start(context) },
                     onStorage = { StorageActivity.start(context) },
                     onLicense = { LicenseActivity.start(context) },
-                    onPlaceholder = showComingSoon
+                    onPolicy = { PolicyActivity.start(context) },
+                    onHelp = { HelpActivity.start(context) },
+                    telemetry = telemetryEnabled,
+                    onTelemetryChange = { enabled ->
+                        telemetryEnabled = enabled
+                        (context.applicationContext as MoshiApplication).applyTelemetry(enabled)
+                    },
+                    forceLocal = forceLocalEnabled,
+                    onForceLocalChange = { enabled ->
+                        forceLocalEnabled = enabled
+                        cloudPrefs.save(cloudPrefs.load().copy(forceLocal = enabled))
+                        chatViewModel.onEvent(ChatViewModel.ChatEvent.RefreshCloud)
+                    },
+                    versionName = versionName,
+                    onExport = { exportLauncher.launch(IngestRepository.exportSuggestionName()) },
+                    onClearConfirmed = {
+                        importScope.launch {
+                            try {
+                                IngestRepository.clearAll(context)
+                                Toast.makeText(
+                                    context,
+                                    R.string.storage_clear_success,
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            } catch (e: CancellationException) {
+                                throw e
+                            } catch (e: Exception) {
+                                Toast.makeText(
+                                    context,
+                                    R.string.storage_clear_failed,
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        }
+                    }
                 )
             }
         }
+    }
+
+    if (ocrSourceDialog) {
+        AlertDialog(
+            onDismissRequest = { ocrSourceDialog = false },
+            title = { Text(text = stringResource(R.string.capture_ocr_title)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OcrSourceOption(
+                        icon = Icons.Outlined.CameraAlt,
+                        labelRes = R.string.capture_ocr_camera,
+                        onClick = launchCamera
+                    )
+                    OcrSourceOption(
+                        icon = Icons.Outlined.PhotoLibrary,
+                        labelRes = R.string.capture_ocr_gallery,
+                        onClick = {
+                            ocrSourceDialog = false
+                            galleryLauncher.launch(
+                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                            )
+                        }
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { ocrSourceDialog = false }) {
+                    Text(stringResource(R.string.capture_ocr_cancel))
+                }
+            }
+        )
     }
 }
 
@@ -196,6 +525,47 @@ private fun MainTabButton(
                 fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
             )
         }
+    }
+}
+
+@Composable
+private fun OcrSourceOption(
+    icon: ImageVector,
+    labelRes: Int,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        onClick = onClick,
+        shape = MoshiShapeMedium,
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(22.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = stringResource(labelRes),
+                style = MaterialTheme.typography.bodyLarge
+            )
+        }
+    }
+}
+
+private fun stageLabelRes(stage: IngestRepository.Stage): Int {
+    return when (stage) {
+        IngestRepository.Stage.Parsing -> R.string.capture_import_parsing
+        IngestRepository.Stage.Chunking -> R.string.capture_import_chunking
+        IngestRepository.Stage.Writing -> R.string.capture_import_writing
+        is IngestRepository.Stage.Ocring -> R.string.capture_import_ocring
     }
 }
 

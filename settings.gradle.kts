@@ -19,6 +19,10 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        maven("https://jitpack.io")
+        maven {
+            url = java.io.File(settingsDir, "repo").toURI()
+        }
     }
 }
 

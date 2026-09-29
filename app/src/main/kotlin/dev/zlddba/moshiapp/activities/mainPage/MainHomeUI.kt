@@ -2,6 +2,7 @@ package dev.zlddba.moshiapp.activities.mainPage
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,8 +17,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Article
+import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.CloudSync
 import androidx.compose.material.icons.outlined.Image
@@ -25,15 +29,18 @@ import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.PictureAsPdf
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Shield
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -43,85 +50,88 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.zlddba.moshiapp.R
+import dev.zlddba.moshiapp.data.db.NoteEntity
 import dev.zlddba.moshiapp.ui.theme.MoshiShapeLarge
 import dev.zlddba.moshiapp.ui.theme.MoshiShapeMedium
 import dev.zlddba.moshiapp.ui.theme.MoshiShapePill
 import dev.zlddba.moshiapp.ui.theme.MoshiTheme
 
 data class HomeUiState(
-    val query: String = "",
-    val selectedFilter: Int = 0,
-    val cards: List<NoteCard> = emptyList()
+    val cards: List<NoteCard> = emptyList(),
+    val filter: Int = 0,
+    val loaded: Boolean = false
 ) {
     data class NoteCard(
-        val icon: ImageVector,
-        val typeRes: Int,
-        val titleRes: Int,
-        val summaryRes: Int,
-        val tagRes: Int,
-        val timeRes: Int
+        val noteId: String,
+        val type: String,
+        val title: String,
+        val summary: String,
+        val tag: String,
+        val time: String
     )
 }
 
 private val homeFilters = listOf(
     R.string.home_filter_timeline,
-    R.string.home_filter_category,
-    R.string.home_filter_tag
+    R.string.home_filter_category
 )
 
-@Composable
 private fun sampleHomeUiState(): HomeUiState = HomeUiState(
+    loaded = true,
     cards = listOf(
         HomeUiState.NoteCard(
-            icon = Icons.AutoMirrored.Outlined.Article,
-            typeRes = R.string.home_card_type_text,
-            titleRes = R.string.home_card_title_1,
-            summaryRes = R.string.home_card_summary_1,
-            tagRes = R.string.home_card_tag_db,
-            timeRes = R.string.home_card_time_1
+            noteId = "demo-1",
+            type = NoteEntity.TYPE_TEXT,
+            title = "向量数据库入门笔记",
+            summary = "记录 sqlite-vec 的索引结构、相似度计算与检索流程…",
+            tag = "数据库课程资料",
+            time = "2026-09-20 14:30"
         ),
         HomeUiState.NoteCard(
-            icon = Icons.Outlined.PictureAsPdf,
-            typeRes = R.string.home_card_type_pdf,
-            titleRes = R.string.home_card_title_2,
-            summaryRes = R.string.home_card_summary_2,
-            tagRes = R.string.home_card_tag_ml,
-            timeRes = R.string.home_card_time_2
+            noteId = "demo-2",
+            type = NoteEntity.TYPE_PDF,
+            title = "机器学习课程讲义",
+            summary = "监督学习、损失函数与梯度下降的核心推导过程…",
+            tag = "课堂讲义",
+            time = "2026-09-18 09:12"
         ),
         HomeUiState.NoteCard(
-            icon = Icons.Outlined.Image,
-            typeRes = R.string.home_card_type_image,
-            titleRes = R.string.home_card_title_3,
-            summaryRes = R.string.home_card_summary_3,
-            tagRes = R.string.home_card_tag_course,
-            timeRes = R.string.home_card_time_3
+            noteId = "demo-3",
+            type = NoteEntity.TYPE_IMAGE_OCR,
+            title = "白板讨论截图",
+            summary = "关于端侧模型量化与蒸馏的方案对比记录…",
+            tag = "",
+            time = "2026-09-15 20:45"
         ),
         HomeUiState.NoteCard(
-            icon = Icons.Outlined.Mic,
-            typeRes = R.string.home_card_type_voice,
-            titleRes = R.string.home_card_title_4,
-            summaryRes = R.string.home_card_summary_4,
-            tagRes = R.string.home_card_tag_4,
-            timeRes = R.string.home_card_time_4
+            noteId = "demo-4",
+            type = NoteEntity.TYPE_AUDIO,
+            title = "组会语音记录",
+            summary = "本周进度同步与下周分工安排的转写文本…",
+            tag = "组会",
+            time = "2026-09-12 16:08"
         )
     )
 )
 
 @Composable
 fun MainHomeScreen(
-    onNoteClick: () -> Unit,
+    uiState: HomeUiState,
+    onEvent: (MainHomeViewModel.HomeEvent) -> Unit,
+    onNoteClick: (String) -> Unit,
+    onSearchSubmit: (String) -> Unit,
     isCloudEngine: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     var query by rememberSaveable { mutableStateOf("") }
-    var selectedFilter by rememberSaveable { mutableIntStateOf(0) }
-    val uiState = sampleHomeUiState()
+    var deleteTarget by remember { mutableStateOf<HomeUiState.NoteCard?>(null) }
 
     Column(
         modifier = modifier
@@ -130,30 +140,65 @@ fun MainHomeScreen(
         HomeTopBar(isCloudEngine = isCloudEngine)
         HomeSearchBar(
             query = query,
-            onQueryChange = { query = it }
+            onQueryChange = { query = it },
+            onSubmit = { onSearchSubmit(query) }
         )
         HomeFilterRow(
-            selectedFilter = selectedFilter,
-            onFilterClick = { selectedFilter = it }
+            selectedFilter = uiState.filter,
+            onFilterClick = { onEvent(MainHomeViewModel.HomeEvent.FilterChanged(it)) }
         )
-        if (query.isNotEmpty()) {
-            Text(
-                text = stringResource(R.string.home_card_search_result),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.Medium,
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
-            )
-        }
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            items(uiState.cards) { card ->
-                HomeNoteCard(card = card, onClick = onNoteClick)
+        if (!uiState.loaded) {
+            Spacer(modifier = Modifier.height(1.dp))
+        } else if (uiState.cards.isEmpty()) {
+            HomeEmptyState()
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(
+                    start = 16.dp,
+                    end = 16.dp,
+                    top = 4.dp,
+                    bottom = 24.dp
+                ),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(uiState.cards) { card ->
+                    HomeNoteCard(
+                        card = card,
+                        onClick = { onNoteClick(card.noteId) },
+                        onLongClick = { deleteTarget = card }
+                    )
+                }
             }
         }
+    }
+
+    deleteTarget?.let { target ->
+        AlertDialog(
+            onDismissRequest = { deleteTarget = null },
+            title = { Text(stringResource(R.string.detail_delete)) },
+            text = { Text(stringResource(R.string.detail_delete_confirm)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onEvent(
+                            MainHomeViewModel.HomeEvent.DeleteRequested(
+                                noteId = target.noteId,
+                                title = target.title
+                            )
+                        )
+                        deleteTarget = null
+                    }
+                ) {
+                    Text(stringResource(R.string.detail_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { deleteTarget = null }) {
+                    Text(stringResource(R.string.detail_cancel))
+                }
+            }
+        )
     }
 }
 
@@ -214,7 +259,8 @@ private fun HomeEngineBadge(isCloudEngine: Boolean) {
 @Composable
 private fun HomeSearchBar(
     query: String,
-    onQueryChange: (String) -> Unit
+    onQueryChange: (String) -> Unit,
+    onSubmit: () -> Unit
 ) {
     OutlinedTextField(
         value = query,
@@ -229,8 +275,18 @@ private fun HomeSearchBar(
                 contentDescription = stringResource(R.string.home_search_hint)
             )
         },
+        trailingIcon = {
+            IconButton(onClick = onSubmit) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Outlined.ArrowForward,
+                    contentDescription = stringResource(R.string.home_search_submit)
+                )
+            }
+        },
         singleLine = true,
-        shape = MoshiShapeLarge
+        shape = MoshiShapeLarge,
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+        keyboardActions = KeyboardActions(onSearch = { onSubmit() })
     )
 }
 
@@ -268,24 +324,34 @@ private fun HomeFilterRow(
     }
 }
 
+private fun typeVisual(type: String): Pair<ImageVector, Int> = when (type) {
+    NoteEntity.TYPE_PDF -> Icons.Outlined.PictureAsPdf to R.string.home_card_type_pdf
+    NoteEntity.TYPE_IMAGE_OCR -> Icons.Outlined.Image to R.string.home_card_type_image
+    NoteEntity.TYPE_AUDIO -> Icons.Outlined.Mic to R.string.home_card_type_voice
+    else -> Icons.AutoMirrored.Outlined.Article to R.string.home_card_type_text
+}
+
 @Composable
 private fun HomeNoteCard(
     card: HomeUiState.NoteCard,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onLongClick: () -> Unit
 ) {
-    val isPdf = card.typeRes == R.string.home_card_type_pdf
+    val (icon, typeRes) = typeVisual(card.type)
+    val isPdf = card.type == NoteEntity.TYPE_PDF
     val tileColor = if (isPdf) MaterialTheme.colorScheme.secondaryContainer
     else MaterialTheme.colorScheme.primaryContainer
     val tileTint = if (isPdf) MaterialTheme.colorScheme.onSecondaryContainer
     else MaterialTheme.colorScheme.onPrimaryContainer
 
     Surface(
-        onClick = onClick,
         shape = MoshiShapeMedium,
         color = MaterialTheme.colorScheme.surface,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         shadowElevation = 2.dp,
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
     ) {
         Row(modifier = Modifier.padding(16.dp)) {
             Box(
@@ -296,7 +362,7 @@ private fun HomeNoteCard(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = card.icon,
+                    imageVector = icon,
                     contentDescription = null,
                     modifier = Modifier.size(24.dp),
                     tint = tileTint
@@ -310,7 +376,7 @@ private fun HomeNoteCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = stringResource(card.titleRes),
+                        text = card.title,
                         style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
@@ -318,7 +384,7 @@ private fun HomeNoteCard(
                         modifier = Modifier.weight(1f)
                     )
                     Text(
-                        text = stringResource(card.typeRes),
+                        text = stringResource(typeRes),
                         style = MaterialTheme.typography.labelSmall,
                         color = if (isPdf) MaterialTheme.colorScheme.secondary
                         else MaterialTheme.colorScheme.primary,
@@ -330,7 +396,7 @@ private fun HomeNoteCard(
                 }
                 Spacer(modifier = Modifier.height(5.dp))
                 Text(
-                    text = stringResource(card.summaryRes),
+                    text = card.summary,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 2,
@@ -342,18 +408,24 @@ private fun HomeNoteCard(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    if (card.tag.isNotBlank()) {
+                        Text(
+                            text = card.tag,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.tertiary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier
+                                .clip(MoshiShapePill)
+                                .background(MaterialTheme.colorScheme.tertiaryContainer)
+                                .padding(horizontal = 8.dp, vertical = 3.dp)
+                        )
+                        Spacer(modifier = Modifier.weight(1f))
+                    } else {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
                     Text(
-                        text = stringResource(card.tagRes),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.tertiary,
-                        modifier = Modifier
-                            .clip(MoshiShapePill)
-                            .background(MaterialTheme.colorScheme.tertiaryContainer)
-                            .padding(horizontal = 8.dp, vertical = 3.dp)
-                    )
-                    Spacer(modifier = Modifier.weight(1f))
-                    Text(
-                        text = stringResource(card.timeRes),
+                        text = card.time,
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.outline
                     )
@@ -371,7 +443,7 @@ private fun HomeNoteCard(
 }
 
 @Composable
-private fun rememberHomeEmptyState() {
+private fun HomeEmptyState() {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -413,7 +485,12 @@ private fun rememberHomeEmptyState() {
 @Preview(showBackground = true, showSystemUi = true)
 private fun MainHomeScreenPreview() {
     MoshiTheme {
-        MainHomeScreen(onNoteClick = {})
+        MainHomeScreen(
+            uiState = sampleHomeUiState(),
+            onEvent = {},
+            onNoteClick = {},
+            onSearchSubmit = {}
+        )
     }
 }
 
@@ -421,6 +498,6 @@ private fun MainHomeScreenPreview() {
 @Preview(showBackground = true, showSystemUi = true)
 private fun MainHomeEmptyScreenPreview() {
     MoshiTheme {
-        rememberHomeEmptyState()
+        HomeEmptyState()
     }
 }

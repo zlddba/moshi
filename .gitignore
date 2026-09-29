@@ -16,3 +16,4 @@ local.properties
 
 # IDE
 .idea/
+/logs/
