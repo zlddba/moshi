@@ -5,6 +5,9 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.zlddba.moshiapp.R
+import dev.zlddba.moshiapp.data.db.MoshiDatabase
+import dev.zlddba.moshiapp.data.db.QaLogDao
+import dev.zlddba.moshiapp.data.db.QaLogEntity
 import dev.zlddba.moshiapp.data.prefs.CloudConfigPrefs
 import dev.zlddba.moshiapp.data.prefs.ModelPrefs
 import dev.zlddba.moshiapp.data.repo.IngestRepository
@@ -12,6 +15,7 @@ import dev.zlddba.moshiapp.domain.qa.QaOrchestrator
 import dev.zlddba.moshiapp.domain.retrieve.RetrieveService
 import dev.zlddba.moshiapp.engine.local.BackendKind
 import dev.zlddba.moshiapp.engine.local.LiteRtLlmEngine
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
@@ -23,6 +27,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import org.json.JSONArray
+import org.json.JSONObject
 
 class ChatViewModel(context: Context) : ViewModel() {
 
@@ -91,7 +97,36 @@ class ChatViewModel(context: Context) : ViewModel() {
     private var generationJob: Job? = null
     private var warmedUp = false
 
+    private sealed interface PersistOp {
+        data object Load : PersistOp
+        data class Save(val message: ChatUiState.ChatMessage) : PersistOp
+        data object ClearAll : PersistOp
+    }
+
+    private val persistOps = Channel<PersistOp>(Channel.UNLIMITED)
+
     init {
+        viewModelScope.launch(Dispatchers.IO) {
+            val dao = MoshiDatabase.get(appContext).qaLogDao()
+            for (op in persistOps) {
+                try {
+                    when (op) {
+                        PersistOp.Load -> restoreHistory(dao)
+                        is PersistOp.Save -> {
+                            dao.insert(op.message.toLog())
+                            dao.trim(HISTORY_KEEP)
+                        }
+
+                        PersistOp.ClearAll -> dao.deleteAll()
+                    }
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Throwable) {
+                    Log.w(TAG, "persist op failed: ${op::class.simpleName}", e)
+                }
+            }
+        }
+        persistOps.trySend(PersistOp.Load)
         viewModelScope.launch {
             IngestRepository.libraryCleared.collect {
                 clear()
@@ -274,6 +309,7 @@ class ChatViewModel(context: Context) : ViewModel() {
         generationJob?.cancel()
         generationJob = null
         synchronized(streamBuffer) { streamBuffer.setLength(0) }
+        persistOps.trySend(PersistOp.ClearAll)
         _uiState.update {
             it.copy(
                 messages = emptyList(),
@@ -324,6 +360,75 @@ class ChatViewModel(context: Context) : ViewModel() {
 
     private fun appendMessage(message: ChatUiState.ChatMessage) {
         _uiState.update { it.copy(messages = it.messages + message) }
+        persistOps.trySend(PersistOp.Save(message))
+    }
+
+    private suspend fun restoreHistory(dao: QaLogDao) {
+        val restored = dao.recent(HISTORY_LOAD).mapNotNull { it.toMessage() }.asReversed()
+        if (restored.isEmpty()) return
+        _uiState.update { state ->
+            if (state.messages.isEmpty()) {
+                state.copy(messages = restored)
+            } else {
+                state.copy(messages = restored + state.messages.filterNot { it in restored })
+            }
+        }
+    }
+
+    private fun ChatUiState.ChatMessage.toLog(): QaLogEntity =
+        QaLogEntity(
+            role = role.name,
+            text = text,
+            thinking = thinking,
+            sourcesJson = encodeSources(sources),
+            createdAt = System.currentTimeMillis()
+        )
+
+    private fun QaLogEntity.toMessage(): ChatUiState.ChatMessage? {
+        val parsedRole = ChatUiState.Role.entries.firstOrNull { it.name == role } ?: return null
+        return ChatUiState.ChatMessage(
+            role = parsedRole,
+            text = text,
+            thinking = thinking,
+            sources = decodeSources(sourcesJson)
+        )
+    }
+
+    private fun encodeSources(sources: List<ChatUiState.ChatSource>): String {
+        if (sources.isEmpty()) return ""
+        val array = JSONArray()
+        for (source in sources) {
+            val item = JSONObject()
+            item.put("chunk_id", source.chunkId)
+            item.put("note_id", source.noteId)
+            item.put("title", source.title)
+            if (source.pageNo != null) item.put("page_no", source.pageNo)
+            array.put(item)
+        }
+        return array.toString()
+    }
+
+    private fun decodeSources(raw: String): List<ChatUiState.ChatSource> {
+        if (raw.isEmpty()) return emptyList()
+        return try {
+            val array = JSONArray(raw)
+            buildList {
+                for (i in 0 until array.length()) {
+                    val item = array.optJSONObject(i) ?: continue
+                    add(
+                        ChatUiState.ChatSource(
+                            chunkId = item.optInt("chunk_id", -1),
+                            noteId = item.optString("note_id", ""),
+                            title = item.optString("title", ""),
+                            pageNo = if (item.has("page_no")) item.optInt("page_no") else null
+                        )
+                    )
+                }
+            }
+        } catch (e: Throwable) {
+            Log.w(TAG, "decodeSources failed", e)
+            emptyList()
+        }
     }
 
     private fun lastQuestion(): String =
@@ -341,5 +446,7 @@ class ChatViewModel(context: Context) : ViewModel() {
     private companion object {
         const val TAG = "ChatViewModel"
         const val STREAM_TICK_MS = 60L
+        const val HISTORY_LOAD = 200
+        const val HISTORY_KEEP = 500
     }
 }
