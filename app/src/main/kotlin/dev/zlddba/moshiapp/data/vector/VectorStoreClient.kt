@@ -126,6 +126,28 @@ object VectorStoreClient {
         }
     }
 
+    suspend fun clearAll(context: Context) {
+        withContext(Dispatchers.IO) {
+            mutex.withLock {
+                val appContext = context.applicationContext
+                val existing = store
+                if (existing != null) {
+                    try {
+                        existing.sqlQuery("DELETE FROM $TABLE_NAME")
+                        Log.i(TAG, "clearAll rows removed")
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Throwable) {
+                        Log.e(TAG, "clearAll failed", e)
+                    }
+                } else {
+                    deleteDatabaseFile(appContext)
+                    Log.i(TAG, "clearAll store files removed")
+                }
+            }
+        }
+    }
+
     private fun writeDimMarker(context: Context, dim: Int) {
         try {
             val directory = File(context.filesDir, "vectors")
