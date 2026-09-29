@@ -57,6 +57,7 @@ fun MainSettingsScreen(
     onPrivacy: () -> Unit,
     onStorage: () -> Unit,
     onLicense: () -> Unit,
+    onPolicy: () -> Unit,
     onPlaceholder: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -169,7 +170,7 @@ fun MainSettingsScreen(
                 titleRes = R.string.mine_about_privacy,
                 icon = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
                 showIcon = false,
-                onClick = onPlaceholder
+                onClick = onPolicy
             )
         }
         Spacer(modifier = Modifier.height(32.dp))
@@ -380,6 +381,7 @@ private fun MainSettingsScreenPreview() {
             onPrivacy = {},
             onStorage = {},
             onLicense = {},
+            onPolicy = {},
             onPlaceholder = {}
         )
     }

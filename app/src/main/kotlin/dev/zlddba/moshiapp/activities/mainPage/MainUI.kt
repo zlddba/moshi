@@ -70,6 +70,7 @@ import dev.zlddba.moshiapp.activities.cloudPage.CloudActivity
 import dev.zlddba.moshiapp.activities.detailPage.DetailActivity
 import dev.zlddba.moshiapp.activities.licensePage.LicenseActivity
 import dev.zlddba.moshiapp.activities.ocrPage.OcrActivity
+import dev.zlddba.moshiapp.activities.policyPage.PolicyActivity
 import dev.zlddba.moshiapp.activities.privacyPage.ModelActivity
 import dev.zlddba.moshiapp.activities.privacyPage.PrivacyActivity
 import dev.zlddba.moshiapp.activities.privacyPage.StorageActivity
@@ -281,6 +282,7 @@ fun MainPageScreen(modifier: Modifier = Modifier) {
                     onPrivacy = { PrivacyActivity.start(context) },
                     onStorage = { StorageActivity.start(context) },
                     onLicense = { LicenseActivity.start(context) },
+                    onPolicy = { PolicyActivity.start(context) },
                     onPlaceholder = showComingSoon
                 )
             }

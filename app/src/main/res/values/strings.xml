@@ -289,6 +289,25 @@
     <string name="license_link_hint">点击条目将跳转浏览器打开官方许可原文，应用内不保存全文。</string>
     <string name="license_open">在浏览器打开</string>
 
+    <!-- 隐私政策页 -->
+    <string name="policy_title">隐私政策</string>
+    <string name="policy_back">返回</string>
+    <string name="policy_updated">生效日期：2026 年 9 月 29 日</string>
+    <string name="policy_intro">《默识》坚持端侧优先：默认模式下，解析、分块、向量检索与问答全部在你的设备上完成。本政策说明我们如何处理你在使用过程中产生的数据。</string>
+    <string name="policy_group_storage">数据存储</string>
+    <string name="policy_storage_body">你的笔记、导入的文档、截图 OCR 与语音转写结果，全部保存在本机应用私有目录中。本地模式不申请网络权限，知识数据永不上传；卸载应用或在应用内删除后，对应数据将从本机移除。</string>
+    <string name="policy_group_permission">权限使用</string>
+    <string name="policy_permission_body">相机与麦克风权限仅在你使用截图识别、拍照导入与语音转写时申请，用于在本机把内容转成知识文本；不会用于身份识别，也不会在后台采集。</string>
+    <string name="policy_group_cloud">云端增强（可选，默认关闭）</string>
+    <string name="policy_cloud_body">云端问答需你手动开启，并自行配置接口地址与密钥。开启后仅向你配置的端点发送「问题 + 检索命中的相关片段」，原始知识数据不出端；标记为敏感的知识强制走端侧引擎；接口密钥仅保存在本机，你可随时关闭云端。</string>
+    <string name="policy_group_third">第三方组件</string>
+    <string name="policy_third_body">端侧推理、嵌入与向量检索在设备本地完成；本应用不包含广告 SDK，不向第三方上报使用数据，也不会把你知识库的内容共享给其他应用。</string>
+    <string name="policy_group_rights">你的权利</string>
+    <string name="policy_rights_body">你可以随时查看并删除本机上的任意知识；删除会同时清除它的分块、关键词索引与向量记录。修改引擎模式等隐私开关立即生效，无需重启。</string>
+    <string name="policy_group_update">政策更新</string>
+    <string name="policy_update_body">政策如有更新，将在本页面展示最新版本并注明生效日期；更新后继续使用视为接受本政策。</string>
+    <string name="policy_note">本政策仅适用于《默识》当前版本；应用内的云端增强由你自行配置，其数据处理以你所配置端点的规则为准。</string>
+
     <!-- 隐私与安全设置页 -->
     <string name="privacy_title">隐私与安全</string>
     <string name="privacy_back">返回</string>
