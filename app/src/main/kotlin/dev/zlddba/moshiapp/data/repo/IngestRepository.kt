@@ -85,23 +85,38 @@ object IngestRepository {
         text: String,
         type: String,
         fallbackTitle: String,
-        sourceNote: String? = null
+        sourceNote: String? = null,
+        sourceUri: Uri? = null
     ): Summary = withContext(Dispatchers.IO) {
         val content = text.trim()
         if (content.isEmpty()) throw IngestException(IngestException.Kind.EMPTY)
         val chunks = Chunker.chunk(content)
         if (chunks.isEmpty()) throw IngestException(IngestException.Kind.EMPTY)
+        val noteId = UUID.randomUUID().toString()
+        val storedSource = sourceUri?.let { uri ->
+            try {
+                copyOriginal(context, uri, noteId, sourceFormatOf(type)).path
+            } catch (e: IOException) {
+                uri.toString()
+            }
+        }
         persist(
             context = context,
-            noteId = UUID.randomUUID().toString(),
+            noteId = noteId,
             title = titleOf(content, fallbackTitle),
             content = content,
             type = type,
             pageOffsets = emptyList(),
             chunks = chunks,
-            sourceUri = null,
+            sourceUri = storedSource,
             sourceNote = sourceNote
         )
+    }
+
+    private fun sourceFormatOf(type: String): String = when (type) {
+        NoteEntity.TYPE_AUDIO -> "wav"
+        NoteEntity.TYPE_IMAGE_OCR -> "img"
+        else -> "bin"
     }
 
     private suspend fun persist(

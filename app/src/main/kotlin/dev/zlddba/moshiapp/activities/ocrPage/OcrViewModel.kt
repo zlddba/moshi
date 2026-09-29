@@ -81,7 +81,8 @@ class OcrViewModel(context: Context) : ViewModel() {
                     text = state.text,
                     type = NoteEntity.TYPE_IMAGE_OCR,
                     fallbackTitle = appContext.getString(R.string.ocr_title),
-                    sourceNote = state.sourceNote.ifBlank { null }
+                    sourceNote = state.sourceNote.ifBlank { null },
+                    sourceUri = state.imageUri?.let(Uri::parse)
                 )
                 sendEffect(OcrEffect.ShowToast(R.string.ingest_success))
                 sendEffect(OcrEffect.Close)
