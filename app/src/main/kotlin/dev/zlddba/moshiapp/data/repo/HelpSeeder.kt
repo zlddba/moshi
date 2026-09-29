@@ -1,6 +1,7 @@
 package dev.zlddba.moshiapp.data.repo
 
 import android.content.Context
+import dev.zlddba.moshiapp.data.db.MoshiDatabase
 import dev.zlddba.moshiapp.data.db.NoteEntity
 import dev.zlddba.moshiapp.data.prefs.SeedPrefs
 import kotlinx.coroutines.CoroutineScope
@@ -14,10 +15,9 @@ object HelpSeeder {
 
     fun start(context: Context) {
         val appContext = context.applicationContext
-        val prefs = SeedPrefs(appContext)
-        if (prefs.isHelpSeeded()) return
         scope.launch {
             try {
+                if (MoshiDatabase.get(appContext).noteDao().builtinCount() > 0) return@launch
                 val text = appContext.assets.open(ASSET_NAME)
                     .bufferedReader()
                     .use { it.readText() }
@@ -25,9 +25,10 @@ object HelpSeeder {
                     context = appContext,
                     text = text,
                     type = NoteEntity.TYPE_TEXT,
-                    fallbackTitle = FALLBACK_TITLE
+                    fallbackTitle = FALLBACK_TITLE,
+                    isBuiltIn = true
                 )
-                prefs.markHelpSeeded()
+                SeedPrefs(appContext).markHelpSeeded()
             } catch (t: Throwable) {
             }
         }

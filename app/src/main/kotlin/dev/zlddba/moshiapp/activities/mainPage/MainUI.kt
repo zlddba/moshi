@@ -42,6 +42,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -62,6 +63,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -77,6 +81,7 @@ import dev.zlddba.moshiapp.activities.privacyPage.StorageActivity
 import dev.zlddba.moshiapp.activities.searchPage.SearchActivity
 import dev.zlddba.moshiapp.activities.textPage.TextActivity
 import dev.zlddba.moshiapp.activities.voicePage.VoiceActivity
+import dev.zlddba.moshiapp.data.prefs.CloudConfigPrefs
 import dev.zlddba.moshiapp.data.repo.IngestRepository
 import dev.zlddba.moshiapp.ingest.parse.IngestException
 import dev.zlddba.moshiapp.ui.IngestMessages
@@ -111,8 +116,9 @@ private fun uriDisplayName(context: Context, uri: Uri): String? =
 @Composable
 fun MainPageScreen(modifier: Modifier = Modifier) {
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
-    var isCloudEngine by rememberSaveable { mutableStateOf(false) }
     val context = LocalContext.current
+    val cloudPrefs = remember { CloudConfigPrefs(context) }
+    var engineMode by rememberSaveable { mutableIntStateOf(cloudPrefs.load().mode) }
     val chatViewModel: ChatViewModel = viewModel(
         factory = object : ViewModelProvider.Factory {
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -122,6 +128,15 @@ fun MainPageScreen(modifier: Modifier = Modifier) {
         }
     )
     val chatUiState by chatViewModel.uiState.collectAsState()
+    val homeViewModel: MainHomeViewModel = viewModel(
+        factory = object : ViewModelProvider.Factory {
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                @Suppress("UNCHECKED_CAST")
+                return MainHomeViewModel(context) as T
+            }
+        }
+    )
+    val homeUiState by homeViewModel.uiState.collectAsState()
     LaunchedEffect(Unit) {
         chatViewModel.onEvent(ChatViewModel.ChatEvent.Init)
         chatViewModel.effects.collect { effect ->
@@ -143,6 +158,36 @@ fun MainPageScreen(modifier: Modifier = Modifier) {
                     Toast.LENGTH_SHORT
                 ).show()
             }
+        }
+    }
+    LaunchedEffect(Unit) {
+        homeViewModel.effects.collect { effect ->
+            when (effect) {
+                is MainHomeViewModel.HomeEffect.Deleted -> Toast.makeText(
+                    context,
+                    context.getString(R.string.home_deleted, effect.title),
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
+    }
+    LaunchedEffect(selectedTab) {
+        engineMode = cloudPrefs.load().mode
+        chatViewModel.onEvent(ChatViewModel.ChatEvent.RefreshCloud)
+        homeViewModel.refresh()
+    }
+    val lifecycleOwner = context as? LifecycleOwner
+    if (lifecycleOwner != null) {
+        DisposableEffect(lifecycleOwner) {
+            val observer = LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_RESUME) {
+                    engineMode = cloudPrefs.load().mode
+                    chatViewModel.onEvent(ChatViewModel.ChatEvent.RefreshCloud)
+                    homeViewModel.refresh()
+                }
+            }
+            lifecycleOwner.lifecycle.addObserver(observer)
+            onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
         }
     }
     val showComingSoon = {
@@ -257,9 +302,20 @@ fun MainPageScreen(modifier: Modifier = Modifier) {
             }
             when (selectedTab) {
                 0 -> MainHomeScreen(
-                    onNoteClick = { DetailActivity.start(context) },
+                    uiState = homeUiState,
+                    onEvent = homeViewModel::onEvent,
+                    onNoteClick = { noteId ->
+                        context.startActivity(
+                            DetailActivity.createIntent(
+                                context = context,
+                                noteId = noteId,
+                                chunkId = -1,
+                                keyword = null
+                            )
+                        )
+                    },
                     onSearchSubmit = { query -> SearchActivity.start(context, query) },
-                    isCloudEngine = isCloudEngine
+                    isCloudEngine = chatUiState.isCloudEngine
                 )
 
                 1 -> MainChatScreen(
@@ -277,6 +333,12 @@ fun MainPageScreen(modifier: Modifier = Modifier) {
                 )
 
                 else -> MainSettingsScreen(
+                    engineMode = engineMode,
+                    onEngineModeSelect = { mode ->
+                        engineMode = mode
+                        cloudPrefs.save(cloudPrefs.load().copy(mode = mode))
+                        chatViewModel.onEvent(ChatViewModel.ChatEvent.RefreshCloud)
+                    },
                     onCloudConfig = { CloudActivity.start(context) },
                     onModelManage = { ModelActivity.start(context) },
                     onPrivacy = { PrivacyActivity.start(context) },

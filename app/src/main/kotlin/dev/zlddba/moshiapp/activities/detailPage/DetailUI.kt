@@ -32,6 +32,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -58,6 +59,8 @@ import dev.zlddba.moshiapp.ui.theme.MoshiShapeSmall
 import dev.zlddba.moshiapp.ui.theme.MoshiTheme
 
 data class DetailUiState(
+    val noteId: String = "",
+    val isSensitive: Boolean = false,
     val title: String = "",
     val summary: String = "",
     val heading: String = "",
@@ -66,7 +69,9 @@ data class DetailUiState(
     val tags: List<String> = emptyList(),
     val related: List<RelatedNote> = emptyList(),
     val highlight: String = "",
-    val focusIndex: Int = -1
+    val focusIndex: Int = -1,
+    val missing: Boolean = false,
+    val isBuiltIn: Boolean = false
 ) {
     data class Paragraph(
         val text: String,
@@ -112,6 +117,8 @@ fun DetailPageScreen(
     uiState: DetailUiState,
     onBack: () -> Unit,
     onRelatedClick: () -> Unit = {},
+    onToggleSensitive: () -> Unit = {},
+    onDelete: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
@@ -134,9 +141,13 @@ fun DetailPageScreen(
             onBack = onBack,
             menuExpanded = menuExpanded,
             onMenuToggle = { menuExpanded = it },
-            onDeleteClick = {
-                menuExpanded = false
-                deleteDialogVisible = true
+            onDeleteClick = if (uiState.isBuiltIn) {
+                null
+            } else {
+                {
+                    menuExpanded = false
+                    deleteDialogVisible = true
+                }
             }
         )
         LazyColumn(
@@ -185,6 +196,14 @@ fun DetailPageScreen(
                     DetailSourceCard(rows = uiState.sources)
                 }
             }
+            if (uiState.noteId.isNotBlank()) {
+                item {
+                    DetailSensitiveCard(
+                        isSensitive = uiState.isSensitive,
+                        onToggle = onToggleSensitive
+                    )
+                }
+            }
             if (uiState.tags.isNotEmpty()) {
                 item {
                     DetailTagSection(tags = uiState.tags)
@@ -207,7 +226,12 @@ fun DetailPageScreen(
             title = { Text(stringResource(R.string.detail_delete)) },
             text = { Text(stringResource(R.string.detail_delete_confirm)) },
             confirmButton = {
-                TextButton(onClick = { deleteDialogVisible = false }) {
+                TextButton(
+                    onClick = {
+                        deleteDialogVisible = false
+                        onDelete()
+                    }
+                ) {
                     Text(stringResource(R.string.detail_confirm))
                 }
             },
@@ -225,7 +249,7 @@ private fun DetailTopBar(
     onBack: () -> Unit,
     menuExpanded: Boolean,
     onMenuToggle: (Boolean) -> Unit,
-    onDeleteClick: () -> Unit
+    onDeleteClick: (() -> Unit)?
 ) {
     Row(
         modifier = Modifier
@@ -246,27 +270,29 @@ private fun DetailTopBar(
             color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.weight(1f)
         )
-        Box {
-            IconButton(onClick = { onMenuToggle(true) }) {
-                Icon(
-                    imageVector = Icons.Outlined.MoreVert,
-                    contentDescription = stringResource(R.string.detail_more)
-                )
-            }
-            DropdownMenu(
-                expanded = menuExpanded,
-                onDismissRequest = { onMenuToggle(false) }
-            ) {
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.detail_delete)) },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Outlined.Delete,
-                            contentDescription = null
-                        )
-                    },
-                    onClick = onDeleteClick
-                )
+        if (onDeleteClick != null) {
+            Box {
+                IconButton(onClick = { onMenuToggle(true) }) {
+                    Icon(
+                        imageVector = Icons.Outlined.MoreVert,
+                        contentDescription = stringResource(R.string.detail_more)
+                    )
+                }
+                DropdownMenu(
+                    expanded = menuExpanded,
+                    onDismissRequest = { onMenuToggle(false) }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.detail_delete)) },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Outlined.Delete,
+                                contentDescription = null
+                            )
+                        },
+                        onClick = { onDeleteClick() }
+                    )
+                }
             }
         }
     }
@@ -358,6 +384,44 @@ private fun DetailParagraph(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             lineHeight = 24.sp
         )
+    }
+}
+
+@Composable
+private fun DetailSensitiveCard(
+    isSensitive: Boolean,
+    onToggle: () -> Unit
+) {
+    Surface(
+        shape = MoshiShapeMedium,
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant
+        ),
+        shadowElevation = 2.dp,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.detail_sensitive),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = stringResource(R.string.detail_sensitive_desc),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    lineHeight = 18.sp
+                )
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Switch(checked = isSensitive, onCheckedChange = { onToggle() })
+        }
     }
 }
 

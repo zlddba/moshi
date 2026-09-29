@@ -3,13 +3,16 @@ package dev.zlddba.moshiapp.activities.detailPage
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import dev.zlddba.moshiapp.R
 import dev.zlddba.moshiapp.ui.theme.MoshiTheme
 
 class DetailActivity : ComponentActivity() {
@@ -39,9 +42,33 @@ class DetailActivity : ComponentActivity() {
         setContent {
             MoshiTheme {
                 val uiState by viewModel.uiState.collectAsState()
+                val deleted by viewModel.deleted.collectAsState()
+                LaunchedEffect(deleted, uiState.missing) {
+                    if (deleted) {
+                        Toast.makeText(
+                            this@DetailActivity,
+                            R.string.detail_deleted,
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        finish()
+                    } else if (uiState.missing) {
+                        Toast.makeText(
+                            this@DetailActivity,
+                            R.string.detail_missing,
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        finish()
+                    }
+                }
                 DetailPageScreen(
                     uiState = uiState,
-                    onBack = { finish() }
+                    onBack = { finish() },
+                    onToggleSensitive = {
+                        viewModel.onEvent(DetailViewModel.DetailEvent.ToggleSensitive)
+                    },
+                    onDelete = {
+                        viewModel.onEvent(DetailViewModel.DetailEvent.Delete)
+                    }
                 )
             }
         }

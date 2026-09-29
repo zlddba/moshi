@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.zlddba.moshiapp.R
+import dev.zlddba.moshiapp.data.prefs.CloudConfigPrefs
 import dev.zlddba.moshiapp.data.prefs.ModelPrefs
 import dev.zlddba.moshiapp.domain.qa.QaOrchestrator
 import dev.zlddba.moshiapp.domain.retrieve.RetrieveService
@@ -53,6 +54,7 @@ class ChatViewModel(context: Context) : ViewModel() {
 
     sealed interface ChatEvent {
         data object Init : ChatEvent
+        data object RefreshCloud : ChatEvent
         data class Send(val text: String) : ChatEvent
         data object Stop : ChatEvent
         data object Clear : ChatEvent
@@ -91,6 +93,7 @@ class ChatViewModel(context: Context) : ViewModel() {
     fun onEvent(event: ChatEvent) {
         when (event) {
             ChatEvent.Init -> warmUp()
+            ChatEvent.RefreshCloud -> refreshCloud()
             is ChatEvent.Send -> send(event.text)
             ChatEvent.Stop -> stop()
             ChatEvent.Clear -> clear()
@@ -109,10 +112,18 @@ class ChatViewModel(context: Context) : ViewModel() {
     private fun warmUp() {
         if (warmedUp) return
         warmedUp = true
+        refreshCloud()
         viewModelScope.launch(Dispatchers.IO) {
             LiteRtLlmEngine.setBackend(BackendKind.from(modelPrefs.currentBackend()))
             LiteRtLlmEngine.warmUp(appContext)
             _uiState.update { it.copy(backend = LiteRtLlmEngine.currentBackend().name) }
+        }
+    }
+
+    private fun refreshCloud() {
+        val config = CloudConfigPrefs(appContext).load()
+        _uiState.update {
+            it.copy(isCloudEngine = config.usesCloud() && config.isComplete())
         }
     }
 

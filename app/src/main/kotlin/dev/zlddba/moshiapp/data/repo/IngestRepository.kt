@@ -8,6 +8,7 @@ import dev.zlddba.moshiapp.data.db.ChunkEntity
 import dev.zlddba.moshiapp.data.db.KeywordIndex
 import dev.zlddba.moshiapp.data.db.MoshiDatabase
 import dev.zlddba.moshiapp.data.db.NoteEntity
+import dev.zlddba.moshiapp.data.vector.VectorStoreClient
 import dev.zlddba.moshiapp.domain.chunk.Chunker
 import dev.zlddba.moshiapp.ingest.parse.IngestException
 import dev.zlddba.moshiapp.ingest.parse.ParsedDoc
@@ -27,6 +28,9 @@ object IngestRepository {
 
     private val _savedNotes = MutableSharedFlow<String>(extraBufferCapacity = 8)
     val savedNotes: SharedFlow<String> = _savedNotes.asSharedFlow()
+
+    private val _deletedNotes = MutableSharedFlow<String>(extraBufferCapacity = 8)
+    val deletedNotes: SharedFlow<String> = _deletedNotes.asSharedFlow()
 
     sealed interface Stage {
         data object Parsing : Stage
@@ -85,23 +89,67 @@ object IngestRepository {
         text: String,
         type: String,
         fallbackTitle: String,
-        sourceNote: String? = null
+        sourceNote: String? = null,
+        sourceUri: Uri? = null,
+        isBuiltIn: Boolean = false
     ): Summary = withContext(Dispatchers.IO) {
         val content = text.trim()
         if (content.isEmpty()) throw IngestException(IngestException.Kind.EMPTY)
         val chunks = Chunker.chunk(content)
         if (chunks.isEmpty()) throw IngestException(IngestException.Kind.EMPTY)
+        val noteId = UUID.randomUUID().toString()
+        val storedSource = sourceUri?.let { uri ->
+            try {
+                copyOriginal(context, uri, noteId, sourceFormatOf(type)).path
+            } catch (e: IOException) {
+                uri.toString()
+            }
+        }
         persist(
             context = context,
-            noteId = UUID.randomUUID().toString(),
+            noteId = noteId,
             title = titleOf(content, fallbackTitle),
             content = content,
             type = type,
             pageOffsets = emptyList(),
             chunks = chunks,
-            sourceUri = null,
-            sourceNote = sourceNote
+            sourceUri = storedSource,
+            sourceNote = sourceNote,
+            isBuiltIn = isBuiltIn
         )
+    }
+
+    suspend fun deleteNote(context: Context, noteId: String) {
+        withContext(Dispatchers.IO) {
+            val database = MoshiDatabase.get(context)
+            val note = database.noteDao().byId(noteId) ?: return@withContext
+            database.withWriteTransaction {
+                database.chunkDao().deleteByNote(noteId)
+                database.noteDao().deleteById(noteId)
+            }
+            KeywordIndex.deleteNote(context, noteId)
+            VectorStoreClient.deleteByNote(context, noteId)
+            deleteStoredSource(context, note.sourceUri)
+            _deletedNotes.tryEmit(noteId)
+        }
+    }
+
+    private fun deleteStoredSource(context: Context, sourceUri: String?) {
+        if (sourceUri.isNullOrBlank()) return
+        try {
+            val notesDir = File(context.filesDir, "notes")
+            val file = File(sourceUri)
+            if (file.parentFile?.canonicalPath == notesDir.canonicalPath) {
+                file.delete()
+            }
+        } catch (e: Throwable) {
+        }
+    }
+
+    private fun sourceFormatOf(type: String): String = when (type) {
+        NoteEntity.TYPE_AUDIO -> "wav"
+        NoteEntity.TYPE_IMAGE_OCR -> "img"
+        else -> "bin"
     }
 
     private suspend fun persist(
@@ -113,7 +161,8 @@ object IngestRepository {
         pageOffsets: List<Int>,
         chunks: List<Chunker.TextChunk>,
         sourceUri: String?,
-        sourceNote: String? = null
+        sourceNote: String? = null,
+        isBuiltIn: Boolean = false
     ): Summary {
         val database = MoshiDatabase.get(context)
         val now = System.currentTimeMillis()
@@ -124,6 +173,7 @@ object IngestRepository {
             content = content,
             sourceUri = sourceUri,
             sourceNote = sourceNote,
+            isBuiltIn = isBuiltIn,
             indexStatus = NoteEntity.STATUS_PENDING,
             createdAt = now,
             updatedAt = now

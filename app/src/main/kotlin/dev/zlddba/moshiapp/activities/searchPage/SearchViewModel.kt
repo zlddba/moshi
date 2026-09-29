@@ -84,6 +84,7 @@ class SearchViewModel(context: Context) : ViewModel() {
         viewModelScope.launch {
             try {
                 val hits = RetrieveService.retrieve(appContext, query, SEARCH_TOP_K)
+                    .filter { !it.isBuiltIn }
                 _uiState.update { state ->
                     state.copy(
                         isSearching = false,

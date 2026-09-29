@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.zlddba.moshiapp.R
 import dev.zlddba.moshiapp.activities.common.PageTopBar
+import dev.zlddba.moshiapp.engine.cloud.CloudConfig
 import dev.zlddba.moshiapp.ui.theme.MoshiShapeMedium
 import dev.zlddba.moshiapp.ui.theme.MoshiShapePill
 import dev.zlddba.moshiapp.ui.theme.MoshiTheme
@@ -63,7 +64,44 @@ fun CloudPageScreen(
             onBack = onBack
         )
         Spacer(modifier = Modifier.height(8.dp))
+        Surface(
+            shape = MoshiShapeMedium,
+            color = MaterialTheme.colorScheme.surface,
+            border = androidx.compose.foundation.BorderStroke(
+                1.dp,
+                MaterialTheme.colorScheme.outlineVariant
+            ),
+            shadowElevation = 2.dp,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.cloud_enable),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = stringResource(R.string.cloud_enable_desc),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        lineHeight = 18.sp
+                    )
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Switch(
+                    checked = uiState.mode != CloudConfig.MODE_LOCAL,
+                    onCheckedChange = {
+                        onEvent(CloudViewModel.CloudEvent.EnabledChanged(it))
+                    }
+                )
+            }
+        }
 
+        Spacer(modifier = Modifier.height(16.dp))
         CloudField(
             labelRes = R.string.cloud_base_url,
             hintRes = R.string.cloud_base_url_hint,

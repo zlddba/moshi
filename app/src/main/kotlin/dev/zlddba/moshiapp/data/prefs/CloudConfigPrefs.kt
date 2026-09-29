@@ -14,7 +14,8 @@ class CloudConfigPrefs(context: Context) {
         baseUrl = preferences.getString(KEY_BASE_URL, "").orEmpty(),
         apiKey = preferences.getString(KEY_API_KEY, "").orEmpty(),
         modelName = preferences.getString(KEY_MODEL_NAME, "").orEmpty(),
-        forceLocal = preferences.getBoolean(KEY_FORCE_LOCAL, true)
+        forceLocal = preferences.getBoolean(KEY_FORCE_LOCAL, true),
+        mode = preferences.getInt(KEY_MODE, CloudConfig.MODE_LOCAL)
     )
 
     fun save(config: CloudConfig) {
@@ -23,6 +24,7 @@ class CloudConfigPrefs(context: Context) {
             putString(KEY_API_KEY, config.apiKey)
             putString(KEY_MODEL_NAME, config.modelName)
             putBoolean(KEY_FORCE_LOCAL, config.forceLocal)
+            putInt(KEY_MODE, config.mode)
         }
     }
 
@@ -32,5 +34,6 @@ class CloudConfigPrefs(context: Context) {
         const val KEY_API_KEY = "api_key"
         const val KEY_MODEL_NAME = "model_name"
         const val KEY_FORCE_LOCAL = "force_local"
+        const val KEY_MODE = "engine_mode"
     }
 }

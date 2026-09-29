@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.media.MediaPlayer
+import android.net.Uri
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -282,12 +283,21 @@ class VoiceViewModel(context: Context) : ViewModel() {
         stopPlayback()
         viewModelScope.launch {
             try {
+                val file = wavFile()
                 IngestRepository.importText(
                     context = appContext,
                     text = state.transcript,
                     type = NoteEntity.TYPE_AUDIO,
-                    fallbackTitle = appContext.getString(R.string.voice_title)
+                    fallbackTitle = appContext.getString(R.string.voice_title),
+                    sourceUri = if (state.keepAudio && file.exists()) {
+                        Uri.fromFile(file)
+                    } else {
+                        null
+                    }
                 )
+                if (!state.keepAudio) {
+                    withContext(Dispatchers.IO) { file.delete() }
+                }
                 sendEffect(VoiceEffect.ShowToast(R.string.ingest_success))
                 sendEffect(VoiceEffect.Close)
             } catch (e: CancellationException) {

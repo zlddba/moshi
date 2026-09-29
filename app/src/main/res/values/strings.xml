@@ -23,6 +23,7 @@
     <string name="home_search_hint">语义搜索你的知识</string>
     <string name="home_filter_timeline">时间线</string>
     <string name="home_filter_category">分类</string>
+    <string name="home_deleted">已删除「%1$s」</string>
     <string name="home_filter_tag">标签</string>
     <string name="home_badge_local">本地</string>
     <string name="home_badge_cloud">云端</string>
@@ -171,6 +172,8 @@
     <string name="detail_summary_note">摘要由本地模型生成</string>
     <string name="detail_summary_demo">本文整理了 SQLite 向量扩展的安装方式、虚拟表创建与 KNN 查询写法，并给出在 Android 端集成时的注意事项。</string>
     <string name="detail_source_label">来源信息</string>
+    <string name="detail_sensitive">标记为敏感</string>
+    <string name="detail_sensitive_desc">敏感笔记不上传云端，问答强制走本地引擎</string>
     <string name="detail_source_type">类型：文本</string>
     <string name="detail_source_time">采集时间：今天 09:24</string>
     <string name="detail_source_note">来源：手动粘贴</string>
@@ -183,6 +186,8 @@
     <string name="detail_related_score_2">相似度 87%</string>
     <string name="detail_delete">删除</string>
     <string name="detail_delete_confirm">确定删除这条知识吗？删除后不可恢复。</string>
+    <string name="detail_deleted">已删除</string>
+    <string name="detail_missing">笔记不存在或已删除</string>
     <string name="detail_cancel">取消</string>
     <string name="detail_confirm">确定</string>
     <string name="detail_content_heading">安装与初始化</string>
@@ -247,6 +252,8 @@
     <string name="cloud_api_key_hide">隐藏</string>
     <string name="cloud_model_name">模型名称</string>
     <string name="cloud_model_name_hint">deepseek-chat</string>
+    <string name="cloud_enable">启用云端引擎</string>
+    <string name="cloud_enable_desc">默认关闭；开启后仅发送「问题 + 命中片段」，敏感知识仍走端侧</string>
     <string name="cloud_force_local">敏感内容强制端侧</string>
     <string name="cloud_force_local_desc">标记为敏感的知识即使用云端引擎也走本地</string>
     <string name="cloud_preset_hint">国内端点可快捷填充</string>
