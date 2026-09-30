@@ -17,6 +17,15 @@ interface NoteDao {
     @Query("UPDATE notes SET is_sensitive = :sensitive WHERE id = :id")
     suspend fun updateSensitive(id: String, sensitive: Boolean)
 
+    @Query("UPDATE notes SET title = :title, updated_at = :updatedAt WHERE id = :id")
+    suspend fun updateTitle(id: String, title: String, updatedAt: Long)
+
+    @Query("UPDATE notes SET summary = :summary, updated_at = :updatedAt WHERE id = :id")
+    suspend fun updateSummary(id: String, summary: String, updatedAt: Long)
+
+    @Query("UPDATE notes SET content_html = :html WHERE id = :id")
+    suspend fun updateContentHtml(id: String, html: String)
+
     @Query("DELETE FROM notes WHERE id = :id")
     suspend fun deleteById(id: String)
 
@@ -37,4 +46,10 @@ interface NoteDao {
 
     @Query("SELECT * FROM notes WHERE index_status != 'INDEXED'")
     suspend fun notIndexed(): List<NoteEntity>
+
+    @Query(
+        "SELECT n.* FROM notes n INNER JOIN note_tags nt ON nt.note_id = n.id " +
+            "WHERE nt.tag_id = :tagId ORDER BY n.created_at DESC"
+    )
+    suspend fun byTag(tagId: Int): List<NoteEntity>
 }
