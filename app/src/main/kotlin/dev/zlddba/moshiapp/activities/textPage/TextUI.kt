@@ -1,9 +1,6 @@
 package dev.zlddba.moshiapp.activities.textPage
 
 import android.content.ClipboardManager
-import android.webkit.WebResourceRequest
-import android.webkit.WebView
-import android.webkit.WebViewClient
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -23,8 +20,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.ContentPaste
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -32,7 +31,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -40,52 +38,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
 import dev.zlddba.moshiapp.R
 import dev.zlddba.moshiapp.activities.common.PageTopBar
+import dev.zlddba.moshiapp.ui.doc.HtmlRenderer
+import dev.zlddba.moshiapp.ui.doc.HtmlView
 import dev.zlddba.moshiapp.ui.theme.MoshiShapeMedium
 import dev.zlddba.moshiapp.ui.theme.MoshiShapePill
 import dev.zlddba.moshiapp.ui.theme.MoshiTheme
-import org.commonmark.ext.autolink.AutolinkExtension
-import org.commonmark.ext.gfm.strikethrough.StrikethroughExtension
-import org.commonmark.ext.gfm.tables.TablesExtension
-import org.commonmark.parser.Parser
-import org.commonmark.renderer.html.HtmlRenderer
-
-private const val MARKDOWN_CSS_LIGHT =
-    "body{font-family:sans-serif;font-size:15px;line-height:1.6;padding:16px;margin:0;color:#1C1B1F;background:transparent;}" +
-        "h1,h2{border-bottom:1px solid #CAC4D0;padding-bottom:4px;}h1{font-size:1.5em;}h2{font-size:1.3em;}h3{font-size:1.15em;}" +
-        "p{margin:8px 0;}code{background:#F3EDF7;padding:1px 5px;border-radius:4px;font-size:13px;}" +
-        "pre{background:#F3EDF7;padding:12px;border-radius:8px;overflow-x:auto;}pre code{background:transparent;padding:0;}" +
-        "blockquote{border-left:3px solid #79747E;margin:8px 0;padding-left:12px;color:#49454F;}a{color:#6750A4;}" +
-        "table{border-collapse:collapse;width:100%;margin:8px 0;}th,td{border:1px solid #CAC4D0;padding:6px 8px;}" +
-        "th{background:#F3EDF7;}hr{border:none;border-top:1px solid #CAC4D0;margin:12px 0;}" +
-        "ul,ol{padding-left:22px;}img{max-width:100%;}"
-
-private const val MARKDOWN_CSS_DARK =
-    "body{font-family:sans-serif;font-size:15px;line-height:1.6;padding:16px;margin:0;color:#E6E0E9;background:transparent;}" +
-        "h1,h2{border-bottom:1px solid #49454F;padding-bottom:4px;}h1{font-size:1.5em;}h2{font-size:1.3em;}h3{font-size:1.15em;}" +
-        "p{margin:8px 0;}code{background:#2B2930;padding:1px 5px;border-radius:4px;font-size:13px;}" +
-        "pre{background:#2B2930;padding:12px;border-radius:8px;overflow-x:auto;}pre code{background:transparent;padding:0;}" +
-        "blockquote{border-left:3px solid #938F99;margin:8px 0;padding-left:12px;color:#CAC4D0;}a{color:#D0BCFF;}" +
-        "table{border-collapse:collapse;width:100%;margin:8px 0;}th,td{border:1px solid #49454F;padding:6px 8px;}" +
-        "th{background:#2B2930;}hr{border:none;border-top:1px solid #49454F;margin:12px 0;}" +
-        "ul,ol{padding-left:22px;}img{max-width:100%;}"
-
-private fun renderMarkdownHtml(markdown: String, dark: Boolean): String {
-    val extensions = listOf(
-        TablesExtension.create(),
-        StrikethroughExtension.create(),
-        AutolinkExtension.create()
-    )
-    val document = Parser.builder().extensions(extensions).build().parse(markdown)
-    val body = HtmlRenderer.builder().extensions(extensions).build().render(document)
-    val css = if (dark) MARKDOWN_CSS_DARK else MARKDOWN_CSS_LIGHT
-    return "<!DOCTYPE html><html><head>" +
-        "<meta charset=\"utf-8\">" +
-        "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">" +
-        "<style>$css</style></head><body>$body</body></html>"
-}
 
 @Composable
 fun TextPageScreen(
@@ -121,6 +80,23 @@ fun TextPageScreen(
             onBack = onBack
         )
         Spacer(modifier = Modifier.height(8.dp))
+        TitleField(
+            title = uiState.title,
+            generating = uiState.isGeneratingTitle,
+            onTitleChange = { onEvent(TextViewModel.TextEvent.TitleChanged(it)) },
+            onRegenerate = { onEvent(TextViewModel.TextEvent.RegenerateTitle) }
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        OutlinedTextField(
+            value = uiState.tags,
+            onValueChange = { onEvent(TextViewModel.TextEvent.TagsChanged(it)) },
+            singleLine = true,
+            label = { Text(stringResource(R.string.tag_label)) },
+            placeholder = { Text(stringResource(R.string.tag_input_hint)) },
+            shape = MoshiShapeMedium,
+            modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(modifier = Modifier.height(12.dp))
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -141,10 +117,7 @@ fun TextPageScreen(
         )
         Spacer(modifier = Modifier.height(8.dp))
         if (uiState.isPreview) {
-            MarkdownPreviewCard(
-                markdown = uiState.content,
-                modifier = Modifier.fillMaxWidth()
-            )
+            MarkdownPreviewCard(markdown = uiState.content, modifier = Modifier.fillMaxWidth())
         } else {
             OutlinedTextField(
                 value = uiState.content,
@@ -165,6 +138,52 @@ fun TextPageScreen(
             Text(stringResource(R.string.text_confirm))
         }
         Spacer(modifier = Modifier.height(32.dp))
+    }
+}
+
+@Composable
+fun TitleField(
+    title: String,
+    generating: Boolean,
+    onTitleChange: (String) -> Unit,
+    onRegenerate: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = modifier.fillMaxWidth()
+    ) {
+        OutlinedTextField(
+            value = title,
+            onValueChange = onTitleChange,
+            singleLine = true,
+            label = { Text(stringResource(R.string.ingest_title_label)) },
+            placeholder = { Text(stringResource(R.string.ingest_title_hint)) },
+            shape = MoshiShapeMedium,
+            modifier = Modifier.weight(1f)
+        )
+        OutlinedButton(
+            onClick = onRegenerate,
+            enabled = !generating,
+            shape = MoshiShapePill,
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+        ) {
+            if (generating) {
+                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+            } else {
+                Icon(
+                    imageVector = Icons.Outlined.AutoAwesome,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = stringResource(R.string.ingest_title_generate),
+                style = MaterialTheme.typography.labelLarge
+            )
+        }
     }
 }
 
@@ -263,29 +282,13 @@ private fun MarkdownPreviewCard(markdown: String, modifier: Modifier = Modifier)
             }
         } else {
             val dark = isSystemInDarkTheme()
-            val html = remember(markdown, dark) { renderMarkdownHtml(markdown, dark) }
-            AndroidView(
-                factory = { viewContext ->
-                    WebView(viewContext).apply {
-                        settings.javaScriptEnabled = false
-                        settings.domStorageEnabled = false
-                        settings.allowFileAccess = false
-                        settings.allowContentAccess = false
-                        setBackgroundColor(android.graphics.Color.TRANSPARENT)
-                        webViewClient = object : WebViewClient() {
-                            override fun shouldOverrideUrlLoading(
-                                view: WebView?,
-                                request: WebResourceRequest?
-                            ): Boolean = true
-                        }
-                    }
-                },
-                update = { webView ->
-                    webView.loadDataWithBaseURL(null, html, "text/html", "utf-8", null)
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(420.dp)
+            val html = androidx.compose.runtime.remember(markdown, dark) {
+                HtmlRenderer.page(markdown, dark)
+            }
+            HtmlView(
+                html = html,
+                maxHeight = 420,
+                modifier = Modifier.fillMaxWidth()
             )
         }
     }
@@ -296,7 +299,10 @@ private fun MarkdownPreviewCard(markdown: String, modifier: Modifier = Modifier)
 private fun TextPageScreenPreview() {
     MoshiTheme {
         TextPageScreen(
-            uiState = TextViewModel.TextUiState(content = "# 标题\n\n正文 **加粗** 与 `代码`"),
+            uiState = TextViewModel.TextUiState(
+                title = "向量检索笔记",
+                content = "# 标题\n\n正文 **加粗** 与 `代码`"
+            ),
             onBack = {},
             onEvent = {}
         )

@@ -81,24 +81,78 @@ import dev.zlddba.moshiapp.activities.privacyPage.ModelActivity
 import dev.zlddba.moshiapp.activities.privacyPage.PrivacyActivity
 import dev.zlddba.moshiapp.activities.privacyPage.StorageActivity
 import dev.zlddba.moshiapp.activities.searchPage.SearchActivity
+import dev.zlddba.moshiapp.activities.tagPage.TagActivity
 import dev.zlddba.moshiapp.activities.textPage.TextActivity
+import dev.zlddba.moshiapp.activities.textPage.TitleField
 import dev.zlddba.moshiapp.activities.voicePage.VoiceActivity
 import dev.zlddba.moshiapp.data.prefs.CloudConfigPrefs
 import dev.zlddba.moshiapp.data.repo.IngestRepository
+import dev.zlddba.moshiapp.domain.title.TitleSuggester
 import dev.zlddba.moshiapp.domain.utils.AppInfoHelper
 import dev.zlddba.moshiapp.ingest.parse.IngestException
+import dev.zlddba.moshiapp.ingest.parse.ParserRegistry
 import dev.zlddba.moshiapp.ui.IngestMessages
 import dev.zlddba.moshiapp.ui.theme.MoshiShapeMedium
 import dev.zlddba.moshiapp.ui.theme.MoshiShapePill
 import dev.zlddba.moshiapp.ui.theme.MoshiTheme
 import java.io.File
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 private data class MainTabItem(
     val icon: ImageVector,
     val labelRes: Int
 )
+
+private data class PendingFile(
+    val uri: Uri,
+    val name: String,
+    val mime: String?
+)
+
+@Composable
+private fun ImportTitleDialog(
+    title: String,
+    generating: Boolean,
+    fileName: String,
+    onTitleChange: (String) -> Unit,
+    onGenerate: () -> Unit,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.ingest_file_title_dialog)) },
+        text = {
+            Column {
+                Text(
+                    text = fileName,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+                TitleField(
+                    title = title,
+                    generating = generating,
+                    onTitleChange = onTitleChange,
+                    onRegenerate = onGenerate
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text(stringResource(R.string.ingest_confirm))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.detail_cancel))
+            }
+        }
+    )
+}
 
 private val mainTabItems = listOf(
     MainTabItem(icon = Icons.Outlined.Home, labelRes = R.string.main_tab_home),
@@ -206,6 +260,9 @@ fun MainPageScreen(modifier: Modifier = Modifier) {
         }
     }
     var importStage by remember { mutableStateOf<IngestRepository.Stage?>(null) }
+    var pendingFile by remember { mutableStateOf<PendingFile?>(null) }
+    var pendingTitle by remember { mutableStateOf("") }
+    var computingTitle by remember { mutableStateOf(false) }
     val importScope = rememberCoroutineScope()
     val exportLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/json")
@@ -230,32 +287,80 @@ fun MainPageScreen(modifier: Modifier = Modifier) {
     val filePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri ->
-        if (uri != null && importStage == null) {
-            val name = uriDisplayName(context, uri) ?: uri.lastPathSegment.orEmpty()
-            val mime = context.contentResolver.getType(uri)
-            importScope.launch {
-                try {
-                    val summary = IngestRepository.importFile(context, uri, name, mime) { stage ->
-                        importStage = stage
+        if (uri != null && importStage == null && pendingFile == null) {
+            pendingFile = PendingFile(
+                uri = uri,
+                name = uriDisplayName(context, uri) ?: uri.lastPathSegment.orEmpty(),
+                mime = context.contentResolver.getType(uri)
+            )
+            pendingTitle = ""
+        }
+    }
+    if (pendingFile != null) {
+        val pending = pendingFile!!
+        ImportTitleDialog(
+            title = pendingTitle,
+            generating = computingTitle,
+            fileName = pending.name,
+            onTitleChange = { pendingTitle = it },
+            onGenerate = {
+                val file = pendingFile ?: return@ImportTitleDialog
+                importScope.launch {
+                    computingTitle = true
+                    val preview = withContext(Dispatchers.IO) {
+                        runCatching {
+                            val parser = ParserRegistry.resolve(file.name, file.mime)
+                                ?: return@runCatching ""
+                            parser.parse(context, file.uri, file.name, null).text
+                        }.getOrDefault("")
                     }
-                    importStage = null
-                    Toast.makeText(
-                        context,
-                        context.getString(R.string.capture_file_success, name, summary.chunkCount),
-                        Toast.LENGTH_SHORT
-                    ).show()
-                } catch (e: CancellationException) {
-                    importStage = null
-                    throw e
-                } catch (e: IngestException) {
-                    importStage = null
-                    Toast.makeText(context, IngestMessages.errorOf(e.kind), Toast.LENGTH_SHORT).show()
-                } catch (e: Exception) {
-                    importStage = null
-                    Toast.makeText(context, R.string.ingest_failed, Toast.LENGTH_SHORT).show()
+                    pendingTitle = TitleSuggester.suggest(context, preview).title
+                    computingTitle = false
+                }
+            },
+            onDismiss = {
+                pendingFile = null
+                pendingTitle = ""
+                computingTitle = false
+            },
+            onConfirm = {
+                val file = pendingFile ?: return@ImportTitleDialog
+                pendingFile = null
+                val chosenTitle = pendingTitle
+                pendingTitle = ""
+                computingTitle = false
+                importScope.launch {
+                    try {
+                        val summary = IngestRepository.importFile(
+                            context = context,
+                            uri = file.uri,
+                            fileName = file.name,
+                            mimeType = file.mime,
+                            title = chosenTitle
+                        ) { stage -> importStage = stage }
+                        importStage = null
+                        Toast.makeText(
+                            context,
+                            context.getString(
+                                R.string.capture_file_success,
+                                file.name,
+                                summary.chunkCount
+                            ),
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    } catch (e: CancellationException) {
+                        importStage = null
+                        throw e
+                    } catch (e: IngestException) {
+                        importStage = null
+                        Toast.makeText(context, IngestMessages.errorOf(e.kind), Toast.LENGTH_SHORT).show()
+                    } catch (e: Exception) {
+                        importStage = null
+                        Toast.makeText(context, R.string.ingest_failed, Toast.LENGTH_SHORT).show()
+                    }
                 }
             }
-        }
+        )
     }
 
     var ocrSourceDialog by remember { mutableStateOf(false) }
@@ -347,6 +452,7 @@ fun MainPageScreen(modifier: Modifier = Modifier) {
                         )
                     },
                     onSearchSubmit = { query -> SearchActivity.start(context, query) },
+                    onManageTags = { TagActivity.start(context) },
                     isCloudEngine = chatUiState.isCloudEngine
                 )
 

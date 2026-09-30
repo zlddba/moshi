@@ -42,10 +42,13 @@ class ModelViewModel(context: Context) : ViewModel() {
         data class Cancel(val id: String) : ModelEvent
         data class Delete(val id: String) : ModelEvent
         data class SwitchLlm(val id: String) : ModelEvent
+        data class LoadLocal(val id: String, val treeUri: String) : ModelEvent
+        data class PickLocal(val id: String) : ModelEvent
     }
 
     sealed interface ModelEffect {
         data class ShowToast(val messageRes: Int, val argRes: Int? = null) : ModelEffect
+        data class PickLocalFolder(val id: String) : ModelEffect
     }
 
     private val appContext = context.applicationContext
@@ -65,7 +68,55 @@ class ModelViewModel(context: Context) : ViewModel() {
             is ModelEvent.Cancel -> cancelDownload(event.id)
             is ModelEvent.Delete -> deleteModel(event.id)
             is ModelEvent.SwitchLlm -> switchLlm(event.id)
+            is ModelEvent.LoadLocal -> loadLocal(event.id, event.treeUri)
+            is ModelEvent.PickLocal -> sendEffect(ModelEffect.PickLocalFolder(event.id))
         }
+    }
+
+    private fun loadLocal(id: String, treeUri: String) {
+        if (downloadJob != null) {
+            sendEffect(ModelEffect.ShowToast(R.string.model_download_busy))
+            return
+        }
+        val card = _modelUiState.value.card(id)
+        if (card.downloading) return
+        _modelUiState.update { it.withCard(id, card.copy(downloading = true, progress = 0)) }
+        val seq = ++downloadSeq
+        val job = viewModelScope.launch {
+            try {
+                val copied = ModelFileManager.importFromTree(
+                    appContext,
+                    id,
+                    android.net.Uri.parse(treeUri)
+                )
+                val ready = ModelFileManager.isReady(appContext, id)
+                if (ready) {
+                    _modelUiState.update {
+                        it.withCard(
+                            id,
+                            ModelCardState(
+                                ready = true,
+                                progress = 100,
+                                bytesOnDisk = ModelFileManager.bytesOnDisk(appContext, id)
+                            )
+                        )
+                    }
+                    if (id == ModelCatalog.GECKO) IndexOrchestrator.requestSweep()
+                    sendEffect(ModelEffect.ShowToast(R.string.model_local_loaded, nameResOf(id)))
+                } else {
+                    _modelUiState.update { it.withCard(id, cardStateOf(id)) }
+                    sendEffect(ModelEffect.ShowToast(R.string.model_local_missing))
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _modelUiState.update { it.withCard(id, cardStateOf(id)) }
+                sendEffect(ModelEffect.ShowToast(R.string.model_local_missing))
+            } finally {
+                if (downloadSeq == seq) downloadJob = null
+            }
+        }
+        downloadJob = job
     }
 
     private fun initialState(): ModelUiState = ModelUiState(

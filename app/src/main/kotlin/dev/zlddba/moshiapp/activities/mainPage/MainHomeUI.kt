@@ -3,6 +3,8 @@ package dev.zlddba.moshiapp.activities.mainPage
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -66,15 +68,24 @@ import dev.zlddba.moshiapp.ui.theme.MoshiTheme
 data class HomeUiState(
     val cards: List<NoteCard> = emptyList(),
     val filter: Int = 0,
-    val loaded: Boolean = false
+    val loaded: Boolean = false,
+    val tags: List<TagChip> = emptyList(),
+    val activeTagId: Int = 0
 ) {
+    data class TagChip(
+        val id: Int,
+        val name: String,
+        val refCount: Int
+    )
+
     data class NoteCard(
         val noteId: String,
         val type: String,
         val title: String,
         val summary: String,
         val tag: String,
-        val time: String
+        val time: String,
+        val tags: List<String> = emptyList()
     )
 }
 
@@ -127,6 +138,7 @@ fun MainHomeScreen(
     onEvent: (MainHomeViewModel.HomeEvent) -> Unit,
     onNoteClick: (String) -> Unit,
     onSearchSubmit: (String) -> Unit,
+    onManageTags: () -> Unit = {},
     isCloudEngine: Boolean = false,
     modifier: Modifier = Modifier
 ) {
@@ -147,6 +159,14 @@ fun MainHomeScreen(
             selectedFilter = uiState.filter,
             onFilterClick = { onEvent(MainHomeViewModel.HomeEvent.FilterChanged(it)) }
         )
+        if (uiState.tags.isNotEmpty()) {
+            HomeTagFilterRow(
+                tags = uiState.tags,
+                activeTagId = uiState.activeTagId,
+                onTagClick = { onEvent(MainHomeViewModel.HomeEvent.TagSelected(it)) },
+                onManageClick = onManageTags
+            )
+        }
         if (!uiState.loaded) {
             Spacer(modifier = Modifier.height(1.dp))
         } else if (uiState.cards.isEmpty()) {
@@ -291,6 +311,69 @@ private fun HomeSearchBar(
 }
 
 @Composable
+private fun HomeTagFilterRow(
+    tags: List<HomeUiState.TagChip>,
+    activeTagId: Int,
+    onTagClick: (Int) -> Unit,
+    onManageClick: () -> Unit
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+    ) {
+        tags.forEach { tag ->
+            val selected = tag.id == activeTagId
+            Surface(
+                onClick = { onTagClick(tag.id) },
+                shape = MoshiShapePill,
+                color = if (selected) {
+                    MaterialTheme.colorScheme.primaryContainer
+                } else {
+                    MaterialTheme.colorScheme.surface
+                },
+                border = BorderStroke(
+                    1.dp,
+                    if (selected) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.outlineVariant
+                    }
+                )
+            ) {
+                Text(
+                    text = "${tag.name} ${tag.refCount}",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                    color = if (selected) {
+                        MaterialTheme.colorScheme.onPrimaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                )
+            }
+        }
+        Surface(
+            onClick = onManageClick,
+            shape = MoshiShapePill,
+            color = MaterialTheme.colorScheme.surface,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        ) {
+            Text(
+                text = stringResource(R.string.tag_manage),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+            )
+        }
+    }
+}
+
+@Composable
 private fun HomeFilterRow(
     selectedFilter: Int,
     onFilterClick: (Int) -> Unit
@@ -404,6 +487,24 @@ private fun HomeNoteCard(
                     lineHeight = 18.sp
                 )
                 Spacer(modifier = Modifier.height(10.dp))
+                if (card.tags.isNotEmpty()) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        card.tags.take(3).forEach { name ->
+                            Text(
+                                text = name,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier
+                                    .clip(MoshiShapePill)
+                                    .background(MaterialTheme.colorScheme.secondaryContainer)
+                                    .padding(horizontal = 8.dp, vertical = 3.dp)
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
