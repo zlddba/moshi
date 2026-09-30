@@ -227,7 +227,7 @@ class ChatViewModel(context: Context) : ViewModel() {
                 while (true) {
                     delay(STREAM_TICK_MS)
                     val snapshot = synchronized(streamBuffer) { streamBuffer.toString() }
-                    val parsed = QaOrchestrator.parseAnswer(snapshot)
+                    val parsed = QaOrchestrator.parseAnswer(snapshot, fallbackToThinking = false)
                     _uiState.update { state ->
                         state.copy(
                             streamingText = parsed.answer,
@@ -283,20 +283,19 @@ class ChatViewModel(context: Context) : ViewModel() {
                         }
                         sendEffect(ChatEffect.ShowToast(R.string.chat_generate_failed))
                     } else {
-                        val parsed = QaOrchestrator.parseAnswer(generated)
-                        val answer = parsed.answer.ifBlank { generated }
-                        if (isInsufficient(answer)) {
-                            appendMessage(
+                        val parsed = QaOrchestrator.parseDetailed(generated)
+                        when {
+                            parsed.refused -> appendMessage(
                                 ChatUiState.ChatMessage(
                                     role = ChatUiState.Role.REFUSAL,
                                     text = appContext.getString(R.string.chat_refusal)
                                 )
                             )
-                        } else {
-                            appendMessage(
+
+                            else -> appendMessage(
                                 ChatUiState.ChatMessage(
                                     role = ChatUiState.Role.ASSISTANT,
-                                    text = answer,
+                                    text = parsed.answer.ifBlank { generated },
                                     thinking = parsed.thinking,
                                     sources = outcome.hits.map { it.toSource() }
                                 )
@@ -321,7 +320,7 @@ class ChatViewModel(context: Context) : ViewModel() {
             if (!_uiState.value.isGenerating) return
             val partial = synchronized(streamBuffer) { streamBuffer.toString() }
             if (partial.isNotBlank()) {
-                val parsed = QaOrchestrator.parseAnswer(partial)
+                val parsed = QaOrchestrator.parseDetailed(partial)
                 appendMessage(
                     ChatUiState.ChatMessage(
                         role = ChatUiState.Role.ASSISTANT,
@@ -453,12 +452,6 @@ class ChatViewModel(context: Context) : ViewModel() {
             text = QaOrchestrator.excerptText(appContext, hits),
             sources = hits.map { it.toSource() }
         )
-
-    private fun isInsufficient(answer: String): Boolean =
-        answer.contains(appContext.getString(R.string.chat_refusal)) ||
-            answer.contains("资料不足") ||
-            answer.contains("没有找到相关内容") ||
-            answer.contains("未找到相关内容")
 
     private fun RetrieveService.Hit.toSource(): ChatUiState.ChatSource =
         ChatUiState.ChatSource(

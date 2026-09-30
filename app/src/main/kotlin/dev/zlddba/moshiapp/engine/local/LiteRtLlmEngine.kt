@@ -4,9 +4,14 @@ import android.content.Context
 import android.util.Log
 import com.google.ai.edge.litertlm.Backend
 import com.google.ai.edge.litertlm.Content
+import com.google.ai.edge.litertlm.Contents
 import com.google.ai.edge.litertlm.Conversation
+import com.google.ai.edge.litertlm.ConversationConfig
 import com.google.ai.edge.litertlm.Engine
 import com.google.ai.edge.litertlm.EngineConfig
+import com.google.ai.edge.litertlm.ResponseFormat
+import com.google.ai.edge.litertlm.SamplerConfig
+import com.google.ai.edge.litertlm.ThinkingConfig
 import dev.zlddba.moshiapp.data.prefs.ModelPrefs
 import dev.zlddba.moshiapp.ingest.models.ModelCatalog
 import dev.zlddba.moshiapp.ingest.models.ModelFileManager
@@ -14,6 +19,10 @@ import dev.zlddba.moshiapp.ingest.models.ModelFileManager
 object LiteRtLlmEngine : LlmEngine {
 
     private const val TAG = "LiteRtLlm"
+
+    private const val DEFAULT_TOP_K = 40
+    private const val DEFAULT_TOP_P = 0.95
+    private const val DEFAULT_TEMPERATURE = 0.3
 
     private val lock = Any()
 
@@ -46,19 +55,30 @@ object LiteRtLlmEngine : LlmEngine {
     override suspend fun generate(
         context: Context,
         prompt: String,
+        options: GenerationOptions,
         onToken: (String) -> Unit
     ) {
         val appContext = context.applicationContext
         val active = ensureEngine(appContext)
             ?: throw IllegalStateException("llm engine unavailable")
-        val convo = freshConversation(active)
+        val convo = freshConversation(active, options)
         Log.i(
             TAG,
             "generate start convo=${System.identityHashCode(convo)} alive=${convo.isAlive} " +
-                "engine=${System.identityHashCode(active)} promptLen=${prompt.length}"
+                "engine=${System.identityHashCode(active)} promptLen=${prompt.length} " +
+                "constrained=${options.constraint != null} maxTokens=${options.maxOutputTokens}"
         )
         try {
-            convo.sendMessageAsync(prompt).collect { message ->
+            convo.sendMessageAsync(
+                prompt,
+                emptyMap<String, Any>(),
+                null,
+                null,
+                null,
+                null,
+                null,
+                options.constraint?.let { ResponseFormat.regex(it) }
+            ).collect { message ->
                 val delta = message.contents.contents
                     .filterIsInstance<Content.Text>()
                     .joinToString(separator = "") { it.text }
@@ -132,15 +152,34 @@ object LiteRtLlmEngine : LlmEngine {
         }
     }
 
-    private fun freshConversation(active: Engine): Conversation {
+    private fun freshConversation(active: Engine, options: GenerationOptions): Conversation {
         synchronized(lock) {
             closeConversationLocked()
-            val created = active.createConversation()
+            val created = try {
+                active.createConversation(buildConfig(options))
+            } catch (t: Throwable) {
+                if (options.constraint == null) throw t
+                Log.w(TAG, "constrained conversation failed, retry without constraint", t)
+                active.createConversation(buildConfig(options.copy(constraint = null)))
+            }
             conversation = created
             Log.i(TAG, "conversation recreated id=${System.identityHashCode(created)}")
             return created
         }
     }
+
+    private fun buildConfig(options: GenerationOptions): ConversationConfig = ConversationConfig(
+        systemInstruction = options.systemPrompt?.let { Contents.of(it) },
+        samplerConfig = SamplerConfig(
+            options.topK ?: DEFAULT_TOP_K,
+            options.topP ?: DEFAULT_TOP_P,
+            options.temperature ?: DEFAULT_TEMPERATURE,
+            options.seed
+        ),
+        maxOutputToken = options.maxOutputTokens,
+        thinkingConfig = options.thinkingTokenBudget?.let { ThinkingConfig(true, it) },
+        enableResponseFormat = options.constraint != null
+    )
 
     private fun backendOf(context: Context, kind: BackendKind): Backend = when (kind) {
         BackendKind.CPU -> Backend.CPU()

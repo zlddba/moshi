@@ -10,6 +10,7 @@ import dev.zlddba.moshiapp.engine.cloud.CloudAnswer
 import dev.zlddba.moshiapp.engine.cloud.CloudConfig
 import dev.zlddba.moshiapp.engine.cloud.CloudGateway
 import dev.zlddba.moshiapp.engine.cloud.OpenAiCloudGateway
+import dev.zlddba.moshiapp.engine.local.GenerationOptions
 import dev.zlddba.moshiapp.engine.local.LiteRtLlmEngine
 import dev.zlddba.moshiapp.ingest.models.ModelFileManager
 import kotlinx.coroutines.CancellationException
@@ -22,21 +23,6 @@ object QaOrchestrator {
 
     private const val TAG = "QaOrchestrator"
 
-    private const val MAX_CONTEXT_CHARS = 3000
-    private const val MAX_SNIPPET_CHARS = 600
-    private const val SYSTEM_PROMPT =
-        "你是「默识」的知识助手。输出必须严格遵循以下两部分的固定格式，不得输出其他内容：" +
-            "[THINKING] 通读下方知识片段，归纳、比较、推断，写出分析过程；" +
-            "[ANSWER] 给出最终结论，先说结论、再给依据，中文、准确、简洁。" +
-            "要求：结论必须能由片段支撑，可换用自己的表述，不要整段照搬；" +
-            "不得引入片段之外的事实，不得编造；" +
-            "如果片段与问题无关或依据不足，[ANSWER] 必须逐字固定输出：" +
-            "知识库中没有找到相关内容" +
-            "，不得使用任何其他措辞，不得输出这句话以外的内容。"
-
-    private const val MARK_THINK = "[THINKING]"
-    private const val MARK_ANSWER = "[ANSWER]"
-
     private val cloudGateway: CloudGateway = OpenAiCloudGateway()
 
     sealed interface Outcome {
@@ -48,43 +34,21 @@ object QaOrchestrator {
 
     data class ParsedAnswer(val thinking: String, val answer: String)
 
-    fun parseAnswer(raw: String): ParsedAnswer {
-        val text = raw.trim()
-        val thinkIdx = text.indexOf(MARK_THINK)
-        val answerIdx = text.lastIndexOf(MARK_ANSWER)
-        if (answerIdx >= 0) {
-            val thinking = if (thinkIdx in 0 until answerIdx) {
-                text.substring(thinkIdx + MARK_THINK.length, answerIdx).stripHeadingColon()
-            } else {
-                ""
-            }
-            return ParsedAnswer(
-                thinking = thinking,
-                answer = text.substring(answerIdx + MARK_ANSWER.length).stripHeadingColon()
-            )
-        }
-        if (thinkIdx >= 0) {
-            return ParsedAnswer(
-                thinking = text.substring(thinkIdx + MARK_THINK.length).stripHeadingColon(),
-                answer = ""
-            )
-        }
-        return ParsedAnswer(thinking = "", answer = text)
+    fun parseAnswer(raw: String, fallbackToThinking: Boolean = true): ParsedAnswer {
+        val parsed = QaFormat.parse(raw, fallbackToThinking)
+        return ParsedAnswer(thinking = parsed.thinking, answer = parsed.answer)
     }
 
-    private fun String.stripHeadingColon(): String {
-        var value = trim()
-        while (value.isNotEmpty() && (value.first() == '：' || value.first() == ':')) {
-            value = value.substring(1).trimStart()
-        }
-        return value
-    }
+    fun parseDetailed(raw: String): QaFormat.ParsedAnswer = QaFormat.parse(raw)
 
     internal fun shouldUseCloud(config: CloudConfig, hits: List<RetrieveService.Hit>): Boolean {
         if (!config.usesCloud() || !config.isComplete()) return false
         if (config.forceLocal && hits.any { it.isSensitive }) return false
         return true
     }
+
+    fun localOptions(context: Context): QaFormat.Options =
+        QaFormat.options(QaFormat.of(ModelPrefs(context.applicationContext).currentLlm()))
 
     suspend fun ask(
         context: Context,
@@ -100,8 +64,8 @@ object QaOrchestrator {
                 val answer = withContext(Dispatchers.IO) {
                     cloudGateway.ask(
                         config = cloudConfig,
-                        systemPrompt = SYSTEM_PROMPT,
-                        userPrompt = buildUserPrompt(question, hits),
+                        systemPrompt = QaFormat.systemPrompt(QaFormat.Profile.STANDARD),
+                        userPrompt = QaFormat.userPrompt(question, hits),
                         onToken = onToken
                     )
                 }
@@ -130,10 +94,31 @@ object QaOrchestrator {
             if (!ModelFileManager.isReady(appContext, modelId)) {
                 return Outcome.ModelMissing(hits)
             }
-            val prompt = SYSTEM_PROMPT + "\n\n" + buildUserPrompt(question, hits)
+            val profile = QaFormat.of(modelId)
+            val options = QaFormat.options(profile)
+            val prompt = QaFormat.userPrompt(question, hits)
+            Log.i(
+                TAG,
+                "local generate model=$modelId profile=$profile temp=${options.temperature} " +
+                    "topK=${options.topK} maxTokens=${options.maxOutputTokens} " +
+                    "constrained=${options.constraint != null} hits=${hits.size}"
+            )
             withContext(Dispatchers.IO) {
                 try {
-                    LiteRtLlmEngine.generate(appContext, prompt, onToken)
+                    LiteRtLlmEngine.generate(
+                        context = appContext,
+                        prompt = prompt,
+                        options = GenerationOptions(
+                            systemPrompt = options.systemPrompt,
+                            temperature = options.temperature,
+                            topK = options.topK,
+                            topP = options.topP,
+                            maxOutputTokens = options.maxOutputTokens,
+                            constraint = options.constraint,
+                            thinkingTokenBudget = options.thinkingTokenBudget
+                        ),
+                        onToken = onToken
+                    )
                     Outcome.Generated(hits)
                 } catch (e: CancellationException) {
                     throw e
@@ -156,34 +141,8 @@ object QaOrchestrator {
             builder.append("\n\n【")
             builder.append(hit.noteTitle)
             builder.append("】")
-            builder.append(hit.text.take(MAX_SNIPPET_CHARS))
+            builder.append(hit.text.take(QaFormat.MAX_SNIPPET_CHARS))
         }
-        return builder.toString()
-    }
-
-    internal fun buildUserPrompt(question: String, hits: List<RetrieveService.Hit>): String {
-        val builder = StringBuilder("【知识片段】\n")
-        var budget = MAX_CONTEXT_CHARS
-        hits.forEachIndexed { index, hit ->
-            if (budget <= 0) return@forEachIndexed
-            val snippet = hit.text.take(MAX_SNIPPET_CHARS)
-            budget -= snippet.length
-            builder.append(index + 1)
-            builder.append(". 《")
-            builder.append(hit.noteTitle)
-            builder.append("》")
-            val page = hit.pageNo
-            if (page != null) {
-                builder.append("（第")
-                builder.append(page)
-                builder.append("页）")
-            }
-            builder.append('\n')
-            builder.append(snippet)
-            builder.append('\n')
-        }
-        builder.append("\n【问题】")
-        builder.append(question)
         return builder.toString()
     }
 }

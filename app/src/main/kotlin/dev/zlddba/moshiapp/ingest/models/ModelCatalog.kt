@@ -123,4 +123,6 @@ object ModelCatalog {
     fun descriptor(id: String): Descriptor = descriptors.first { it.id == id }
 
     fun totalBytes(id: String): Long = descriptor(id).files.sumOf { it.bytes }
+
+    fun isSmallModel(id: String): Boolean = id == QWEN
 }
