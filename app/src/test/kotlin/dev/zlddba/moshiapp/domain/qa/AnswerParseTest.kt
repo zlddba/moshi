@@ -123,7 +123,18 @@ class AnswerParseTest {
         assertFalse(parse("[ANSWER] 命中关键词并不代表模型无法回答，需要结构判定").refused)
         assertFalse(parse("[ANSWER] 当片段与问题无关时模型会无法回答，转而拒答").refused)
         assertFalse(parse("[ANSWER] 知识片段没有相关内容。").refused)
+        assertFalse(parse("[ANSWER] 本条没有相关记录。").refused)
         assertFalse(parse("[ANSWER] 例如资料不足，系统就拒答").refused)
+    }
+
+    @Test
+    fun `near-miss refusal wording is still detected`() {
+        assertTrue(parse("[ANSWER] 知识库中没有找到相关的内容。").refused)
+        assertTrue(parse("[ANSWER] 知识库中没有相关内容。").refused)
+        assertTrue(parse("[ANSWER] 知识库中未找到相关内容。").refused)
+        assertTrue(parse("[ANSWER] 没有找到相关的内容").refused)
+        assertTrue(parse("[ANSWER] 未检索到相关信息。").refused)
+        assertTrue(parse("[ANSWER] 知识库中没有对应内容").refused)
     }
 
     @Test

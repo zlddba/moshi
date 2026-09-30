@@ -52,6 +52,17 @@ object QaFormat {
     private val NEGATION_PATTERN =
         Regex("^(?:抱歉[，,]?)?(?:我)?(?:暂时)?(?:无法|不能|不便)(?:回答|作答|提供|告知|给出)")
 
+    private val NEAR_REFUSAL_PATTERN =
+        Regex(
+            "^.{0,4}?(?:没有|未|无法)(?:找到|看到|检索到|发现|提供)?" +
+                "(?:相关|对应|有效|可用)[\\s\\S]{0,3}"
+        )
+
+    private const val REFUSAL_LEAD_SLACK = 4
+    private const val REFUSAL_TAIL_SLACK = 3
+
+    private val SCOPE_WORDS = listOf("片段", "本条", "该条", "此条", "该段", "此段")
+
     enum class Profile { SMALL, STANDARD }
 
     data class Options(
@@ -247,13 +258,28 @@ object QaFormat {
         if (compact.isEmpty()) return false
         if (startsWithPhrase(compact, REFUSAL)) return true
         if (STRICT_REFUSALS.any { startsWithPhrase(compact, it) }) return true
-        return NEGATION_PATTERN.containsMatchIn(compact)
+        if (NEGATION_PATTERN.containsMatchIn(compact)) return true
+        return isNearRefusal(compact)
     }
 
     private fun startsWithPhrase(text: String, phrase: String): Boolean {
         if (!text.startsWith(phrase)) return false
         val rest = text.substring(phrase.length)
         return rest.isEmpty() || rest.first() in "。！？；，、.!?;,"
+    }
+
+    /**
+     * 模型常把固定文案写成「知识库中没有找到相关的内容」这类近义说法，
+     * 只要该句式出现在答案开头且后面就是句末，就仍按拒答处理。
+     */
+    private fun isNearRefusal(text: String): Boolean {
+        val match = NEAR_REFUSAL_PATTERN.find(text) ?: return false
+        if (match.range.first > REFUSAL_LEAD_SLACK) return false
+        if (SCOPE_WORDS.any { text.substring(0, match.range.last + 1).contains(it) }) return false
+        val end = match.range.last + 1
+        if (end >= text.length) return true
+        val tail = text.substring(end)
+        return tail.length <= REFUSAL_TAIL_SLACK && tail.all { it in "。！？；，、.!?;," }
     }
 
     fun hasThinkingMarker(raw: String): Boolean = indexOfMarker(raw, THINK_MARKERS) >= 0
