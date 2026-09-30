@@ -83,9 +83,7 @@ import dev.zlddba.moshiapp.activities.privacyPage.StorageActivity
 import dev.zlddba.moshiapp.activities.searchPage.SearchActivity
 import dev.zlddba.moshiapp.activities.textPage.TextActivity
 import dev.zlddba.moshiapp.activities.voicePage.VoiceActivity
-import dev.zlddba.moshiapp.MoshiApplication
 import dev.zlddba.moshiapp.data.prefs.CloudConfigPrefs
-import dev.zlddba.moshiapp.data.prefs.TelemetryPrefs
 import dev.zlddba.moshiapp.data.repo.IngestRepository
 import dev.zlddba.moshiapp.domain.utils.AppInfoHelper
 import dev.zlddba.moshiapp.ingest.parse.IngestException
@@ -123,10 +121,8 @@ fun MainPageScreen(modifier: Modifier = Modifier) {
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
     val context = LocalContext.current
     val cloudPrefs = remember { CloudConfigPrefs(context) }
-    val telemetryPrefs = remember { TelemetryPrefs(context) }
     var engineMode by rememberSaveable { mutableIntStateOf(cloudPrefs.load().mode) }
     var forceLocalEnabled by rememberSaveable { mutableStateOf(cloudPrefs.load().forceLocal) }
-    var telemetryEnabled by rememberSaveable { mutableStateOf(telemetryPrefs.isEnabled()) }
     val versionName = remember(context) { AppInfoHelper.getAppVersionName(context) }
     val chatViewModel: ChatViewModel = viewModel(
         factory = object : ViewModelProvider.Factory {
@@ -382,11 +378,6 @@ fun MainPageScreen(modifier: Modifier = Modifier) {
                     onLicense = { LicenseActivity.start(context) },
                     onPolicy = { PolicyActivity.start(context) },
                     onHelp = { HelpActivity.start(context) },
-                    telemetry = telemetryEnabled,
-                    onTelemetryChange = { enabled ->
-                        telemetryEnabled = enabled
-                        (context.applicationContext as MoshiApplication).applyTelemetry(enabled)
-                    },
                     forceLocal = forceLocalEnabled,
                     onForceLocalChange = { enabled ->
                         forceLocalEnabled = enabled

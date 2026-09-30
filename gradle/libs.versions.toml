@@ -14,7 +14,6 @@ coil = "3.6.3"
 openai = "4.1.0"
 ktor = "3.0.0"
 sherpaOnnx = "1.13.7"
-countly = "26.1.5"
 mlkit = "16.0.1"
 commonmark = "0.30.0"
 room3 = "3.0.3"
@@ -49,7 +48,6 @@ coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose-android", vers
 openai-client = { group = "com.aallam.openai", name = "openai-client", version.ref = "openai" }
 ktor-client-okhttp = { group = "io.ktor", name = "ktor-client-okhttp", version.ref = "ktor" }
 sherpa-onnx = { group = "com.github.k2fsa", name = "sherpa-onnx", version.ref = "sherpaOnnx" }
-countly-sdk = { group = "ly.count.android", name = "sdk", version.ref = "countly" }
 mlkit-text-recognition-chinese = { group = "com.google.mlkit", name = "text-recognition-chinese", version.ref = "mlkit" }
 commonmark = { group = "org.commonmark", name = "commonmark", version.ref = "commonmark" }
 commonmark-gfm-tables = { group = "org.commonmark", name = "commonmark-ext-gfm-tables", version.ref = "commonmark" }
