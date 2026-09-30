@@ -24,12 +24,7 @@ kotlin {
 val appBaseName = "moshi"
 val appVersion = "1.0"
 val appId = "dev.zlddba.moshiapp"
-val splitAbis = listOf("arm64-v8a", "armeabi-v7a", "x86_64", "x86")
-val countlyProperties = Properties().apply {
-    val file = rootProject.file("local.properties")
-    if (file.isFile) file.inputStream().use { load(it) }
-}
-val countlyAppKey = countlyProperties.getProperty("countly.appKey", "")
+val splitAbis = listOf("arm64-v8a")
 
 android {
     namespace = "dev.zlddba.moshiapp"
@@ -43,7 +38,6 @@ android {
         targetSdk = 37
         versionCode = 1
         versionName = appVersion
-        buildConfigField("String", "COUNTLY_APP_KEY", "\"$countlyAppKey\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -179,7 +173,6 @@ dependencies {
     implementation(libs.openai.client)
     implementation(libs.ktor.client.okhttp)
     implementation(libs.sherpa.onnx)
-    implementation(libs.countly.sdk)
     implementation(libs.mlkit.text.recognition.chinese)
     implementation(libs.commonmark)
     implementation(libs.commonmark.gfm.tables)
