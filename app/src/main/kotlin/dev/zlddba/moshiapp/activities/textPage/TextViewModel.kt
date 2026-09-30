@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import dev.zlddba.moshiapp.R
 import dev.zlddba.moshiapp.data.db.NoteEntity
 import dev.zlddba.moshiapp.data.repo.IngestRepository
+import dev.zlddba.moshiapp.domain.title.TitleSuggester
 import dev.zlddba.moshiapp.ingest.parse.IngestException
 import dev.zlddba.moshiapp.ui.IngestMessages
 import kotlinx.coroutines.CancellationException
@@ -22,13 +23,19 @@ class TextViewModel(context: Context) : ViewModel() {
 
     data class TextUiState(
         val content: String = "",
-        val isPreview: Boolean = false
+        val title: String = "",
+        val isPreview: Boolean = false,
+        val isGeneratingTitle: Boolean = false,
+        val tags: String = ""
     )
 
     sealed interface TextEvent {
         data class ContentChanged(val value: String) : TextEvent
+        data class TitleChanged(val value: String) : TextEvent
+        data class TagsChanged(val value: String) : TextEvent
         data class PasteText(val text: String) : TextEvent
         data class ModeChanged(val preview: Boolean) : TextEvent
+        data object RegenerateTitle : TextEvent
         data object ConfirmClicked : TextEvent
     }
 
@@ -48,29 +55,54 @@ class TextViewModel(context: Context) : ViewModel() {
     fun onEvent(event: TextEvent) {
         when (event) {
             is TextEvent.ContentChanged -> _uiState.update { it.copy(content = event.value) }
+            is TextEvent.TitleChanged -> _uiState.update { it.copy(title = event.value) }
+            is TextEvent.TagsChanged -> _uiState.update { it.copy(tags = event.value) }
             is TextEvent.PasteText -> _uiState.update {
                 val separator = if (it.content.isEmpty()) "" else "\n"
                 it.copy(content = it.content + separator + event.text, isPreview = false)
             }
+
             is TextEvent.ModeChanged -> _uiState.update { it.copy(isPreview = event.preview) }
+            TextEvent.RegenerateTitle -> generateTitle()
             TextEvent.ConfirmClicked -> confirm()
         }
     }
 
-    private fun confirm() {
+    private fun generateTitle() {
         val content = _uiState.value.content
         if (content.isBlank()) {
             sendEffect(TextEffect.ShowToast(R.string.ingest_empty))
             return
         }
+        if (_uiState.value.isGeneratingTitle) return
+        _uiState.update { it.copy(isGeneratingTitle = true) }
+        viewModelScope.launch {
+            val suggestion = TitleSuggester.suggest(appContext, content)
+            _uiState.update { it.copy(title = suggestion.title, isGeneratingTitle = false) }
+            if (!suggestion.fromModel) {
+                sendEffect(TextEffect.ShowToast(R.string.ingest_title_failed))
+            }
+        }
+    }
+
+    private fun confirm() {
+        val state = _uiState.value
+        if (state.content.isBlank()) {
+            sendEffect(TextEffect.ShowToast(R.string.ingest_empty))
+            return
+        }
         viewModelScope.launch {
             try {
-                IngestRepository.importText(
+                val result = IngestRepository.importText(
                     context = appContext,
-                    text = content,
+                    text = state.content,
                     type = NoteEntity.TYPE_TEXT,
-                    fallbackTitle = appContext.getString(R.string.text_title)
+                    fallbackTitle = appContext.getString(R.string.text_title),
+                    title = state.title
                 )
+                if (state.tags.isNotBlank()) {
+                    IngestRepository.setTags(appContext, result.noteId, state.tags)
+                }
                 sendEffect(TextEffect.ShowToast(R.string.ingest_success))
                 sendEffect(TextEffect.Close)
             } catch (e: CancellationException) {

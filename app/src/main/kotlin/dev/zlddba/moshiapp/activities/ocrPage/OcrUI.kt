@@ -50,12 +50,13 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.core.net.toUri
 import coil3.compose.AsyncImage
 import dev.zlddba.moshiapp.R
 import dev.zlddba.moshiapp.activities.common.PageTopBar
+import dev.zlddba.moshiapp.activities.textPage.TitleField
 import dev.zlddba.moshiapp.ui.theme.MoshiShapeMedium
 import dev.zlddba.moshiapp.ui.theme.MoshiTheme
-import androidx.core.net.toUri
 
 @Composable
 fun OcrPageScreen(
@@ -80,12 +81,25 @@ fun OcrPageScreen(
             onBack = onBack
         )
         Spacer(modifier = Modifier.height(8.dp))
-        OcrImagePreview(uiState.imageUri) { zoomImage = true }
-        if (uiState.isRecognizing) {
-            Spacer(modifier = Modifier.height(12.dp))
-            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-        }
-        Spacer(modifier = Modifier.height(16.dp))
+        OcrImagePreview(uiState.imageUri, uiState.isRecognizing) { zoomImage = true }
+        Spacer(modifier = Modifier.height(12.dp))
+        TitleField(
+            title = uiState.title,
+            generating = uiState.isGeneratingTitle,
+            onTitleChange = { onEvent(OcrViewModel.OcrEvent.TitleChanged(it)) },
+            onRegenerate = { onEvent(OcrViewModel.OcrEvent.RegenerateTitle) }
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        OutlinedTextField(
+            value = uiState.tags,
+            onValueChange = { onEvent(OcrViewModel.OcrEvent.TagsChanged(it)) },
+            singleLine = true,
+            label = { Text(stringResource(R.string.tag_label)) },
+            placeholder = { Text(stringResource(R.string.tag_input_hint)) },
+            shape = MoshiShapeMedium,
+            modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(modifier = Modifier.height(12.dp))
         Text(
             text = stringResource(R.string.ocr_text_label),
             style = MaterialTheme.typography.labelLarge,
@@ -93,32 +107,39 @@ fun OcrPageScreen(
             color = MaterialTheme.colorScheme.primary
         )
         Spacer(modifier = Modifier.height(8.dp))
-        OutlinedTextField(
-            value = uiState.text,
-            onValueChange = { onEvent(OcrViewModel.OcrEvent.TextChanged(it)) },
-            modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text(stringResource(R.string.ocr_text_hint)) },
-            minLines = 6,
-            maxLines = 10,
-            shape = MoshiShapeMedium
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(
-            text = stringResource(R.string.ocr_source_note),
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary
-        )
-        Spacer(modifier = Modifier.height(8.dp))
+        when {
+            uiState.isRecognizing -> RecognisingBox()
+            !uiState.recognized -> WaitingBox()
+            else -> OutlinedTextField(
+                value = uiState.text,
+                onValueChange = { onEvent(OcrViewModel.OcrEvent.TextChanged(it)) },
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text(stringResource(R.string.ocr_text_hint)) },
+                minLines = 6,
+                maxLines = 12,
+                shape = MoshiShapeMedium
+            )
+        }
+        Spacer(modifier = Modifier.height(12.dp))
         OutlinedTextField(
             value = uiState.sourceNote,
             onValueChange = { onEvent(OcrViewModel.OcrEvent.SourceNoteChanged(it)) },
-            modifier = Modifier.fillMaxWidth(),
+            label = { Text(stringResource(R.string.ocr_source_note)) },
             placeholder = { Text(stringResource(R.string.ocr_source_note_hint)) },
             singleLine = true,
-            shape = MoshiShapeMedium
+            shape = MoshiShapeMedium,
+            modifier = Modifier.fillMaxWidth()
         )
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(20.dp))
+        Button(
+            onClick = { onEvent(OcrViewModel.OcrEvent.ConfirmClicked) },
+            enabled = uiState.text.isNotBlank() && !uiState.isRecognizing,
+            modifier = Modifier.fillMaxWidth(),
+            shape = MoshiShapeMedium
+        ) {
+            Text(stringResource(R.string.ocr_confirm))
+        }
+        Spacer(modifier = Modifier.height(8.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedButton(
                 onClick = { onEvent(OcrViewModel.OcrEvent.RecaptureClicked) },
@@ -130,20 +151,12 @@ fun OcrPageScreen(
             }
             OutlinedButton(
                 onClick = { onEvent(OcrViewModel.OcrEvent.RecognizeAgain) },
-                enabled = !uiState.isRecognizing,
+                enabled = !uiState.isRecognizing && uiState.imageUri != null,
                 modifier = Modifier.weight(1f),
                 shape = MoshiShapeMedium,
                 contentPadding = PaddingValues(horizontal = 6.dp, vertical = 8.dp)
             ) {
                 Text(stringResource(R.string.ocr_retake))
-            }
-            Button(
-                onClick = { onEvent(OcrViewModel.OcrEvent.ConfirmClicked) },
-                modifier = Modifier.weight(1f),
-                shape = MoshiShapeMedium,
-                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 8.dp)
-            ) {
-                Text(stringResource(R.string.ocr_confirm))
             }
         }
         Spacer(modifier = Modifier.height(32.dp))
@@ -155,7 +168,44 @@ fun OcrPageScreen(
 }
 
 @Composable
-private fun OcrImagePreview(imageUri: String?, onClick: () -> Unit) {
+private fun RecognisingBox() {
+    Surface(
+        shape = MoshiShapeMedium,
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            Spacer(modifier = Modifier.height(10.dp))
+            Text(
+                text = stringResource(R.string.ocr_recognising),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun WaitingBox() {
+    Surface(
+        shape = MoshiShapeMedium,
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text(
+            text = stringResource(R.string.ocr_waiting),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.outline,
+            modifier = Modifier.padding(16.dp)
+        )
+    }
+}
+
+@Composable
+private fun OcrImagePreview(imageUri: String?, recognizing: Boolean, onClick: () -> Unit) {
     Surface(
         shape = MoshiShapeMedium,
         color = MaterialTheme.colorScheme.surface,
@@ -192,6 +242,9 @@ private fun OcrImagePreview(imageUri: String?, onClick: () -> Unit) {
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
                 )
+                if (recognizing) {
+                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth().align(Alignment.BottomCenter))
+                }
             }
         }
     }
@@ -199,11 +252,13 @@ private fun OcrImagePreview(imageUri: String?, onClick: () -> Unit) {
 
 @Composable
 private fun OcrImageZoomDialog(imageUri: String, onDismiss: () -> Unit) {
-    var scale by remember { mutableFloatStateOf(1f) }
+    var scale by remember { mutableFloatStateOf(MIN_ZOOM) }
     var offset by remember { mutableStateOf(Offset.Zero) }
-    val transformableState = rememberTransformableState { zoomChange, panChange, _ ->
-        scale = (scale * zoomChange).coerceIn(1f, 5f)
-        offset = if (scale <= 1f) Offset.Zero else offset + panChange
+    // 新版重载把 centroid 放在首位；本次仍按平移增量处理，缩回原始比例时归零。
+    val transformableState = rememberTransformableState { _, zoomChange, panChange, _ ->
+        val next = (scale * zoomChange).coerceIn(MIN_ZOOM, MAX_ZOOM)
+        scale = next
+        offset = if (next <= MIN_ZOOM) Offset.Zero else offset + panChange
     }
     Dialog(
         onDismissRequest = onDismiss,
@@ -235,6 +290,9 @@ private fun OcrImageZoomDialog(imageUri: String, onDismiss: () -> Unit) {
         }
     }
 }
+
+private const val MIN_ZOOM = 1f
+private const val MAX_ZOOM = 5f
 
 @Composable
 @Preview(showBackground = true, showSystemUi = true)

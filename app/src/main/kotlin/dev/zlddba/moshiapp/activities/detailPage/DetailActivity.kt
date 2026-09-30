@@ -43,6 +43,17 @@ class DetailActivity : ComponentActivity() {
             MoshiTheme {
                 val uiState by viewModel.uiState.collectAsState()
                 val deleted by viewModel.deleted.collectAsState()
+                LaunchedEffect(Unit) {
+                    viewModel.effects.collect { effect ->
+                        when (effect) {
+                            is DetailViewModel.DetailEffect.ShowToast -> Toast.makeText(
+                                this@DetailActivity,
+                                effect.messageRes,
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    }
+                }
                 LaunchedEffect(deleted, uiState.missing) {
                     if (deleted) {
                         Toast.makeText(
@@ -78,7 +89,8 @@ class DetailActivity : ComponentActivity() {
                     },
                     onDelete = {
                         viewModel.onEvent(DetailViewModel.DetailEvent.Delete)
-                    }
+                    },
+                    onEvent = viewModel::onEvent
                 )
             }
         }

@@ -34,7 +34,7 @@ android {
 
     defaultConfig {
         applicationId = appId
-        minSdk = 24
+        minSdk = 26
         targetSdk = 37
         versionCode = 1
         versionName = appVersion
@@ -56,6 +56,19 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+    packaging {
+        resources {
+            excludes += setOf(
+                "META-INF/DEPENDENCIES",
+                "META-INF/LICENSE",
+                "META-INF/LICENSE.txt",
+                "META-INF/NOTICE",
+                "META-INF/NOTICE.txt",
+                "META-INF/versions/9/OSGI-INF/MANIFEST.MF",
+                "META-INF/*.kotlin_module"
+            )
+        }
     }
     splits {
         abi {
@@ -150,6 +163,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.documentfile)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.kotlinx.serialization.json)
@@ -181,6 +195,8 @@ dependencies {
     implementation(libs.androidx.room3.runtime)
     ksp(libs.androidx.room3.compiler)
     implementation(libs.pdfbox.android)
+    implementation(libs.poi.ooxml)
+    implementation(libs.poi.scratchpad)
     implementation(libs.google.localagents.rag)
     implementation(libs.litertlm.android)
     implementation(libs.protobuf.javalite)

@@ -32,7 +32,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -44,6 +43,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import dev.zlddba.moshiapp.R
 import dev.zlddba.moshiapp.activities.common.PageTopBar
+import dev.zlddba.moshiapp.activities.textPage.TitleField
 import dev.zlddba.moshiapp.ui.theme.MoshiShapeMedium
 import dev.zlddba.moshiapp.ui.theme.MoshiShapePill
 import dev.zlddba.moshiapp.ui.theme.MoshiTheme
@@ -309,7 +309,24 @@ private fun ConfirmContent(
             durationText = formatDuration(uiState.durationMs),
             onPlay = { onEvent(VoiceViewModel.VoiceEvent.PlayClicked) }
         )
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(12.dp))
+        TitleField(
+            title = uiState.title,
+            generating = uiState.isGeneratingTitle,
+            onTitleChange = { onEvent(VoiceViewModel.VoiceEvent.TitleChanged(it)) },
+            onRegenerate = { onEvent(VoiceViewModel.VoiceEvent.RegenerateTitle) }
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        OutlinedTextField(
+            value = uiState.tags,
+            onValueChange = { onEvent(VoiceViewModel.VoiceEvent.TagsChanged(it)) },
+            singleLine = true,
+            label = { Text(stringResource(R.string.tag_label)) },
+            placeholder = { Text(stringResource(R.string.tag_input_hint)) },
+            shape = MoshiShapeMedium,
+            modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(modifier = Modifier.height(12.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = stringResource(R.string.voice_transcript_label),
@@ -318,16 +335,13 @@ private fun ConfirmContent(
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.weight(1f)
             )
-            Switch(
-                checked = uiState.keepAudio,
-                onCheckedChange = { onEvent(VoiceViewModel.VoiceEvent.KeepAudioChanged(it)) }
-            )
-            Text(
-                text = stringResource(R.string.voice_keep_audio),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
         }
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = stringResource(R.string.voice_keep_audio),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
         Spacer(modifier = Modifier.height(8.dp))
         if (uiState.transcribeFailed) {
             Text(

@@ -10,6 +10,8 @@ data class NoteEntity(
     @ColumnInfo(name = "type") val type: String,
     @ColumnInfo(name = "title") val title: String,
     @ColumnInfo(name = "summary") val summary: String? = null,
+    @ColumnInfo(name = "content_html") val contentHtml: String? = null,
+
     @ColumnInfo(name = "content") val content: String,
     @ColumnInfo(name = "source_uri") val sourceUri: String? = null,
     @ColumnInfo(name = "source_note") val sourceNote: String? = null,

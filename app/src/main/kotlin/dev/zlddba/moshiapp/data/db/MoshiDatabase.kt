@@ -8,8 +8,14 @@ import androidx.room3.migration.Migration
 import androidx.sqlite.SQLiteConnection
 
 @Database(
-    entities = [NoteEntity::class, ChunkEntity::class, QaLogEntity::class],
-    version = 3,
+    entities = [
+        NoteEntity::class,
+        ChunkEntity::class,
+        QaLogEntity::class,
+        TagEntity::class,
+        NoteTagCrossRef::class
+    ],
+    version = 4,
     exportSchema = true
 )
 abstract class MoshiDatabase : RoomDatabase() {
@@ -20,16 +26,18 @@ abstract class MoshiDatabase : RoomDatabase() {
 
     abstract fun qaLogDao(): QaLogDao
 
+    abstract fun tagsDao(): TagsDao
+
     companion object {
 
         @Volatile
         private var INSTANCE: MoshiDatabase? = null
 
         private val MIGRATION_1_2 = object : Migration(1, 2) {
-            override suspend fun migrate(db: SQLiteConnection) {
-                exec(db, "ALTER TABLE notes ADD COLUMN is_builtin INTEGER NOT NULL DEFAULT 0")
+            override suspend fun migrate(connection: SQLiteConnection) {
+                exec(connection, "ALTER TABLE notes ADD COLUMN is_builtin INTEGER NOT NULL DEFAULT 0")
                 exec(
-                    db,
+                    connection,
                     "UPDATE notes SET is_builtin = 1 WHERE type = 'TEXT' " +
                         "AND (title = '默识使用说明' OR title = '使用说明')"
                 )
@@ -37,9 +45,9 @@ abstract class MoshiDatabase : RoomDatabase() {
         }
 
         private val MIGRATION_2_3 = object : Migration(2, 3) {
-            override suspend fun migrate(db: SQLiteConnection) {
+            override suspend fun migrate(connection: SQLiteConnection) {
                 exec(
-                    db,
+                    connection,
                     "CREATE TABLE IF NOT EXISTS `qa_logs` (" +
                         "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
                         "`role` TEXT NOT NULL, " +
@@ -51,8 +59,44 @@ abstract class MoshiDatabase : RoomDatabase() {
             }
         }
 
-        private fun exec(db: SQLiteConnection, sql: String) {
-            val statement = db.prepare(sql)
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override suspend fun migrate(connection: SQLiteConnection) {
+                exec(connection, "ALTER TABLE notes ADD COLUMN content_html TEXT")
+                exec(
+                    connection,
+                    "CREATE TABLE IF NOT EXISTS `tags` (" +
+                        "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`name` TEXT NOT NULL, " +
+                        "`created_at` INTEGER NOT NULL)"
+                )
+                exec(
+                    connection,
+                    "CREATE UNIQUE INDEX IF NOT EXISTS `index_tags_name` ON `tags` (`name`)"
+                )
+                exec(
+                    connection,
+                    "CREATE TABLE IF NOT EXISTS `note_tags` (" +
+                        "`note_id` TEXT NOT NULL, " +
+                        "`tag_id` INTEGER NOT NULL, " +
+                        "PRIMARY KEY(`note_id`, `tag_id`), " +
+                        "FOREIGN KEY(`note_id`) REFERENCES `notes`(`id`) ON UPDATE NO ACTION " +
+                        "ON DELETE CASCADE, " +
+                        "FOREIGN KEY(`tag_id`) REFERENCES `tags`(`id`) ON UPDATE NO ACTION " +
+                        "ON DELETE CASCADE)"
+                )
+                exec(
+                    connection,
+                    "CREATE INDEX IF NOT EXISTS `index_note_tags_tag_id` ON `note_tags` (`tag_id`)"
+                )
+                exec(
+                    connection,
+                    "CREATE INDEX IF NOT EXISTS `index_note_tags_note_id` ON `note_tags` (`note_id`)"
+                )
+            }
+        }
+
+        private fun exec(connection: SQLiteConnection, sql: String) {
+            val statement = connection.prepare(sql)
             try {
                 while (statement.step()) {
                 }
@@ -68,7 +112,7 @@ abstract class MoshiDatabase : RoomDatabase() {
                     MoshiDatabase::class.java,
                     "moshi.db"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                     .build().also { INSTANCE = it }
             }
         }
