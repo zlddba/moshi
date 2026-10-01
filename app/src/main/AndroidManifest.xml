@@ -85,6 +85,11 @@
             </intent-filter>
         </activity>
         <activity
+            android:name=".activities.graphPage.GraphActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Moshi"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
             android:name=".activities.voicePage.VoiceActivity"
             android:exported="false"
             android:theme="@style/Theme.Moshi"
