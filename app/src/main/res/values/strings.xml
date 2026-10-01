@@ -33,6 +33,7 @@
     <string name="home_card_type_pdf">PDF</string>
     <string name="home_card_type_image">截图</string>
     <string name="home_card_type_voice">语音</string>
+    <string name="home_card_type_sheet">Excel</string>
     <string name="home_card_summary_1">介绍了 SQLite 向量扩展的安装与基本用法…</string>
     <string name="home_card_summary_2">端侧推理框架选型对比与踩坑记录…</string>
     <string name="home_card_summary_3">课堂笔记：向量检索的召回与重排…</string>
@@ -230,6 +231,9 @@
     <string name="detail_edit_hint">保存后会重新分块并重建检索索引，稍后即可按新内容检索。</string>
     <string name="detail_force_local">本地强制</string>
     <string name="detail_summary_heading">AI 摘要</string>
+    <string name="detail_open_external">点击用其他应用打开</string>
+    <string name="detail_external_saved_fmt">原文件已保存到本地 · %1$s</string>
+    <string name="detail_no_viewer">未找到可以打开该文件的应用</string>
     <string name="detail_summary_empty">暂无摘要，点右侧重新生成</string>
     <string name="detail_summary_regenerate">重新生成</string>
     <string name="detail_summary_updated">摘要已更新</string>
@@ -437,4 +441,35 @@
     <string name="model_local_hint">选择存放模型文件的文件夹</string>
     <string name="model_local_loaded">已从本地导入 %1$s</string>
     <string name="model_local_missing">未在所选文件夹中找到完整的模型文件</string>
+
+    <string name="graph_entry">知识图谱</string>
+    <string name="graph_title">知识图谱</string>
+    <string name="graph_back">返回</string>
+    <string name="graph_loading">正在分析知识关联…</string>
+    <string name="graph_hint">双指缩放 · 拖动平移 · 点击节点查看原文</string>
+    <string name="graph_stat_fmt">节点 %1$d · 关联 %2$d</string>
+    <string name="graph_scanned_fmt">已扫描 %1$d 条知识</string>
+    <string name="graph_ignored_fmt">仅分析最近 %1$d 条</string>
+    <string name="graph_empty_title">还没有可分析的知识</string>
+    <string name="graph_empty_body">先导入一些知识，再看看它们之间有什么关联</string>
+    <string name="graph_embed_title">缺少嵌入模型</string>
+    <string name="graph_embed_body">分析知识关联需要先下载 Gecko 嵌入模型</string>
+    <string name="graph_embed_action">去下载模型</string>
+    <string name="graph_failed_title">关联分析失败</string>
+    <string name="graph_failed_body">嵌入计算没有完成，可以重新分析一次</string>
+    <string name="graph_retry">重新分析</string>
+    <string name="graph_reload">重新分析</string>
+
+    <string name="share_title">分享到默识</string>
+    <string name="share_back">返回</string>
+    <string name="share_confirm">导入知识库</string>
+    <string name="share_importing">正在导入…</string>
+    <string name="share_success">已从分享导入知识库</string>
+    <string name="share_unsupported">暂不支持该文件类型</string>
+    <string name="share_unsupported_hint">暂不支持该文件类型，目前支持 PDF、Word、Excel、CSV、Markdown、纯文本与图片 OCR</string>
+    <string name="share_missing">没有收到分享内容</string>
+    <string name="share_unknown_file">未知文件</string>
+    <string name="share_unknown_mime">未知类型</string>
+    <string name="share_image_preparing">正在准备图片…</string>
+    <string name="share_image_failed">图片读取失败，请重试</string>
 </resources>

@@ -12,7 +12,6 @@ import dev.zlddba.moshiapp.domain.summary.NoteSummarizer
 import dev.zlddba.moshiapp.ingest.parse.IngestException
 import dev.zlddba.moshiapp.ui.IngestMessages
 import dev.zlddba.moshiapp.ui.doc.DocumentRenderer
-import dev.zlddba.moshiapp.ui.doc.OfficeParser
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -95,36 +94,11 @@ class DetailViewModel(context: Context) : ViewModel() {
             val state = withContext(Dispatchers.IO) { buildState(note, chunks, event) }
             _uiState.update { state }
             loadRelated(note, chunks)
-            enrichContent(note, state)
+            ensureSummary(note)
         }
     }
 
-    private suspend fun enrichContent(note: NoteEntity, state: DetailUiState) {
-        val block = state.content
-        val needsOffice = block.kind == DocumentRenderer.Kind.WORD ||
-            block.kind == DocumentRenderer.Kind.SHEET
-        if (needsOffice) {
-            val cached = note.contentHtml
-            val file = block.file
-            when {
-                !cached.isNullOrBlank() -> _uiState.update { it.copy(summaryHtml = cached) }
-                file != null && file.isFile -> {
-                    val html = withContext(Dispatchers.IO) {
-                        runCatching {
-                            if (block.kind == DocumentRenderer.Kind.WORD) {
-                                OfficeParser.wordToHtml(file)
-                            } else {
-                                OfficeParser.sheetToHtml(file)
-                            }
-                        }.getOrNull()
-                    }
-                    if (!html.isNullOrBlank()) {
-                        IngestRepository.updateNoteContentHtml(appContext, note.id, html)
-                        _uiState.update { it.copy(summaryHtml = html) }
-                    }
-                }
-            }
-        }
+    private suspend fun ensureSummary(note: NoteEntity) {
         if (note.summary.isNullOrBlank() && note.content.isNotBlank()) {
             val summary = withContext(Dispatchers.Default) {
                 NoteSummarizer.summarize(note.content)
@@ -297,6 +271,7 @@ class DetailViewModel(context: Context) : ViewModel() {
         NoteEntity.TYPE_PDF -> appContext.getString(R.string.home_card_type_pdf)
         NoteEntity.TYPE_IMAGE_OCR -> appContext.getString(R.string.home_card_type_image)
         NoteEntity.TYPE_AUDIO -> appContext.getString(R.string.home_card_type_voice)
+        NoteEntity.TYPE_SHEET -> appContext.getString(R.string.home_card_type_sheet)
         else -> appContext.getString(R.string.home_card_type_text)
     }
 

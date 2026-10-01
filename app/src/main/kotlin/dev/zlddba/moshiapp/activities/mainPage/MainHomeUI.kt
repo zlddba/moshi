@@ -26,11 +26,13 @@ import androidx.compose.material.icons.automirrored.outlined.Article
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.CloudSync
+import androidx.compose.material.icons.outlined.Hub
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.PictureAsPdf
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Shield
+import androidx.compose.material.icons.outlined.TableChart
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -139,6 +141,7 @@ fun MainHomeScreen(
     onNoteClick: (String) -> Unit,
     onSearchSubmit: (String) -> Unit,
     onManageTags: () -> Unit = {},
+    onOpenGraph: () -> Unit = {},
     isCloudEngine: Boolean = false,
     modifier: Modifier = Modifier
 ) {
@@ -149,7 +152,7 @@ fun MainHomeScreen(
         modifier = modifier
             .fillMaxSize()
     ) {
-        HomeTopBar(isCloudEngine = isCloudEngine)
+        HomeTopBar(isCloudEngine = isCloudEngine, onOpenGraph = onOpenGraph)
         HomeSearchBar(
             query = query,
             onQueryChange = { query = it },
@@ -223,11 +226,11 @@ fun MainHomeScreen(
 }
 
 @Composable
-private fun HomeTopBar(isCloudEngine: Boolean) {
+private fun HomeTopBar(isCloudEngine: Boolean, onOpenGraph: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 4.dp),
+            .padding(start = 20.dp, end = 8.dp, top = 16.dp, bottom = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
@@ -236,7 +239,16 @@ private fun HomeTopBar(isCloudEngine: Boolean) {
             style = MaterialTheme.typography.headlineMedium,
             color = MaterialTheme.colorScheme.onSurface
         )
-        HomeEngineBadge(isCloudEngine = isCloudEngine)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            HomeEngineBadge(isCloudEngine = isCloudEngine)
+            IconButton(onClick = onOpenGraph) {
+                Icon(
+                    imageVector = Icons.Outlined.Hub,
+                    contentDescription = stringResource(R.string.graph_entry),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
     }
 }
 
@@ -411,6 +423,7 @@ private fun typeVisual(type: String): Pair<ImageVector, Int> = when (type) {
     NoteEntity.TYPE_PDF -> Icons.Outlined.PictureAsPdf to R.string.home_card_type_pdf
     NoteEntity.TYPE_IMAGE_OCR -> Icons.Outlined.Image to R.string.home_card_type_image
     NoteEntity.TYPE_AUDIO -> Icons.Outlined.Mic to R.string.home_card_type_voice
+    NoteEntity.TYPE_SHEET -> Icons.Outlined.TableChart to R.string.home_card_type_sheet
     else -> Icons.AutoMirrored.Outlined.Article to R.string.home_card_type_text
 }
 
