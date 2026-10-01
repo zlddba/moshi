@@ -142,11 +142,6 @@ object IngestRepository {
                 .updateSummary(noteId, summary.trim().take(600), System.currentTimeMillis())
         }
 
-    suspend fun updateNoteContentHtml(context: Context, noteId: String, html: String) =
-        withContext(Dispatchers.IO) {
-            MoshiDatabase.get(context).noteDao().updateContentHtml(noteId, html)
-        }
-
     /**
      * 编辑正文：重建分块、刷新关键词索引、清掉旧向量并重新排队索引。
      */
@@ -222,11 +217,7 @@ object IngestRepository {
             noteId = noteId,
             title = title.trim().ifEmpty { parsed.title },
             content = parsed.text,
-            type = if (parsed.format == ParsedDoc.FORMAT_PDF) {
-                NoteEntity.TYPE_PDF
-            } else {
-                NoteEntity.TYPE_TEXT
-            },
+            type = noteTypeOf(parsed.format),
             pageOffsets = parsed.pageOffsets,
             chunks = chunks,
             sourceUri = localFile?.path ?: uri.toString()
@@ -365,6 +356,12 @@ object IngestRepository {
 
     fun exportSuggestionName(): String =
         "moshi-backup-" + SimpleDateFormat("yyyyMMdd-HHmm", Locale.US).format(Date()) + ".json"
+
+    private fun noteTypeOf(format: String): String = when (format) {
+        ParsedDoc.FORMAT_PDF -> NoteEntity.TYPE_PDF
+        ParsedDoc.FORMAT_XLSX, ParsedDoc.FORMAT_XLS -> NoteEntity.TYPE_SHEET
+        else -> NoteEntity.TYPE_TEXT
+    }
 
     private fun sourceFormatOf(type: String): String = when (type) {
         NoteEntity.TYPE_AUDIO -> "wav"

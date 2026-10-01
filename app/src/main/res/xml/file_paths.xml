@@ -3,4 +3,7 @@
     <cache-path
         name="ocr_images"
         path="ocr/" />
+    <files-path
+        name="note_files"
+        path="notes/" />
 </paths>

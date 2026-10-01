@@ -64,6 +64,28 @@
             android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".activities.textPage.TextActivity"
+            android:exported="true"
+            android:theme="@style/Theme.Moshi"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.PROCESS_TEXT" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".activities.sharePage.ShareActivity"
+            android:exported="true"
+            android:theme="@style/Theme.Moshi"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="*/*" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".activities.graphPage.GraphActivity"
             android:exported="false"
             android:theme="@style/Theme.Moshi"
             android:windowSoftInputMode="adjustResize" />

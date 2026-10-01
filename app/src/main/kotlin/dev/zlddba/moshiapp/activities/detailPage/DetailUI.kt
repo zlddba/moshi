@@ -1,6 +1,11 @@
 package dev.zlddba.moshiapp.activities.detailPage
 
+import android.content.ActivityNotFoundException
 import android.content.Context
+import android.content.Intent
+import android.text.format.Formatter
+import android.webkit.MimeTypeMap
+import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -28,7 +33,6 @@ import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -49,10 +53,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.content.FileProvider
 import coil3.compose.AsyncImage
 import dev.zlddba.moshiapp.R
 import dev.zlddba.moshiapp.activities.common.PageTopBar
@@ -74,7 +80,6 @@ data class DetailUiState(
     val isBuiltIn: Boolean = false,
     val title: String = "",
     val abstract: String = "",
-    val summaryHtml: String? = null,
     val bodyDraft: String = "",
     val tagsDraft: String = "",
     val heading: String = "",
@@ -424,17 +429,10 @@ private fun ContentCard(uiState: DetailUiState) {
 
                 DocumentRenderer.Kind.WORD, DocumentRenderer.Kind.SHEET -> {
                     val file = block.file
-                    val html = uiState.summaryHtml
-                    when {
-                        file == null -> MissingFile()
-                        html.isNullOrBlank() -> Box(
-                            modifier = Modifier.fillMaxWidth().height(160.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            CircularProgressIndicator()
-                        }
-
-                        else -> HtmlView(html = html, modifier = Modifier.fillMaxWidth())
+                    if (file == null) {
+                        MissingFile()
+                    } else {
+                        ExternalDocumentRow(file = file)
                     }
                 }
 
@@ -488,6 +486,75 @@ private fun MissingFile() {
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.outline
     )
+}
+
+@Composable
+private fun ExternalDocumentRow(file: File) {
+    val context = LocalContext.current
+    val sizeText = remember(file) { Formatter.formatFileSize(context, file.length()) }
+
+    Surface(
+        onClick = { openExternally(context, file) },
+        shape = MoshiShapeMedium,
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 14.dp)
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.detail_open_external),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.height(3.dp))
+                Text(
+                    text = stringResource(R.string.detail_external_saved_fmt, sizeText),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Icon(
+                imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.outline
+            )
+        }
+    }
+}
+
+private fun openExternally(context: Context, file: File) {
+    try {
+        val uri = FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.fileprovider",
+            file
+        )
+        val intent = Intent(Intent.ACTION_VIEW)
+            .setDataAndType(uri, mimeOf(file))
+            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        context.startActivity(intent)
+    } catch (e: ActivityNotFoundException) {
+        Toast.makeText(context, R.string.detail_no_viewer, Toast.LENGTH_SHORT).show()
+    } catch (e: IllegalArgumentException) {
+        Toast.makeText(context, R.string.detail_no_viewer, Toast.LENGTH_SHORT).show()
+    }
+}
+
+private fun mimeOf(file: File): String {
+    val extension = file.extension.lowercase()
+    val resolved = MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension)
+    if (!resolved.isNullOrBlank()) return resolved
+    return when (extension) {
+        "docx" -> "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        "xlsx" -> "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        "doc" -> "application/msword"
+        "xls" -> "application/vnd.ms-excel"
+        else -> "*/*"
+    }
 }
 
 @Composable

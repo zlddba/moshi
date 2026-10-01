@@ -12,9 +12,16 @@ import java.nio.charset.CodingErrorAction
 
 object TextParser : DocParser {
 
-    private val textExtensions = setOf("txt", "text")
+    private val textExtensions = setOf("txt", "text", "csv", "tsv")
     private val markdownExtensions = setOf("md", "markdown")
-    private val mimeTypes = setOf("text/plain", "text/markdown", "text/x-markdown")
+    private val mimeTypes = setOf(
+        "text/plain",
+        "text/markdown",
+        "text/x-markdown",
+        "text/csv",
+        "text/tab-separated-values",
+        "application/csv"
+    )
 
     override fun supports(fileName: String, mimeType: String?): Boolean {
         val extension = fileName.substringAfterLast('.', "").lowercase()
@@ -40,10 +47,15 @@ object TextParser : DocParser {
             if (text.isBlank()) throw IngestException(IngestException.Kind.EMPTY)
             val extension = fileName.substringAfterLast('.', "").lowercase()
             val markdown = extension in markdownExtensions
+            val format = when {
+                markdown -> ParsedDoc.FORMAT_MD
+                extension == ParsedDoc.FORMAT_CSV -> ParsedDoc.FORMAT_CSV
+                else -> ParsedDoc.FORMAT_TXT
+            }
             ParsedDoc(
                 title = deriveTitle(fileName, text, markdown),
                 text = text,
-                format = if (markdown) ParsedDoc.FORMAT_MD else ParsedDoc.FORMAT_TXT
+                format = format
             )
         }
     }

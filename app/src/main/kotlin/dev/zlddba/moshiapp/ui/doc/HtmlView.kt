@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -30,6 +31,7 @@ fun HtmlView(
     maxHeight: Int = MAX_HEIGHT
 ) {
     var measured by remember(html) { mutableIntStateOf(minHeight) }
+    var loaded by remember { mutableStateOf<String?>(null) }
     AndroidView(
         factory = { context ->
             WebView(context).apply {
@@ -65,7 +67,10 @@ fun HtmlView(
             }
         },
         update = { webView ->
-            webView.loadDataWithBaseURL(null, html, "text/html", "utf-8", null)
+            if (loaded != html) {
+                loaded = html
+                webView.loadDataWithBaseURL(null, html, "text/html", "utf-8", null)
+            }
         },
         modifier = modifier
             .fillMaxWidth()

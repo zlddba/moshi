@@ -35,6 +35,7 @@ class TextViewModel(context: Context) : ViewModel() {
         data class TagsChanged(val value: String) : TextEvent
         data class PasteText(val text: String) : TextEvent
         data class ModeChanged(val preview: Boolean) : TextEvent
+        data class Prefill(val text: String, val title: String?) : TextEvent
         data object RegenerateTitle : TextEvent
         data object ConfirmClicked : TextEvent
     }
@@ -63,8 +64,26 @@ class TextViewModel(context: Context) : ViewModel() {
             }
 
             is TextEvent.ModeChanged -> _uiState.update { it.copy(isPreview = event.preview) }
+            is TextEvent.Prefill -> applyPrefill(event)
             TextEvent.RegenerateTitle -> generateTitle()
             TextEvent.ConfirmClicked -> confirm()
+        }
+    }
+
+    private fun applyPrefill(event: TextEvent.Prefill) {
+        val incoming = event.text.trim()
+        if (incoming.isEmpty()) return
+        _uiState.update { state ->
+            val merged = if (state.content.isBlank()) {
+                incoming
+            } else {
+                state.content + "\n" + incoming
+            }
+            state.copy(
+                content = merged,
+                title = state.title.ifBlank { event.title.orEmpty() },
+                isPreview = false
+            )
         }
     }
 

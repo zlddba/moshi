@@ -27,6 +27,7 @@ data class NoteEntity(
         const val TYPE_PDF = "PDF"
         const val TYPE_IMAGE_OCR = "IMAGE_OCR"
         const val TYPE_AUDIO = "AUDIO"
+        const val TYPE_SHEET = "SHEET"
         const val STATUS_PENDING = "PENDING"
         const val STATUS_INDEXING = "INDEXING"
         const val STATUS_INDEXED = "INDEXED"

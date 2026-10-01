@@ -34,6 +34,7 @@ class TextActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        handleSharedContent()
         setContent {
             MoshiTheme {
                 val uiState by viewModel.uiState.collectAsState()
@@ -58,6 +59,25 @@ class TextActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    private fun handleSharedContent() {
+        val shared = sharedText() ?: return
+        viewModel.onEvent(
+            TextViewModel.TextEvent.Prefill(
+                text = shared.first,
+                title = shared.second
+            )
+        )
+    }
+
+    private fun sharedText(): Pair<String, String?>? {
+        val subject = intent.getStringExtra(Intent.EXTRA_SUBJECT)
+        val processed = intent.getCharSequenceExtra(Intent.EXTRA_PROCESS_TEXT)?.toString()
+        if (!processed.isNullOrBlank()) return processed to subject
+        val sent = intent.getCharSequenceExtra(Intent.EXTRA_TEXT)?.toString()
+        if (!sent.isNullOrBlank()) return sent to subject
+        return null
     }
 
     companion object {

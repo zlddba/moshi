@@ -73,6 +73,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.zlddba.moshiapp.R
 import dev.zlddba.moshiapp.activities.cloudPage.CloudActivity
 import dev.zlddba.moshiapp.activities.detailPage.DetailActivity
+import dev.zlddba.moshiapp.activities.graphPage.GraphActivity
 import dev.zlddba.moshiapp.activities.licensePage.LicenseActivity
 import dev.zlddba.moshiapp.activities.helpPage.HelpActivity
 import dev.zlddba.moshiapp.activities.ocrPage.OcrActivity
@@ -453,6 +454,7 @@ fun MainPageScreen(modifier: Modifier = Modifier) {
                     },
                     onSearchSubmit = { query -> SearchActivity.start(context, query) },
                     onManageTags = { TagActivity.start(context) },
+                    onOpenGraph = { GraphActivity.start(context) },
                     isCloudEngine = chatUiState.isCloudEngine
                 )
 
