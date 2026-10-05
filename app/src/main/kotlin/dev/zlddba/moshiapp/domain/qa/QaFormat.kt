@@ -159,6 +159,30 @@ object QaFormat {
     const val MAX_CONTEXT_CHARS = 3000
     const val MAX_SNIPPET_CHARS = 600
 
+    private val SELF_REFERENCE_KEYS = listOf(
+        "你是谁",
+        "你是什么",
+        "你叫什么",
+        "你的名字",
+        "你能做什么",
+        "你会做什么",
+        "你能干什么",
+        "你有哪些功能",
+        "介绍一下你",
+        "默识是什么",
+        "默识能做什么",
+        "默识有哪些功能"
+    )
+
+    private fun isSelfReferential(question: String): Boolean {
+        val compact = question
+            .replace(" ", "")
+            .replace("\n", "")
+            .replace("？", "")
+            .replace("?", "")
+        return SELF_REFERENCE_KEYS.any { compact.contains(it) }
+    }
+
     fun userPrompt(question: String, hits: List<RetrieveService.Hit>): String {
         val builder = StringBuilder("【知识片段】\n")
         var budget = MAX_CONTEXT_CHARS
@@ -182,6 +206,11 @@ object QaFormat {
         }
         builder.append("\n【问题】")
         builder.append(question)
+        if (isSelfReferential(question)) {
+            builder.append("\n\n【注意】用户问的是默识自己。请以默识的第一人称回答，")
+            builder.append("开头用「我是默识」这样的说法，")
+            builder.append("不要把片段中称呼用户的「你」当作答案的主语。")
+        }
         return builder.toString()
     }
 
