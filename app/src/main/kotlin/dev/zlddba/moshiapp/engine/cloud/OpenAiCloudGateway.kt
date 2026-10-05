@@ -18,7 +18,9 @@ import com.aallam.openai.api.logging.Logger
 import com.aallam.openai.api.model.ModelId
 import com.aallam.openai.client.LoggingConfig
 import com.aallam.openai.client.OpenAI
+import com.aallam.openai.client.OpenAIConfig
 import com.aallam.openai.client.OpenAIHost
+import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.ResponseException
 import dev.zlddba.moshiapp.domain.diag.SafeLog
 import dev.zlddba.moshiapp.domain.error.STATUS_TIMEOUT
@@ -336,13 +338,19 @@ class OpenAiCloudGateway : CloudGateway {
 
     private fun createClient(config: CloudConfig): OpenAI {
         val baseUrl = if (config.baseUrl.endsWith("/")) config.baseUrl else "${config.baseUrl}/"
+        val engine = OkHttp.create {
+            addInterceptor(ThinkingModeInterceptor())
+        }
         return OpenAI(
-            token = config.apiKey,
-            host = OpenAIHost(baseUrl = baseUrl),
-            logging = LoggingConfig(
-                logLevel = LogLevel.Body,
-                logger = Logger.Simple,
-                sanitize = true
+            OpenAIConfig(
+                token = config.apiKey,
+                logging = LoggingConfig(
+                    logLevel = LogLevel.Body,
+                    logger = Logger.Simple,
+                    sanitize = true
+                ),
+                host = OpenAIHost(baseUrl = baseUrl),
+                engine = engine
             )
         )
     }
