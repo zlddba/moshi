@@ -1,12 +1,15 @@
 package dev.zlddba.moshiapp.ingest.parse
 
-class IngestException(val kind: Kind) : Exception() {
+import dev.zlddba.moshiapp.domain.error.ErrorCode
 
-    enum class Kind {
-        UNSUPPORTED,
-        TOO_LARGE,
-        EMPTY,
-        PARSE_FAILED,
-        IO
+class IngestException(val kind: Kind) : Exception(kind.errorCode.code) {
+
+    enum class Kind(val errorCode: ErrorCode) {
+        UNSUPPORTED(ErrorCode.FILE_FORMAT),
+        ENCRYPTED(ErrorCode.FILE_ENCRYPTED),
+        TOO_LARGE(ErrorCode.FILE_TOO_LARGE),
+        EMPTY(ErrorCode.FILE_CORRUPT),
+        PARSE_FAILED(ErrorCode.FILE_CORRUPT),
+        IO(ErrorCode.FILE_IO)
     }
 }

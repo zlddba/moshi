@@ -2,11 +2,13 @@ package dev.zlddba.moshiapp.activities.ocrPage
 
 import android.content.Context
 import android.net.Uri
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.zlddba.moshiapp.R
 import dev.zlddba.moshiapp.data.db.NoteEntity
 import dev.zlddba.moshiapp.data.repo.IngestRepository
+import dev.zlddba.moshiapp.domain.error.ErrorCode
 import dev.zlddba.moshiapp.domain.title.TitleSuggester
 import dev.zlddba.moshiapp.ingest.parse.IngestException
 import dev.zlddba.moshiapp.ingest.vision.OcrTextRecognizer
@@ -20,6 +22,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+
+private const val TAG = "OcrViewModel"
 
 class OcrViewModel(context: Context) : ViewModel() {
 
@@ -91,6 +95,7 @@ class OcrViewModel(context: Context) : ViewModel() {
                     it.copy(isRecognizing = false, text = result, recognized = true)
                 }
                 if (result.isBlank()) {
+                    Log.w(TAG, "${ErrorCode.OCR_FAIL.code} empty result")
                     sendEffect(OcrEffect.ShowToast(R.string.ocr_fail))
                     return@launch
                 }
@@ -99,6 +104,7 @@ class OcrViewModel(context: Context) : ViewModel() {
                 throw e
             } catch (e: Exception) {
                 _uiState.update { it.copy(isRecognizing = false) }
+                Log.w(TAG, "${ErrorCode.OCR_FAIL.code} ${e.message}")
                 sendEffect(OcrEffect.ShowToast(R.string.ocr_fail))
             }
         }

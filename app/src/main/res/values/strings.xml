@@ -131,6 +131,7 @@
     <string name="ingest_unsupported">暂不支持该文件类型</string>
     <string name="ingest_too_large">文件过大，最大 20MB</string>
     <string name="ingest_parse_failed">解析失败，文件可能已损坏或被加密</string>
+    <string name="ingest_encrypted">该文件已加密，请先解密后再导入</string>
     <string name="ingest_title_label">标题</string>
     <string name="ingest_title_hint">留空则自动生成</string>
     <string name="ingest_title_generate">AI 标题</string>
@@ -232,6 +233,7 @@
     <string name="detail_force_local">本地强制</string>
     <string name="detail_summary_heading">AI 摘要</string>
     <string name="detail_open_external">点击用其他应用打开</string>
+    <string name="detail_hit_heading">命中片段</string>
     <string name="detail_external_saved_fmt">原文件已保存到本地 · %1$s</string>
     <string name="detail_no_viewer">未找到可以打开该文件的应用</string>
     <string name="detail_summary_empty">暂无摘要，点右侧重新生成</string>
