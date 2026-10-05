@@ -92,6 +92,17 @@ fun PrivacyPageScreen(
                 onEvent(PrivacyViewModel.PrivacyEvent.ForceLocalChanged(it))
             }
         )
+        Spacer(modifier = Modifier.height(12.dp))
+        PrivacySwitchCard(
+            titleRes = R.string.privacy_qa_history,
+            descRes = R.string.privacy_qa_history_desc,
+            stateRes = null,
+            checked = uiState.qaHistoryEnabled,
+            enabled = true,
+            onCheckedChange = {
+                onEvent(PrivacyViewModel.PrivacyEvent.QaHistoryChanged(it))
+            }
+        )
         Spacer(modifier = Modifier.height(20.dp))
         Text(
             text = stringResource(R.string.privacy_lock_section),

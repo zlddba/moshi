@@ -13,6 +13,7 @@ import dev.zlddba.moshiapp.data.db.QaLogDao
 import dev.zlddba.moshiapp.data.db.QaLogEntity
 import dev.zlddba.moshiapp.data.prefs.CloudConfigPrefs
 import dev.zlddba.moshiapp.data.prefs.ModelPrefs
+import dev.zlddba.moshiapp.data.prefs.SecurityPrefs
 import dev.zlddba.moshiapp.data.repo.IngestRepository
 import dev.zlddba.moshiapp.domain.qa.QaOrchestrator
 import dev.zlddba.moshiapp.domain.retrieve.RetrieveService
@@ -132,8 +133,10 @@ class ChatViewModel(context: Context) : ViewModel() {
                     when (op) {
                         PersistOp.Load -> restoreHistory(dao)
                         is PersistOp.Save -> {
-                            dao.insert(op.message.toLog())
-                            dao.trim(HISTORY_KEEP)
+                            if (SecurityPrefs(appContext).isQaHistoryEnabled()) {
+                                dao.insert(op.message.toLog())
+                                dao.trim(HISTORY_KEEP)
+                            }
                         }
 
                         PersistOp.ClearAll -> dao.deleteAll()

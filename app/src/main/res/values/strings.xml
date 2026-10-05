@@ -369,6 +369,8 @@
     <string name="privacy_back">返回</string>
     <string name="privacy_force_local">敏感内容强制端侧</string>
     <string name="privacy_force_local_desc">标记为敏感的知识强制走本地引擎，即使云端已开启（默认开启）</string>
+    <string name="privacy_qa_history">保存问答历史</string>
+    <string name="privacy_qa_history_desc">关闭后不再记录新的问答；已有历史可在问答页清空</string>
     <string name="privacy_encrypt">本地加密存储</string>
     <string name="privacy_encrypt_desc">使用 AES-GCM 加密原始文件与笔记数据库，主密钥由系统密钥库托管</string>
     <string name="privacy_storage_state_encrypted">当前：已加密</string>
