@@ -4,8 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.zlddba.moshiapp.R
 import dev.zlddba.moshiapp.data.prefs.CloudConfigPrefs
+import dev.zlddba.moshiapp.domain.error.STATUS_TIMEOUT
 import dev.zlddba.moshiapp.engine.cloud.CloudConfig
 import dev.zlddba.moshiapp.engine.cloud.CloudGateway
+import dev.zlddba.moshiapp.engine.cloud.CloudNetworkProbe
 import dev.zlddba.moshiapp.engine.cloud.CloudTestResult
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -134,6 +136,15 @@ class CloudViewModel(
         else -> R.string.cloud_http_other
     }
 
+    private fun failureResId(statusCode: Int): Int = when (statusCode) {
+        STATUS_TIMEOUT -> R.string.cloud_err_timeout
+        CloudNetworkProbe.STATUS_DNS -> R.string.cloud_err_dns
+        CloudNetworkProbe.STATUS_CONNECT -> R.string.cloud_err_connect
+        CloudNetworkProbe.STATUS_TLS -> R.string.cloud_err_tls
+        0 -> R.string.cloud_err_network
+        else -> httpErrorResId(statusCode)
+    }
+
     private fun testConnection() {
         val state = _cloudUiState.value
         val error = validationError(state)
@@ -154,8 +165,7 @@ class CloudViewModel(
             val testState = when (result) {
                 CloudTestResult.Success -> TestState.Success
                 is CloudTestResult.Failure -> TestState.ServerFailed(
-                    resId = if (result.statusCode == 0) R.string.cloud_err_network
-                    else httpErrorResId(result.statusCode),
+                    resId = failureResId(result.statusCode),
                     statusCode = result.statusCode,
                     detail = result.detail
                 )

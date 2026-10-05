@@ -308,6 +308,10 @@
     <string name="cloud_http_5xx">服务端错误（HTTP %d），请稍后再试</string>
     <string name="cloud_http_other">请求被拒绝（HTTP %d）</string>
     <string name="cloud_err_network">无法连接服务器，请检查网络与服务地址</string>
+    <string name="cloud_err_timeout">服务器无响应，连接超时。请检查网络，并确认模型名称与服务地址是否正确</string>
+    <string name="cloud_err_dns">无法解析服务地址。请检查网络，或确认地址拼写正确</string>
+    <string name="cloud_err_connect">无法连接服务器。网络可能被限制，或地址与端口有误</string>
+    <string name="cloud_err_tls">安全连接建立失败。可能是网络中间人、代理或证书问题</string>
     <string name="cloud_saved">配置已保存</string>
     <string name="cloud_privacy_note">仅发送「问题 + 检索命中的相关片段」，原始知识不出端。</string>
     <string name="cloud_save">保存</string>
