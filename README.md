@@ -242,19 +242,16 @@ with a Chinese subject line.
 
 ## Status
 
-Moshi is an active competition project. The core loop — import, chunk, embed, retrieve,
+Moshi is under active development. The core loop — import, chunk, embed, retrieve,
 answer with citations and refusal handling — is implemented and running on device.
-Areas under active development include retrieval quality tuning, the knowledge graph
-view and broader device coverage.
+Areas being worked on include retrieval quality tuning, the knowledge graph view and
+broader device coverage.
 
 ## License
 
 Licensed under the [Apache License 2.0](LICENSE).
 
 ## Acknowledgements
-
-Built as an entry for the 16th North China Five-Province Computer Application Competition
-(第十六届华北五省计算机应用大赛).
 
 Standing on the shoulders of: LiteRT-LM, MediaPipe / `google-localagents-rag`,
 sqlite-vec, SQLCipher, Apache POI, PDFBox, ML Kit, sherpa-onnx, Room and Jetpack Compose.

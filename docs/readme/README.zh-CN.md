@@ -216,17 +216,15 @@ subject 使用中文。
 
 ## 当前状态
 
-默识是一个仍在推进的参赛项目。「导入 → 分块 → 嵌入 → 检索 → 带来源作答与拒答」这条
-核心闭环已经实现并在真机上跑通。正在持续打磨的方向包括检索质量调优、知识图谱视图，
-以及更广的设备覆盖。
+默识仍在持续开发中。「导入 → 分块 → 嵌入 → 检索 → 带来源作答与拒答」这条核心闭环
+已经实现并在真机上跑通。正在推进的方向包括检索质量调优、知识图谱视图，以及更广的
+设备覆盖。
 
 ## 许可证
 
 以 [Apache License 2.0](../../LICENSE) 授权。
 
 ## 致谢
-
-本项目为第十六届华北五省计算机应用大赛参赛作品。
 
 站在这些项目之上：LiteRT-LM、MediaPipe / `google-localagents-rag`、sqlite-vec、
 SQLCipher、Apache POI、PDFBox、ML Kit、sherpa-onnx、Room 与 Jetpack Compose。
