@@ -21,10 +21,15 @@ object GeckoEmbedding {
     private const val CALL_TIMEOUT_SECONDS = 120L
     private const val TAG = "GeckoEmbedding"
 
+    private const val OPENCL_LIBRARY = "OpenCL"
+
     private val OPENCL_CANDIDATES = listOf(
         "/vendor/lib64/libOpenCL.so",
+        "/vendor/lib64/egl/libOpenCL.so",
+        "/system/vendor/lib64/libOpenCL.so",
+        "/system/vendor/lib64/egl/libOpenCL.so",
         "/odm/lib64/libOpenCL.so",
-        "/system/vendor/lib64/libOpenCL.so"
+        "/system/lib64/libOpenCL.so"
     )
 
     @Volatile
@@ -101,22 +106,34 @@ object GeckoEmbedding {
     }
 
     private fun gpuBridgeReady(): Boolean {
-        var openClFound = false
+        if (loadOpenClByName()) return true
         for (path in OPENCL_CANDIDATES) {
-            val exists = File(path).exists()
-            if (exists) openClFound = true
-            Log.i(TAG, "opencl probe $path exists=$exists")
+            if (loadOpenClByPath(path)) return true
         }
-        if (!openClFound) {
-            Log.w(TAG, "no vendor OpenCL library, GPU bridge unavailable, fallback to CPU")
+        Log.w(TAG, "opencl unavailable on this device, embedding runs on CPU")
+        return false
+    }
+
+    private fun loadOpenClByName(): Boolean = try {
+        System.loadLibrary(OPENCL_LIBRARY)
+        Log.i(TAG, "opencl loaded via public.libraries allowlist")
+        true
+    } catch (e: Throwable) {
+        Log.i(TAG, "opencl not in public.libraries: ${e.message}")
+        false
+    }
+
+    private fun loadOpenClByPath(path: String): Boolean {
+        if (!File(path).exists()) {
+            Log.i(TAG, "opencl candidate missing: $path")
             return false
         }
         return try {
-            System.loadLibrary("vndksupport")
-            Log.i(TAG, "vndksupport loaded")
+            System.load(path)
+            Log.i(TAG, "opencl loaded from $path")
             true
         } catch (e: Throwable) {
-            Log.w(TAG, "vndksupport unavailable: ${e.message}, fallback to CPU")
+            Log.w(TAG, "opencl candidate not loadable: $path reason=${e.message}")
             false
         }
     }
