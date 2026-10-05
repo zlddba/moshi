@@ -191,7 +191,6 @@ private fun ManagedModelCard(
             if (current) MaterialTheme.colorScheme.primary
             else MaterialTheme.colorScheme.outlineVariant
         ),
-        shadowElevation = 2.dp,
         modifier = modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -307,7 +306,7 @@ private fun CardActions(
     state: ModelViewModel.ModelCardState,
     current: Boolean,
     switchable: Boolean,
-    onEvent: (ModelViewModel.ModelEvent) -> Unit
+    onEvent: (ModelViewModel.ModelEvent) -> Unit,
 ) {
     when {
         state.downloading -> OutlinedButton(
@@ -318,12 +317,21 @@ private fun CardActions(
             Text(stringResource(R.string.model_cancel_download))
         }
 
-        !state.ready -> Button(
-            onClick = { onEvent(ModelViewModel.ModelEvent.Download(modelId)) },
-            modifier = Modifier.fillMaxWidth(),
-            shape = MoshiShapeSmall
-        ) {
-            Text(stringResource(R.string.model_download))
+        !state.ready -> Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(
+                onClick = { onEvent(ModelViewModel.ModelEvent.Download(modelId)) },
+                modifier = Modifier.fillMaxWidth(),
+                shape = MoshiShapeSmall
+            ) {
+                Text(stringResource(R.string.model_download))
+            }
+            OutlinedButton(
+                onClick = { onEvent(ModelViewModel.ModelEvent.PickLocal(modelId)) },
+                modifier = Modifier.fillMaxWidth(),
+                shape = MoshiShapeSmall
+            ) {
+                Text(stringResource(R.string.model_load_local))
+            }
         }
 
         else -> Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {

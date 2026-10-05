@@ -17,3 +17,11 @@ local.properties
 # IDE
 .idea/
 /logs/
+/repo/
+
+# Signing material — never commit the keystore or its passwords
+/keystore/*
+!/keystore/README.md
+/keystore.properties
+*.jks
+*.keystore

@@ -3,6 +3,7 @@ package dev.zlddba.moshiapp.domain.index
 import android.content.Context
 import android.util.Log
 import dev.zlddba.moshiapp.data.db.ChunkEntity
+import dev.zlddba.moshiapp.data.db.KeywordIndex
 import dev.zlddba.moshiapp.data.db.MoshiDatabase
 import dev.zlddba.moshiapp.data.db.NoteEntity
 import dev.zlddba.moshiapp.data.repo.IngestRepository
@@ -40,6 +41,7 @@ object IndexOrchestrator {
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Throwable) {
+                    Log.e(TAG, "sweep failed", e)
                 }
             }
         }
@@ -52,8 +54,17 @@ object IndexOrchestrator {
     }
 
     private suspend fun sweep(context: Context) {
-        if (!GeckoEmbedding.isReady(context)) return
         val database = MoshiDatabase.get(context)
+        repairKeywordIndex(context, database)
+        if (!GeckoEmbedding.isReady(context)) {
+            Log.w(TAG, "sweep skipped: embedding model not ready")
+            return
+        }
+        val delegate = GeckoEmbedding.delegateTag()
+        if (VectorStoreClient.ensureDelegate(context, delegate)) {
+            Log.w(TAG, "embedding delegate is now $delegate, rebuilding all vectors")
+            database.noteDao().markAllUnindexed()
+        }
         val notes = database.noteDao().notIndexed()
         Log.i(TAG, "sweep pending notes=${notes.size}")
         if (notes.isEmpty()) return
@@ -92,22 +103,57 @@ object IndexOrchestrator {
         }
     }
 
+    private suspend fun repairKeywordIndex(context: Context, database: MoshiDatabase) {
+        val chunkTotal = database.chunkDao().count()
+        if (chunkTotal <= 0) return
+        val indexed = KeywordIndex.countAll(context)
+        if (indexed < 0) {
+            Log.w(TAG, "keyword index unavailable, repair skipped")
+            return
+        }
+        if (indexed >= chunkTotal) return
+        Log.w(TAG, "keyword index incomplete indexed=$indexed chunks=$chunkTotal, rebuilding")
+        var repaired = 0
+        for (note in database.noteDao().recentAll()) {
+            val chunks = database.chunkDao().byNote(note.id)
+            if (chunks.isEmpty()) continue
+            KeywordIndex.insertChunks(context, chunks)
+            repaired++
+        }
+        Log.i(
+            TAG,
+            "keyword index rebuilt notes=$repaired total=${KeywordIndex.countAll(context)}"
+        )
+    }
+
     private suspend fun processBatch(
         context: Context,
         database: MoshiDatabase,
         batch: List<Pair<String, ChunkEntity>>
     ) {
         val vectors = GeckoEmbedding.embedDocuments(context, batch.map { it.second.text })
-        if (vectors == null || vectors.size != batch.size || vectors.isEmpty()) {
+        if (vectors == null || vectors.size != batch.size) {
             Log.w(TAG, "embed batch failed size=${batch.size} got=${vectors?.size ?: -1}")
             return
         }
-        val chunks = batch.map { (noteId, chunk) ->
-            VectorStoreClient.VecChunk(chunk.id, noteId, chunk.text)
+        val embedded = batch.mapIndexedNotNull { index, pair ->
+            vectors[index]?.let { pair.second to it }
         }
-        when (VectorStoreClient.insert(context, vectors[0].size, chunks, vectors)) {
+        if (embedded.isEmpty()) {
+            Log.w(TAG, "embed produced no vectors size=${batch.size}")
+            return
+        }
+        if (embedded.size < batch.size) {
+            Log.w(TAG, "embed partial ok=${embedded.size}/${batch.size}, rest stays pending")
+        }
+        val chunks = embedded.map { (chunk, _) ->
+            VectorStoreClient.VecChunk(chunk.id, chunk.noteId, chunk.text)
+        }
+        val floats = embedded.map { it.second }
+        val delegate = GeckoEmbedding.delegateTag()
+        when (VectorStoreClient.insert(context, floats[0].size, delegate, chunks, floats)) {
             VectorStoreClient.InsertOutcome.Ok -> {
-                for ((_, chunk) in batch) {
+                for ((chunk, _) in embedded) {
                     database.chunkDao().markEmbedded(chunk.id)
                 }
             }

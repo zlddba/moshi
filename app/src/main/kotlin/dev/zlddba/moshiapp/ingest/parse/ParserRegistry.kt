@@ -2,7 +2,7 @@ package dev.zlddba.moshiapp.ingest.parse
 
 object ParserRegistry {
 
-    private val parsers = listOf(TextParser, PdfParser, DocxParser)
+    private val parsers = listOf(TextParser, PdfParser, DocxParser, SheetParser)
 
     fun resolve(fileName: String, mimeType: String?): DocParser? {
         return parsers.firstOrNull { it.supports(fileName, mimeType) }

@@ -22,14 +22,16 @@ kotlin {
 }
 
 val appBaseName = "moshi"
-val appVersion = "1.0"
+val appVersion = "0.1"
 val appId = "dev.zlddba.moshiapp"
-val splitAbis = listOf("arm64-v8a", "armeabi-v7a", "x86_64", "x86")
-val countlyProperties = Properties().apply {
-    val file = rootProject.file("local.properties")
-    if (file.isFile) file.inputStream().use { load(it) }
+val splitAbis = listOf("arm64-v8a")
+
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+val keystoreProperties = Properties().apply {
+    if (keystorePropertiesFile.exists()) {
+        keystorePropertiesFile.inputStream().use { load(it) }
+    }
 }
-val countlyAppKey = countlyProperties.getProperty("countly.appKey", "")
 
 android {
     namespace = "dev.zlddba.moshiapp"
@@ -39,20 +41,30 @@ android {
 
     defaultConfig {
         applicationId = appId
-        minSdk = 24
+        minSdk = 26
         targetSdk = 37
         versionCode = 1
         versionName = appVersion
-        buildConfigField("String", "COUNTLY_APP_KEY", "\"$countlyAppKey\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        if (keystorePropertiesFile.exists()) {
+            create("release") {
+                storeFile = file(keystoreProperties.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+            }
+        }
+    }
     buildTypes {
         release {
             optimization {
-                enable = false
+                enable = true
             }
+            signingConfigs.findByName("release")?.let { signingConfig = it }
         }
     }
     compileOptions {
@@ -62,6 +74,19 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+    packaging {
+        resources {
+            excludes += setOf(
+                "META-INF/DEPENDENCIES",
+                "META-INF/LICENSE",
+                "META-INF/LICENSE.txt",
+                "META-INF/NOTICE",
+                "META-INF/NOTICE.txt",
+                "META-INF/versions/9/OSGI-INF/MANIFEST.MF",
+                "META-INF/*.kotlin_module"
+            )
+        }
     }
     splits {
         abi {
@@ -156,6 +181,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.documentfile)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.kotlinx.serialization.json)
@@ -179,7 +205,6 @@ dependencies {
     implementation(libs.openai.client)
     implementation(libs.ktor.client.okhttp)
     implementation(libs.sherpa.onnx)
-    implementation(libs.countly.sdk)
     implementation(libs.mlkit.text.recognition.chinese)
     implementation(libs.commonmark)
     implementation(libs.commonmark.gfm.tables)
@@ -188,7 +213,10 @@ dependencies {
     implementation(libs.androidx.room3.runtime)
     ksp(libs.androidx.room3.compiler)
     implementation(libs.pdfbox.android)
+    implementation(libs.poi.ooxml)
+    implementation(libs.poi.scratchpad)
     implementation(libs.google.localagents.rag)
     implementation(libs.litertlm.android)
     implementation(libs.protobuf.javalite)
+    implementation(libs.sqlcipher.android)
 }

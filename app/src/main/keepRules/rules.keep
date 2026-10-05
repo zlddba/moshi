@@ -4,9 +4,57 @@
 # For more details, see
 #   https://d.android.com/r/tools/r8/keep-rules
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# --- Kotlin serialization ---
+-keepattributes *Annotation*, InnerClasses, Signature, RuntimeVisible*Annotations
+-keep,includedescriptorclasses class dev.zlddba.moshiapp.**$$serializer { *; }
+-keepclassmembers class dev.zlddba.moshiapp.** {
+    *** Companion;
+}
+-keepclasseswithmembers class dev.zlddba.moshiapp.** {
+    kotlinx.serialization.KSerializer serializer(...);
+}
+-keepclassmembers enum dev.zlddba.moshiapp.** {
+    public static **[] values();
+    public static ** valueOf(java.lang.String);
+}
+-dontnote kotlinx.serialization.**
+
+# --- Room ---
+-keep class * extends androidx.room3.RoomDatabase { <init>(); }
+
+# --- Apache POI and its XML stack: reflection and resource loading are pervasive,
+# --- so shading them would buy little and risk silent import failures.
+-keep class org.apache.poi.** { *; }
+-keep class org.apache.xmlbeans.** { *; }
+-keep class com.microsoft.schemas.** { *; }
+-keep class org.openxmlformats.** { *; }
+-keep class schemaorg_apache_xmlbeans.** { *; }
+-dontwarn org.apache.poi.**
+-dontwarn org.apache.xmlbeans.**
+-dontwarn com.microsoft.schemas.**
+-dontwarn org.openxmlformats.**
+-dontwarn schemaorg_apache_xmlbeans.**
+-dontwarn javax.**
+-dontwarn java.awt.**
+-dontwarn org.w3c.dom.**
+-dontwarn org.xml.sax.**
+-dontwarn org.etsi.**
+-dontwarn org.apache.logging.log4j.**
+-dontwarn org.apache.commons.compress.**
+-dontwarn com.github.luben.zstd.**
+-dontwarn com.zaxxer.sparsebits.**
+
+# --- PDFBox-Android ---
+-keep class com.tom_roush.** { *; }
+-dontwarn com.tom_roush.**
+
+# --- On-device inference and native bridges, all reached through JNI ---
+-keep class com.google.ai.edge.** { *; }
+-keep class com.k2fsa.** { *; }
+-keep class net.zetetic.** { *; }
+-dontwarn com.google.ai.edge.**
+-dontwarn com.k2fsa.**
+-dontwarn net.zetetic.**
+
+# --- ML Kit ---
+-dontwarn com.google.mlkit.**

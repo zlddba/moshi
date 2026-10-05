@@ -13,6 +13,7 @@ import dev.zlddba.moshiapp.data.db.QaLogDao
 import dev.zlddba.moshiapp.data.db.QaLogEntity
 import dev.zlddba.moshiapp.data.prefs.CloudConfigPrefs
 import dev.zlddba.moshiapp.data.prefs.ModelPrefs
+import dev.zlddba.moshiapp.data.prefs.SecurityPrefs
 import dev.zlddba.moshiapp.data.repo.IngestRepository
 import dev.zlddba.moshiapp.domain.qa.QaOrchestrator
 import dev.zlddba.moshiapp.domain.retrieve.RetrieveService
@@ -20,6 +21,7 @@ import dev.zlddba.moshiapp.engine.local.BackendKind
 import dev.zlddba.moshiapp.engine.local.LiteRtLlmEngine
 import dev.zlddba.moshiapp.ingest.vision.StreamAsrModelManager
 import dev.zlddba.moshiapp.ingest.vision.StreamingSpeechRecognizer
+import dev.zlddba.moshiapp.ui.CloudMessages
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -132,8 +134,10 @@ class ChatViewModel(context: Context) : ViewModel() {
                     when (op) {
                         PersistOp.Load -> restoreHistory(dao)
                         is PersistOp.Save -> {
-                            dao.insert(op.message.toLog())
-                            dao.trim(HISTORY_KEEP)
+                            if (SecurityPrefs(appContext).isQaHistoryEnabled()) {
+                                dao.insert(op.message.toLog())
+                                dao.trim(HISTORY_KEEP)
+                            }
                         }
 
                         PersistOp.ClearAll -> dao.deleteAll()
@@ -227,7 +231,7 @@ class ChatViewModel(context: Context) : ViewModel() {
                 while (true) {
                     delay(STREAM_TICK_MS)
                     val snapshot = synchronized(streamBuffer) { streamBuffer.toString() }
-                    val parsed = QaOrchestrator.parseAnswer(snapshot)
+                    val parsed = QaOrchestrator.parseAnswer(snapshot, fallbackToThinking = false)
                     _uiState.update { state ->
                         state.copy(
                             streamingText = parsed.answer,
@@ -276,6 +280,13 @@ class ChatViewModel(context: Context) : ViewModel() {
                     sendEffect(ChatEffect.ShowToast(R.string.chat_generate_failed))
                 }
 
+                is QaOrchestrator.Outcome.CloudFailed -> {
+                    if (outcome.hits.isNotEmpty()) {
+                        appendMessage(excerptMessage(outcome.hits))
+                    }
+                    sendEffect(ChatEffect.ShowToast(CloudMessages.errorOf(outcome.statusCode)))
+                }
+
                 is QaOrchestrator.Outcome.Generated -> {
                     if (generated.isBlank()) {
                         if (outcome.hits.isNotEmpty()) {
@@ -283,22 +294,21 @@ class ChatViewModel(context: Context) : ViewModel() {
                         }
                         sendEffect(ChatEffect.ShowToast(R.string.chat_generate_failed))
                     } else {
-                        val parsed = QaOrchestrator.parseAnswer(generated)
-                        val answer = parsed.answer.ifBlank { generated }
-                        if (isInsufficient(answer)) {
-                            appendMessage(
+                        val parsed = QaOrchestrator.parseDetailed(generated)
+                        when {
+                            parsed.refused -> appendMessage(
                                 ChatUiState.ChatMessage(
                                     role = ChatUiState.Role.REFUSAL,
                                     text = appContext.getString(R.string.chat_refusal)
                                 )
                             )
-                        } else {
-                            appendMessage(
+
+                            else -> appendMessage(
                                 ChatUiState.ChatMessage(
                                     role = ChatUiState.Role.ASSISTANT,
-                                    text = answer,
+                                    text = parsed.answer.ifBlank { generated },
                                     thinking = parsed.thinking,
-                                    sources = outcome.hits.map { it.toSource() }
+                                    sources = outcome.hits.toSources()
                                 )
                             )
                         }
@@ -321,7 +331,7 @@ class ChatViewModel(context: Context) : ViewModel() {
             if (!_uiState.value.isGenerating) return
             val partial = synchronized(streamBuffer) { streamBuffer.toString() }
             if (partial.isNotBlank()) {
-                val parsed = QaOrchestrator.parseAnswer(partial)
+                val parsed = QaOrchestrator.parseDetailed(partial)
                 appendMessage(
                     ChatUiState.ChatMessage(
                         role = ChatUiState.Role.ASSISTANT,
@@ -451,14 +461,11 @@ class ChatViewModel(context: Context) : ViewModel() {
         ChatUiState.ChatMessage(
             role = ChatUiState.Role.ASSISTANT,
             text = QaOrchestrator.excerptText(appContext, hits),
-            sources = hits.map { it.toSource() }
+            sources = hits.toSources()
         )
 
-    private fun isInsufficient(answer: String): Boolean =
-        answer.contains(appContext.getString(R.string.chat_refusal)) ||
-            answer.contains("资料不足") ||
-            answer.contains("没有找到相关内容") ||
-            answer.contains("未找到相关内容")
+    private fun List<RetrieveService.Hit>.toSources(): List<ChatUiState.ChatSource> =
+        distinctBy { it.noteId }.map { it.toSource() }
 
     private fun RetrieveService.Hit.toSource(): ChatUiState.ChatSource =
         ChatUiState.ChatSource(

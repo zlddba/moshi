@@ -140,7 +140,6 @@ private fun CaptureEntryCard(
         shape = MoshiShapeMedium,
         color = MaterialTheme.colorScheme.surface,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        shadowElevation = 2.dp,
         modifier = modifier
     ) {
         Column(modifier = Modifier.padding(18.dp)) {

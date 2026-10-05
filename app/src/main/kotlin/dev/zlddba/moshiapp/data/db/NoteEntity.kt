@@ -10,6 +10,8 @@ data class NoteEntity(
     @ColumnInfo(name = "type") val type: String,
     @ColumnInfo(name = "title") val title: String,
     @ColumnInfo(name = "summary") val summary: String? = null,
+    @ColumnInfo(name = "content_html") val contentHtml: String? = null,
+
     @ColumnInfo(name = "content") val content: String,
     @ColumnInfo(name = "source_uri") val sourceUri: String? = null,
     @ColumnInfo(name = "source_note") val sourceNote: String? = null,
@@ -25,6 +27,7 @@ data class NoteEntity(
         const val TYPE_PDF = "PDF"
         const val TYPE_IMAGE_OCR = "IMAGE_OCR"
         const val TYPE_AUDIO = "AUDIO"
+        const val TYPE_SHEET = "SHEET"
         const val STATUS_PENDING = "PENDING"
         const val STATUS_INDEXING = "INDEXING"
         const val STATUS_INDEXED = "INDEXED"
