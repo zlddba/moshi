@@ -63,8 +63,6 @@ fun MainSettingsScreen(
     onLicense: () -> Unit,
     onPolicy: () -> Unit,
     onHelp: () -> Unit,
-    telemetry: Boolean,
-    onTelemetryChange: (Boolean) -> Unit,
     forceLocal: Boolean,
     onForceLocalChange: (Boolean) -> Unit,
     versionName: String,
@@ -122,11 +120,6 @@ fun MainSettingsScreen(
                 titleRes = R.string.mine_privacy_encrypt,
                 checked = encrypt,
                 onCheckedChange = { encrypt = it }
-            )
-            MineSwitchRow(
-                titleRes = R.string.mine_privacy_telemetry,
-                checked = telemetry,
-                onCheckedChange = onTelemetryChange
             )
             MineActionRow(
                 titleRes = R.string.mine_privacy_entry,
@@ -273,7 +266,6 @@ private fun MineGroup(content: @Composable ColumnScope.() -> Unit) {
         shape = MoshiShapeMedium,
         color = MaterialTheme.colorScheme.surface,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        shadowElevation = 2.dp,
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(content = content)
@@ -421,8 +413,6 @@ private fun MainSettingsScreenPreview() {
             onLicense = {},
             onPolicy = {},
             onHelp = {},
-            telemetry = true,
-            onTelemetryChange = {},
             forceLocal = true,
             onForceLocalChange = {},
             versionName = "1.0.0",

@@ -21,10 +21,18 @@ object GeckoEmbedding {
     private const val CALL_TIMEOUT_SECONDS = 120L
     private const val TAG = "GeckoEmbedding"
 
+    private const val OPENCL_LIBRARY = "OpenCL"
+
+    const val DELEGATE_CPU = "cpu"
+    const val DELEGATE_GPU = "gpu"
+
     private val OPENCL_CANDIDATES = listOf(
         "/vendor/lib64/libOpenCL.so",
+        "/vendor/lib64/egl/libOpenCL.so",
+        "/system/vendor/lib64/libOpenCL.so",
+        "/system/vendor/lib64/egl/libOpenCL.so",
         "/odm/lib64/libOpenCL.so",
-        "/system/vendor/lib64/libOpenCL.so"
+        "/system/lib64/libOpenCL.so"
     )
 
     @Volatile
@@ -33,19 +41,26 @@ object GeckoEmbedding {
     @Volatile
     private var unavailable = false
 
+    @Volatile
+    private var delegate: String = DELEGATE_CPU
+
+    fun delegateTag(): String = delegate
+
     fun isReady(context: Context): Boolean = obtain(context.applicationContext) != null
 
     suspend fun embedQuery(context: Context, text: String): List<Float>? =
         embed(context.applicationContext, text, EmbedData.TaskType.RETRIEVAL_QUERY, true)
 
-    suspend fun embedDocuments(context: Context, texts: List<String>): List<List<Float>>? =
+    suspend fun embedDocuments(context: Context, texts: List<String>): List<List<Float>?>? =
         withContext(Dispatchers.IO) {
             if (texts.isEmpty()) return@withContext emptyList()
             val target = obtain(context.applicationContext) ?: return@withContext null
-            val request = EmbeddingRequest.create(
-                texts.map { value -> EmbedData.create(value, EmbedData.TaskType.RETRIEVAL_DOCUMENT) }
-            )
-            try {
+            val batch = try {
+                val request = EmbeddingRequest.create(
+                    texts.map { value ->
+                        EmbedData.create(value, EmbedData.TaskType.RETRIEVAL_DOCUMENT)
+                    }
+                )
                 target.getBatchEmbeddings(request)
                     .get(CALL_TIMEOUT_SECONDS, TimeUnit.SECONDS)
                     .map { value -> value.toList() }
@@ -54,7 +69,28 @@ object GeckoEmbedding {
             } catch (e: Throwable) {
                 null
             }
+            if (batch != null && batch.size == texts.size) return@withContext batch
+            Log.w(
+                TAG,
+                "batch embed failed size=${texts.size} got=${batch?.size ?: -1}, " +
+                    "retrying one by one"
+            )
+            texts.map { text -> embedDocument(target, text) }
         }
+
+    private fun embedDocument(target: GeckoEmbeddingModel, text: String): List<Float>? = try {
+        val request = EmbeddingRequest.create(
+            listOf(EmbedData.create(text, EmbedData.TaskType.RETRIEVAL_DOCUMENT))
+        )
+        target.getEmbeddings(request)
+            .get(CALL_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            .toList()
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Throwable) {
+        Log.w(TAG, "embed document failed chars=${text.length} reason=${e.message}")
+        null
+    }
 
     private suspend fun embed(
         context: Context,
@@ -92,7 +128,10 @@ object GeckoEmbedding {
                     modelFile.absolutePath,
                     Optional.of(tokenizerFile.absolutePath),
                     useGpu
-                ).also { created -> model = created }
+                ).also { created ->
+                    model = created
+                    delegate = if (useGpu) DELEGATE_GPU else DELEGATE_CPU
+                }
             } catch (e: Throwable) {
                 unavailable = true
                 null
@@ -101,22 +140,34 @@ object GeckoEmbedding {
     }
 
     private fun gpuBridgeReady(): Boolean {
-        var openClFound = false
+        if (loadOpenClByName()) return true
         for (path in OPENCL_CANDIDATES) {
-            val exists = File(path).exists()
-            if (exists) openClFound = true
-            Log.i(TAG, "opencl probe $path exists=$exists")
+            if (loadOpenClByPath(path)) return true
         }
-        if (!openClFound) {
-            Log.w(TAG, "no vendor OpenCL library, GPU bridge unavailable, fallback to CPU")
+        Log.w(TAG, "opencl unavailable on this device, embedding runs on CPU")
+        return false
+    }
+
+    private fun loadOpenClByName(): Boolean = try {
+        System.loadLibrary(OPENCL_LIBRARY)
+        Log.i(TAG, "opencl loaded via public.libraries allowlist")
+        true
+    } catch (e: Throwable) {
+        Log.i(TAG, "opencl not in public.libraries: ${e.message}")
+        false
+    }
+
+    private fun loadOpenClByPath(path: String): Boolean {
+        if (!File(path).exists()) {
+            Log.i(TAG, "opencl candidate missing: $path")
             return false
         }
         return try {
-            System.loadLibrary("vndksupport")
-            Log.i(TAG, "vndksupport loaded")
+            System.load(path)
+            Log.i(TAG, "opencl loaded from $path")
             true
         } catch (e: Throwable) {
-            Log.w(TAG, "vndksupport unavailable: ${e.message}, fallback to CPU")
+            Log.w(TAG, "opencl candidate not loadable: $path reason=${e.message}")
             false
         }
     }

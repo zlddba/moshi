@@ -12,12 +12,19 @@ class SeedPrefs(context: Context) {
     fun isHelpSeeded(): Boolean =
         preferences.getBoolean(KEY_HELP_SEEDED, false)
 
-    fun markHelpSeeded() {
-        preferences.edit { putBoolean(KEY_HELP_SEEDED, true) }
+    fun helpSeedHash(): String? =
+        preferences.getString(KEY_HELP_HASH, null)
+
+    fun markHelpSeeded(hash: String) {
+        preferences.edit {
+            putBoolean(KEY_HELP_SEEDED, true)
+            putString(KEY_HELP_HASH, hash)
+        }
     }
 
     private companion object {
         const val PREFS_NAME = "moshi_seed"
         const val KEY_HELP_SEEDED = "help_note_seeded"
+        const val KEY_HELP_HASH = "help_manual_hash"
     }
 }

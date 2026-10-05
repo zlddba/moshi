@@ -6,6 +6,7 @@ import dev.zlddba.moshiapp.data.db.KeywordIndex
 import dev.zlddba.moshiapp.data.db.MoshiDatabase
 import dev.zlddba.moshiapp.data.db.NoteEntity
 import dev.zlddba.moshiapp.data.vector.VectorStoreClient
+import dev.zlddba.moshiapp.domain.index.IndexOrchestrator
 import dev.zlddba.moshiapp.engine.embedding.GeckoEmbedding
 
 object RetrieveService {
@@ -18,6 +19,7 @@ object RetrieveService {
     const val RELATIVE_RATIO = 0.8f
     const val RELATED_TOP_K = 3
     const val RELATED_RECALL_K = 24
+    const val MAX_HITS_PER_NOTE = 2
 
     private const val TAG = "RetrieveService"
     private const val RRF_K = 60
@@ -38,6 +40,19 @@ object RetrieveService {
         val title: String,
         val similarity: Float
     )
+
+    fun capPerNote(hits: List<Hit>, limit: Int = MAX_HITS_PER_NOTE): List<Hit> {
+        if (hits.size <= limit) return hits
+        val perNote = HashMap<String, Int>()
+        val kept = ArrayList<Hit>(hits.size)
+        for (hit in hits) {
+            val taken = perNote[hit.noteId] ?: 0
+            if (taken >= limit) continue
+            perNote[hit.noteId] = taken + 1
+            kept.add(hit)
+        }
+        return kept
+    }
 
     suspend fun retrieve(context: Context, question: String, topK: Int = TOP_K): List<Hit> {
         val query = question.trim()
@@ -89,7 +104,13 @@ object RetrieveService {
         if (query.isEmpty() || noteId.isEmpty() || topK <= 0) return emptyList()
         val appContext = context.applicationContext
         val vector = GeckoEmbedding.embedQuery(appContext, query) ?: return emptyList()
-        val hits = VectorStoreClient.search(appContext, vector, RELATED_RECALL_K)
+        reconcileDelegate(appContext)
+        val hits = VectorStoreClient.search(
+            appContext,
+            vector,
+            RELATED_RECALL_K,
+            GeckoEmbedding.delegateTag()
+        )
         if (hits.isEmpty()) return emptyList()
         val best = HashMap<String, Float>()
         for (hit in hits) {
@@ -112,9 +133,23 @@ object RetrieveService {
         return related
     }
 
+    private suspend fun reconcileDelegate(context: Context) {
+        val delegate = GeckoEmbedding.delegateTag()
+        if (!VectorStoreClient.ensureDelegate(context, delegate)) return
+        Log.w(TAG, "embedding delegate is now $delegate, scheduling vector rebuild")
+        MoshiDatabase.get(context).noteDao().markAllUnindexed()
+        IndexOrchestrator.requestSweep()
+    }
+
     internal suspend fun recallVector(context: Context, query: String): List<Int> {
         val vector = GeckoEmbedding.embedQuery(context, query) ?: return emptyList()
-        val hits = VectorStoreClient.search(context, vector, VEC_RECALL_K)
+        reconcileDelegate(context)
+        val hits = VectorStoreClient.search(
+            context,
+            vector,
+            VEC_RECALL_K,
+            GeckoEmbedding.delegateTag()
+        )
         val kept = hits.filter { it.similarity >= VEC_SIM_MIN }
         Log.i(
             TAG,

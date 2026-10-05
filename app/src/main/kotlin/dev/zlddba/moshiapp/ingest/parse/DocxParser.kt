@@ -6,6 +6,7 @@ import android.util.Xml
 import dev.zlddba.moshiapp.data.repo.IngestRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.apache.poi.hwpf.HWPFDocument
 import org.xmlpull.v1.XmlPullParser
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
@@ -17,12 +18,17 @@ object DocxParser : DocParser {
     private const val DOCUMENT_ENTRY = "word/document.xml"
     private const val MIME_DOCX =
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    private const val MIME_DOC = "application/msword"
     private const val BUFFER_SIZE = 8192
+    private const val MAX_DOC_PARAGRAPHS = 5000
 
     override fun supports(fileName: String, mimeType: String?): Boolean {
         val extension = fileName.substringAfterLast('.', "").lowercase()
         val normalizedMime = mimeType?.substringBefore(';')?.trim()?.lowercase()
-        return extension == "docx" || normalizedMime == MIME_DOCX
+        return extension == ParsedDoc.FORMAT_DOCX ||
+            extension == ParsedDoc.FORMAT_DOC ||
+            normalizedMime == MIME_DOCX ||
+            normalizedMime == MIME_DOC
     }
 
     override suspend fun parse(
@@ -32,14 +38,57 @@ object DocxParser : DocParser {
         onOcrProgress: ((Int, Int) -> Unit)?
     ): ParsedDoc {
         return withContext(Dispatchers.IO) {
-            val xml = readDocumentXml(context, uri)
-            val text = extractText(xml)
+            val legacy = fileName.substringAfterLast('.', "").lowercase() == ParsedDoc.FORMAT_DOC
+            val parsed = try {
+                if (legacy) {
+                    readDocText(context, uri) to ParsedDoc.FORMAT_DOC
+                } else {
+                    extractText(readDocumentXml(context, uri)) to ParsedDoc.FORMAT_DOCX
+                }
+            } catch (e: IngestException) {
+                if (e.kind != IngestException.Kind.PARSE_FAILED) throw e
+                if (legacy) {
+                    extractText(readDocumentXml(context, uri)) to ParsedDoc.FORMAT_DOCX
+                } else {
+                    readDocText(context, uri) to ParsedDoc.FORMAT_DOC
+                }
+            }
+            val text = parsed.first
             if (text.isBlank()) throw IngestException(IngestException.Kind.EMPTY)
             ParsedDoc(
-                title = deriveTitle(fileName, text, true),
+                title = deriveTitle(fileName, text, parsed.second == ParsedDoc.FORMAT_DOCX),
                 text = text,
-                format = ParsedDoc.FORMAT_DOCX
+                format = parsed.second
             )
+        }
+    }
+
+    private fun readDocText(context: Context, uri: Uri): String {
+        val stream = context.contentResolver.openInputStream(uri)
+            ?: throw IngestException(IngestException.Kind.IO)
+        return try {
+            stream.use { input ->
+                HWPFDocument(input).use { document ->
+                    val range = document.range
+                    val out = StringBuilder()
+                    val total = minOf(range.numParagraphs(), MAX_DOC_PARAGRAPHS)
+                    for (index in 0 until total) {
+                        val text = range.getParagraph(index).text()
+                            .replace("\r", "")
+                            .replace("\u0007", "")
+                            .trim()
+                        if (text.isEmpty()) continue
+                        out.append(text).append("\n\n")
+                    }
+                    out.toString()
+                }
+            }
+        } catch (e: IngestException) {
+            throw e
+        } catch (e: IOException) {
+            throw IngestException(IngestException.Kind.PARSE_FAILED)
+        } catch (e: Exception) {
+            throw IngestException(IngestException.Kind.PARSE_FAILED)
         }
     }
 

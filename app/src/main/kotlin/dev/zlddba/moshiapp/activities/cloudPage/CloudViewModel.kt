@@ -7,6 +7,7 @@ import dev.zlddba.moshiapp.data.prefs.CloudConfigPrefs
 import dev.zlddba.moshiapp.engine.cloud.CloudConfig
 import dev.zlddba.moshiapp.engine.cloud.CloudGateway
 import dev.zlddba.moshiapp.engine.cloud.CloudTestResult
+import dev.zlddba.moshiapp.ui.CloudMessages
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -124,16 +125,6 @@ class CloudViewModel(
         else -> null
     }
 
-    private fun httpErrorResId(statusCode: Int): Int = when (statusCode) {
-        400 -> R.string.cloud_http_400
-        401 -> R.string.cloud_http_401
-        403 -> R.string.cloud_http_403
-        404 -> R.string.cloud_http_404
-        429 -> R.string.cloud_http_429
-        in 500..599 -> R.string.cloud_http_5xx
-        else -> R.string.cloud_http_other
-    }
-
     private fun testConnection() {
         val state = _cloudUiState.value
         val error = validationError(state)
@@ -152,10 +143,12 @@ class CloudViewModel(
             )
             val result = cloudGateway.testConnection(config)
             val testState = when (result) {
-                CloudTestResult.Success -> TestState.Success
+                CloudTestResult.Success -> {
+                    cloudConfigPrefs.save(config)
+                    TestState.Success
+                }
                 is CloudTestResult.Failure -> TestState.ServerFailed(
-                    resId = if (result.statusCode == 0) R.string.cloud_err_network
-                    else httpErrorResId(result.statusCode),
+                    resId = CloudMessages.errorOf(result.statusCode),
                     statusCode = result.statusCode,
                     detail = result.detail
                 )

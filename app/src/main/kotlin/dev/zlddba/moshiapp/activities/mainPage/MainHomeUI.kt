@@ -1,8 +1,11 @@
 package dev.zlddba.moshiapp.activities.mainPage
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,11 +27,13 @@ import androidx.compose.material.icons.automirrored.outlined.Article
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.CloudSync
+import androidx.compose.material.icons.outlined.Hub
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.PictureAsPdf
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Shield
+import androidx.compose.material.icons.outlined.TableChart
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -46,7 +51,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -66,15 +70,24 @@ import dev.zlddba.moshiapp.ui.theme.MoshiTheme
 data class HomeUiState(
     val cards: List<NoteCard> = emptyList(),
     val filter: Int = 0,
-    val loaded: Boolean = false
+    val loaded: Boolean = false,
+    val tags: List<TagChip> = emptyList(),
+    val activeTagId: Int = 0
 ) {
+    data class TagChip(
+        val id: Int,
+        val name: String,
+        val refCount: Int
+    )
+
     data class NoteCard(
         val noteId: String,
         val type: String,
         val title: String,
         val summary: String,
         val tag: String,
-        val time: String
+        val time: String,
+        val tags: List<String> = emptyList()
     )
 }
 
@@ -127,8 +140,11 @@ fun MainHomeScreen(
     onEvent: (MainHomeViewModel.HomeEvent) -> Unit,
     onNoteClick: (String) -> Unit,
     onSearchSubmit: (String) -> Unit,
+    onManageTags: () -> Unit = {},
+    onOpenGraph: () -> Unit = {},
     isCloudEngine: Boolean = false,
-    modifier: Modifier = Modifier
+    onEngineClick: () -> Unit = {},
+    @SuppressLint("ModifierParameter") modifier: Modifier = Modifier
 ) {
     var query by rememberSaveable { mutableStateOf("") }
     var deleteTarget by remember { mutableStateOf<HomeUiState.NoteCard?>(null) }
@@ -137,7 +153,11 @@ fun MainHomeScreen(
         modifier = modifier
             .fillMaxSize()
     ) {
-        HomeTopBar(isCloudEngine = isCloudEngine)
+        HomeTopBar(
+            isCloudEngine = isCloudEngine,
+            onOpenGraph = onOpenGraph,
+            onEngineClick = onEngineClick
+        )
         HomeSearchBar(
             query = query,
             onQueryChange = { query = it },
@@ -147,6 +167,14 @@ fun MainHomeScreen(
             selectedFilter = uiState.filter,
             onFilterClick = { onEvent(MainHomeViewModel.HomeEvent.FilterChanged(it)) }
         )
+        if (uiState.tags.isNotEmpty()) {
+            HomeTagFilterRow(
+                tags = uiState.tags,
+                activeTagId = uiState.activeTagId,
+                onTagClick = { onEvent(MainHomeViewModel.HomeEvent.TagSelected(it)) },
+                onManageClick = onManageTags
+            )
+        }
         if (!uiState.loaded) {
             Spacer(modifier = Modifier.height(1.dp))
         } else if (uiState.cards.isEmpty()) {
@@ -203,11 +231,15 @@ fun MainHomeScreen(
 }
 
 @Composable
-private fun HomeTopBar(isCloudEngine: Boolean) {
+private fun HomeTopBar(
+    isCloudEngine: Boolean,
+    onOpenGraph: () -> Unit,
+    onEngineClick: () -> Unit
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 4.dp),
+            .padding(start = 20.dp, end = 8.dp, top = 16.dp, bottom = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
@@ -216,12 +248,21 @@ private fun HomeTopBar(isCloudEngine: Boolean) {
             style = MaterialTheme.typography.headlineMedium,
             color = MaterialTheme.colorScheme.onSurface
         )
-        HomeEngineBadge(isCloudEngine = isCloudEngine)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            HomeEngineBadge(isCloudEngine = isCloudEngine, onClick = onEngineClick)
+            IconButton(onClick = onOpenGraph) {
+                Icon(
+                    imageVector = Icons.Outlined.Hub,
+                    contentDescription = stringResource(R.string.graph_entry),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
     }
 }
 
 @Composable
-private fun HomeEngineBadge(isCloudEngine: Boolean) {
+private fun HomeEngineBadge(isCloudEngine: Boolean, onClick: () -> Unit) {
     val container = if (isCloudEngine) MaterialTheme.colorScheme.secondaryContainer
     else MaterialTheme.colorScheme.primaryContainer
     val onContainer = if (isCloudEngine) MaterialTheme.colorScheme.onSecondaryContainer
@@ -231,10 +272,7 @@ private fun HomeEngineBadge(isCloudEngine: Boolean) {
     val label = if (isCloudEngine) R.string.home_badge_cloud
     else R.string.home_badge_local
 
-    Surface(
-        shape = MoshiShapePill,
-        color = container
-    ) {
+    Surface(onClick = onClick, shape = MoshiShapePill, color = container) {
         Row(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -291,6 +329,69 @@ private fun HomeSearchBar(
 }
 
 @Composable
+private fun HomeTagFilterRow(
+    tags: List<HomeUiState.TagChip>,
+    activeTagId: Int,
+    onTagClick: (Int) -> Unit,
+    onManageClick: () -> Unit
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+    ) {
+        tags.forEach { tag ->
+            val selected = tag.id == activeTagId
+            Surface(
+                onClick = { onTagClick(tag.id) },
+                shape = MoshiShapePill,
+                color = if (selected) {
+                    MaterialTheme.colorScheme.primaryContainer
+                } else {
+                    MaterialTheme.colorScheme.surface
+                },
+                border = BorderStroke(
+                    1.dp,
+                    if (selected) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.outlineVariant
+                    }
+                )
+            ) {
+                Text(
+                    text = "${tag.name} ${tag.refCount}",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                    color = if (selected) {
+                        MaterialTheme.colorScheme.onPrimaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                )
+            }
+        }
+        Surface(
+            onClick = onManageClick,
+            shape = MoshiShapePill,
+            color = MaterialTheme.colorScheme.surface,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        ) {
+            Text(
+                text = stringResource(R.string.tag_manage),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+            )
+        }
+    }
+}
+
+@Composable
 private fun HomeFilterRow(
     selectedFilter: Int,
     onFilterClick: (Int) -> Unit
@@ -328,6 +429,7 @@ private fun typeVisual(type: String): Pair<ImageVector, Int> = when (type) {
     NoteEntity.TYPE_PDF -> Icons.Outlined.PictureAsPdf to R.string.home_card_type_pdf
     NoteEntity.TYPE_IMAGE_OCR -> Icons.Outlined.Image to R.string.home_card_type_image
     NoteEntity.TYPE_AUDIO -> Icons.Outlined.Mic to R.string.home_card_type_voice
+    NoteEntity.TYPE_SHEET -> Icons.Outlined.TableChart to R.string.home_card_type_sheet
     else -> Icons.AutoMirrored.Outlined.Article to R.string.home_card_type_text
 }
 
@@ -338,17 +440,13 @@ private fun HomeNoteCard(
     onLongClick: () -> Unit
 ) {
     val (icon, typeRes) = typeVisual(card.type)
-    val isPdf = card.type == NoteEntity.TYPE_PDF
-    val tileColor = if (isPdf) MaterialTheme.colorScheme.secondaryContainer
-    else MaterialTheme.colorScheme.primaryContainer
-    val tileTint = if (isPdf) MaterialTheme.colorScheme.onSecondaryContainer
-    else MaterialTheme.colorScheme.onPrimaryContainer
+    val tileColor = MaterialTheme.colorScheme.surfaceContainerHigh
+    val tileTint = MaterialTheme.colorScheme.onSurfaceVariant
 
     Surface(
         shape = MoshiShapeMedium,
         color = MaterialTheme.colorScheme.surface,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        shadowElevation = 2.dp,
         modifier = Modifier
             .fillMaxWidth()
             .combinedClickable(onClick = onClick, onLongClick = onLongClick)
@@ -386,8 +484,7 @@ private fun HomeNoteCard(
                     Text(
                         text = stringResource(typeRes),
                         style = MaterialTheme.typography.labelSmall,
-                        color = if (isPdf) MaterialTheme.colorScheme.secondary
-                        else MaterialTheme.colorScheme.primary,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier
                             .clip(MoshiShapePill)
                             .background(tileColor)
@@ -404,6 +501,24 @@ private fun HomeNoteCard(
                     lineHeight = 18.sp
                 )
                 Spacer(modifier = Modifier.height(10.dp))
+                if (card.tags.isNotEmpty()) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        card.tags.take(3).forEach { name ->
+                            Text(
+                                text = name,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier
+                                    .clip(MoshiShapePill)
+                                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                                    .padding(horizontal = 8.dp, vertical = 3.dp)
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
@@ -412,12 +527,12 @@ private fun HomeNoteCard(
                         Text(
                             text = card.tag,
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.tertiary,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                             modifier = Modifier
                                 .clip(MoshiShapePill)
-                                .background(MaterialTheme.colorScheme.tertiaryContainer)
+                                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
                                 .padding(horizontal = 8.dp, vertical = 3.dp)
                         )
                         Spacer(modifier = Modifier.weight(1f))

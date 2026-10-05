@@ -33,22 +33,10 @@
     <string name="home_card_type_pdf">PDF</string>
     <string name="home_card_type_image">截图</string>
     <string name="home_card_type_voice">语音</string>
-    <string name="home_card_summary_1">介绍了 SQLite 向量扩展的安装与基本用法…</string>
-    <string name="home_card_summary_2">端侧推理框架选型对比与踩坑记录…</string>
-    <string name="home_card_summary_3">课堂笔记：向量检索的召回与重排…</string>
+    <string name="home_card_type_sheet">Excel</string>
     <string name="home_card_title_1">sqlite-vec 使用笔记</string>
-    <string name="home_card_title_2">LiteRT-LM 部署踩坑</string>
-    <string name="home_card_title_3">语义检索原理摘要</string>
     <string name="home_card_tag_db">数据库</string>
     <string name="home_card_tag_ml">机器学习</string>
-    <string name="home_card_tag_course">课程</string>
-    <string name="home_card_time_1">今天 09:24</string>
-    <string name="home_card_time_2">昨天 21:10</string>
-    <string name="home_card_time_3">9 月 18 日</string>
-    <string name="home_card_title_4">周会语音纪要</string>
-    <string name="home_card_summary_4">转写完成，识别置信度高，可直接编辑后入库</string>
-    <string name="home_card_tag_4">工作</string>
-    <string name="home_card_time_4">昨天 15:40</string>
     <string name="home_search_submit">搜索</string>
 
     <!-- 语义搜索页 -->
@@ -63,6 +51,7 @@
     <string name="chat_title">智能问答</string>
     <string name="chat_engine_local">本地引擎</string>
     <string name="chat_engine_cloud">云端引擎</string>
+    <string name="engine_cloud_incomplete">云端配置不完整，请先在设置中填写服务地址、密钥与模型名</string>
     <string name="chat_input_hint">输入你的问题…</string>
     <string name="chat_send">发送</string>
     <string name="chat_voice_input">语音输入</string>
@@ -130,6 +119,30 @@
     <string name="ingest_unsupported">暂不支持该文件类型</string>
     <string name="ingest_too_large">文件过大，最大 20MB</string>
     <string name="ingest_parse_failed">解析失败，文件可能已损坏或被加密</string>
+    <string name="ingest_encrypted">该文件已加密，请先解密后再导入</string>
+    <string name="ingest_title_label">标题</string>
+    <string name="ingest_title_hint">留空则自动生成</string>
+    <string name="ingest_title_generate">AI 标题</string>
+    <string name="ingest_title_generating">正在生成标题…</string>
+    <string name="ingest_title_failed">标题生成失败，已用正文首行代替</string>
+    <string name="ingest_file_title_dialog">设置标题</string>
+    <string name="ingest_confirm">确认导入</string>
+    <string name="ingest_file_viewer_heading">文件内容</string>
+    <string name="ingest_file_missing">原文件已不在本机</string>
+
+    <!-- 分类标签 -->
+    <string name="tag_label">分类标签</string>
+    <string name="tag_input_hint">用逗号分隔，如：课程,复习</string>
+    <string name="tag_none">暂无标签</string>
+    <string name="tag_all">全部</string>
+    <string name="tag_manage">管理标签</string>
+    <string name="tag_edit">编辑标签</string>
+    <string name="tag_delete">删除标签</string>
+    <string name="tag_delete_confirm">删除后不会影响笔记内容，仅移除该标签。</string>
+    <string name="tag_saved">标签已保存</string>
+    <string name="tag_rename_hint">新名称</string>
+    <string name="tag_note_count">%1$d 条知识</string>
+    <string name="tag_empty_hint">在导入或详情页给知识打标签后会出现在这里</string>
 
     <!-- 文本录入页 -->
     <string name="text_title">文本录入</string>
@@ -155,7 +168,6 @@
     <string name="mine_group_privacy">隐私</string>
     <string name="mine_privacy_force_local">敏感内容强制端侧</string>
     <string name="mine_privacy_encrypt">本地加密存储</string>
-    <string name="mine_privacy_telemetry">匿名使用统计</string>
     <string name="mine_privacy_entry">隐私与安全设置</string>
     <string name="mine_group_data">数据</string>
     <string name="mine_storage_stats">存储统计</string>
@@ -201,6 +213,22 @@
     <string name="detail_source_time_fmt">采集时间：%1$s</string>
     <string name="detail_source_note_fmt">来源：%1$s</string>
     <string name="detail_content_body">通过 SQL 扩展方式加载 sqlite-vec 后，即可创建 vec0 虚拟表。虚拟表需要预先声明向量维度与距离度量，插入数据时向量以 BLOB 形式存储。\n\n查询阶段使用 KNN 语法，在 WHERE 孹句中指定 ORDER BY distance LIMIT n 即可召回最近邻。注意向量列不支持常规索引，写入量大时建议批量事务提交。</string>
+    <string name="detail_edit">编辑</string>
+    <string name="detail_save">保存</string>
+    <string name="detail_saved">已保存</string>
+    <string name="detail_edit_body_label">正文</string>
+    <string name="detail_edit_hint">保存后会重新分块并重建检索索引，稍后即可按新内容检索。</string>
+    <string name="detail_force_local">本地强制</string>
+    <string name="detail_summary_heading">AI 摘要</string>
+    <string name="detail_open_external">点击用其他应用打开</string>
+    <string name="detail_hit_heading">命中片段</string>
+    <string name="detail_external_saved_fmt">原文件已保存到本地 · %1$s</string>
+    <string name="detail_no_viewer">未找到可以打开该文件的应用</string>
+    <string name="detail_summary_empty">暂无摘要，点右侧重新生成</string>
+    <string name="detail_summary_regenerate">重新生成</string>
+    <string name="detail_summary_updated">摘要已更新</string>
+    <string name="detail_related_heading">相关笔记</string>
+    <string name="detail_source_file_fmt">原文件：%1$s</string>
 
     <!-- OCR 确认页 -->
     <string name="ocr_title">OCR 确认</string>
@@ -213,6 +241,8 @@
     <string name="ocr_recapture">重新采集</string>
     <string name="ocr_confirm">加入知识库</string>
     <string name="ocr_fail">识别失败，可重拍或手动输入</string>
+    <string name="ocr_recognising">正在本机识别文字…</string>
+    <string name="ocr_waiting">尚未识别，点下方「重新识别」开始</string>
 
     <!-- 语音确认页 -->
     <string name="voice_title">语音确认</string>
@@ -221,7 +251,7 @@
     <string name="voice_play">播放</string>
     <string name="voice_transcript_label">转写文字（可修改）</string>
     <string name="voice_transcript_hint">在下方修正转写结果</string>
-    <string name="voice_keep_audio">保留原录音附件</string>
+    <string name="voice_keep_audio">原录音会随知识一起保存在本机，可在详情页回放</string>
     <string name="voice_rerecord">重新录制</string>
     <string name="voice_confirm">加入知识库</string>
     <string name="voice_demo_text">今天实验的结论是，把分块长度控制在五百字左右的时候，召回效果最稳定，太长的段落会让向量的语义被稀释。</string>
@@ -279,6 +309,10 @@
     <string name="cloud_http_5xx">服务端错误（HTTP %d），请稍后再试</string>
     <string name="cloud_http_other">请求被拒绝（HTTP %d）</string>
     <string name="cloud_err_network">无法连接服务器，请检查网络与服务地址</string>
+    <string name="cloud_err_timeout">服务器无响应，连接超时。请检查网络，并确认模型名称与服务地址是否正确</string>
+    <string name="cloud_err_dns">无法解析服务地址。请检查网络，或确认地址拼写正确</string>
+    <string name="cloud_err_connect">无法连接服务器。网络可能被限制，或地址与端口有误</string>
+    <string name="cloud_err_tls">安全连接建立失败。可能是网络中间人、代理或证书问题</string>
     <string name="cloud_saved">配置已保存</string>
     <string name="cloud_privacy_note">仅发送「问题 + 检索命中的相关片段」，原始知识不出端。</string>
     <string name="cloud_save">保存</string>
@@ -308,16 +342,16 @@
     <!-- 隐私政策页 -->
     <string name="policy_title">隐私政策</string>
     <string name="policy_back">返回</string>
-    <string name="policy_updated">生效日期：2026 年 9 月 29 日</string>
+    <string name="policy_updated">生效日期：2026 年 9 月 30 日</string>
     <string name="policy_intro">《默识》坚持端侧优先：默认模式下，解析、分块、向量检索与问答全部在你的设备上完成。本政策说明我们如何处理你在使用过程中产生的数据。</string>
     <string name="policy_group_storage">数据存储</string>
-    <string name="policy_storage_body">你的笔记、导入的文档、截图 OCR 与语音转写结果，全部保存在本机应用私有目录中。本地模式不申请网络权限，知识数据永不上传；卸载应用或在应用内删除后，对应数据将从本机移除。</string>
+    <string name="policy_storage_body">你的笔记、导入的文档、截图 OCR 与语音转写结果，全部保存在本机应用私有目录中，知识数据永不上传；卸载应用或在应用内删除后，对应数据将从本机移除。网络权限仅用于你主动发起的端侧模型下载，以及你手动开启的云端增强问答，应用不会在后台联网上传任何内容。</string>
     <string name="policy_group_permission">权限使用</string>
     <string name="policy_permission_body">相机与麦克风权限仅在你使用截图识别、拍照导入与语音转写时申请，用于在本机把内容转成知识文本；不会用于身份识别，也不会在后台采集。</string>
     <string name="policy_group_cloud">云端增强（可选，默认关闭）</string>
     <string name="policy_cloud_body">云端问答需你手动开启，并自行配置接口地址与密钥。开启后仅向你配置的端点发送「问题 + 检索命中的相关片段」，原始知识数据不出端；标记为敏感的知识强制走端侧引擎；接口密钥仅保存在本机，你可随时关闭云端。</string>
     <string name="policy_group_third">第三方组件</string>
-    <string name="policy_third_body">端侧推理、嵌入与向量检索在设备本地完成；本应用不包含广告 SDK，知识库内容与问答内容永不上传。匿名使用统计默认开启，仅收集页面访问等使用行为，不含任何知识库内容，可随时在「我的 → 匿名使用统计」中关闭；关闭后立即停止上报，也不会把你知识库的内容共享给其他应用。</string>
+    <string name="policy_third_body">端侧推理、嵌入与向量检索在设备本地完成。本应用不集成任何广告、统计或崩溃上报 SDK，不收集设备标识与使用行为，知识库内容与问答内容永不上传，也不会把你的知识库内容共享给其他应用。</string>
     <string name="policy_group_rights">你的权利</string>
     <string name="policy_rights_body">你可以随时查看并删除本机上的任意知识；删除会同时清除它的分块、关键词索引与向量记录。修改引擎模式等隐私开关立即生效，无需重启。</string>
     <string name="policy_group_update">政策更新</string>
@@ -329,12 +363,55 @@
     <string name="privacy_back">返回</string>
     <string name="privacy_force_local">敏感内容强制端侧</string>
     <string name="privacy_force_local_desc">标记为敏感的知识强制走本地引擎，即使云端已开启（默认开启）</string>
+    <string name="privacy_qa_history">保存问答历史</string>
+    <string name="privacy_qa_history_desc">关闭后不再记录新的问答；已有历史可在问答页清空</string>
     <string name="privacy_encrypt">本地加密存储</string>
-    <string name="privacy_encrypt_desc">使用 AES 加密数据库，会轻微影响读写性能（默认关闭）</string>
+    <string name="privacy_encrypt_desc">使用 AES-GCM 加密原始文件与笔记数据库，主密钥由系统密钥库托管</string>
+    <string name="privacy_storage_state_encrypted">当前：已加密</string>
+    <string name="privacy_storage_state_plain">当前：明文存储</string>
+    <string name="privacy_converting">正在转换数据库，请勿退出应用…</string>
+    <string name="privacy_encrypt_on">已开启加密</string>
+    <string name="privacy_encrypt_off">已关闭加密，数据恢复为明文存储</string>
+    <string name="privacy_encrypt_failed">加密转换失败，数据保持原状态</string>
+    <string name="privacy_encrypt_scope">已加密：原始文件、笔记数据库（含分块与问答日志）、关键词索引。\n向量索引仅存向量与编号、不含原文，因此不参与加密。\n首次开启加密会重建向量索引，知识较多时需要一些时间。</string>
     <string name="privacy_autolock">后台自动锁定</string>
-    <string name="privacy_autolock_desc">切到后台一段时间后返回需要重新解锁（默认开启）</string>
-    <string name="privacy_log">日志保留策略</string>
-    <string name="privacy_log_desc">运行日志仅保存在本地，最多保留 7 天</string>
+    <string name="privacy_autolock_desc">切到后台一段时间后返回需要重新解锁</string>
+    <string name="privacy_lock_section">应用解锁</string>
+    <string name="privacy_lock_state_none">当前：未开启</string>
+    <string name="privacy_lock_state_pin">当前：6 位数字密码</string>
+    <string name="privacy_lock_state_pattern">当前：九宫格图案</string>
+    <string name="privacy_lock_set_pin">设置密码</string>
+    <string name="privacy_lock_set_pattern">设置图案</string>
+    <string name="privacy_lock_change_pin">修改密码</string>
+    <string name="privacy_lock_change_pattern">修改图案</string>
+    <string name="privacy_lock_disable">关闭应用锁</string>
+    <string name="privacy_lock_disabled">已关闭应用锁</string>
+    <string name="privacy_biometric">指纹解锁</string>
+    <string name="privacy_biometric_desc">已录入指纹时可用指纹快速解锁（需 Android 9 及以上）</string>
+    <string name="privacy_biometric_need_lock">请先设置密码或图案</string>
+    <string name="privacy_biometric_unavailable">设备不支持指纹或尚未录入</string>
+
+    <!-- 应用锁 -->
+    <string name="lock_title">解锁默识</string>
+    <string name="lock_hint">输入密码或绘制图案以继续</string>
+    <string name="lock_set_pin_title">设置 6 位数字密码</string>
+    <string name="lock_confirm_pin_title">再次输入以确认</string>
+    <string name="lock_set_pattern_title">绘制解锁图案</string>
+    <string name="lock_confirm_pattern_title">再次绘制以确认</string>
+    <string name="lock_pin_error">密码错误，请重试</string>
+    <string name="lock_pattern_error">图案错误，请重试</string>
+    <string name="lock_pattern_too_short">至少连接 4 个点</string>
+    <string name="lock_mismatch">两次输入不一致，请重新设置</string>
+    <string name="lock_credential_saved">应用锁已设置</string>
+    <string name="lock_delete">删除</string>
+    <string name="lock_cancel">取消</string>
+    <string name="lock_use_biometric">使用指纹解锁</string>
+    <string name="lock_biometric_title">指纹解锁</string>
+    <string name="lock_biometric_subtitle">验证已录入的指纹以解锁默识</string>
+    <string name="lock_forgot">忘记密码？</string>
+    <string name="lock_forgot_confirm">忘记密码后只能重置应用：本地已入库的知识会被清空且无法恢复。\n\n原始文件与数据库的加密密钥由系统密钥库托管，与应用密码无关。</string>
+    <string name="lock_reset_confirm">重置应用</string>
+    <string name="lock_reset_done">已重置应用</string>
 
     <!-- 存储管理页 -->
     <string name="storage_title">存储管理</string>
@@ -397,4 +474,39 @@
     <string name="model_download_busy">已有模型正在下载，请稍候</string>
     <string name="model_switched">已切换到 %1$s</string>
     <string name="model_deleted">已删除 %1$s</string>
+    <string name="model_load_local">从本地加载</string>
+    <string name="model_local_hint">选择存放模型文件的文件夹</string>
+    <string name="model_local_loaded">已从本地导入 %1$s</string>
+    <string name="model_local_missing">未在所选文件夹中找到完整的模型文件</string>
+
+    <string name="graph_entry">知识图谱</string>
+    <string name="graph_title">知识图谱</string>
+    <string name="graph_back">返回</string>
+    <string name="graph_loading">正在分析知识关联…</string>
+    <string name="graph_hint">双指缩放 · 拖动平移 · 点击节点查看原文</string>
+    <string name="graph_stat_fmt">节点 %1$d · 关联 %2$d</string>
+    <string name="graph_scanned_fmt">已扫描 %1$d 条知识</string>
+    <string name="graph_ignored_fmt">仅分析最近 %1$d 条</string>
+    <string name="graph_empty_title">还没有可分析的知识</string>
+    <string name="graph_empty_body">先导入一些知识，再看看它们之间有什么关联</string>
+    <string name="graph_embed_title">缺少嵌入模型</string>
+    <string name="graph_embed_body">分析知识关联需要先下载 Gecko 嵌入模型</string>
+    <string name="graph_embed_action">去下载模型</string>
+    <string name="graph_failed_title">关联分析失败</string>
+    <string name="graph_failed_body">嵌入计算没有完成，可以重新分析一次</string>
+    <string name="graph_retry">重新分析</string>
+    <string name="graph_reload">重新分析</string>
+
+    <string name="share_title">分享到默识</string>
+    <string name="share_back">返回</string>
+    <string name="share_confirm">导入知识库</string>
+    <string name="share_importing">正在导入…</string>
+    <string name="share_success">已从分享导入知识库</string>
+    <string name="share_unsupported">暂不支持该文件类型</string>
+    <string name="share_unsupported_hint">暂不支持该文件类型，目前支持 PDF、Word、Excel、CSV、Markdown、纯文本与图片 OCR</string>
+    <string name="share_missing">没有收到分享内容</string>
+    <string name="share_unknown_file">未知文件</string>
+    <string name="share_unknown_mime">未知类型</string>
+    <string name="share_image_preparing">正在准备图片…</string>
+    <string name="share_image_failed">图片读取失败，请重试</string>
 </resources>

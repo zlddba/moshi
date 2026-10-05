@@ -12,20 +12,23 @@ composeBom = "2026.09.00"
 androidJunit5 = "2.0.1"
 coil = "3.6.3"
 openai = "4.1.0"
-ktor = "3.0.0"
+ktor = "3.6.0"
 sherpaOnnx = "1.13.7"
-countly = "26.1.5"
 mlkit = "16.0.1"
 commonmark = "0.30.0"
 room3 = "3.0.3"
 ksp = "2.3.12"
 pdfbox = "2.0.27.0"
+poi = "5.5.1"
 localagentsRag = "0.3.0"
-protobufJavalite = "4.26.1"
+protobufJavalite = "4.36.2"
 litertlm = "0.17.1"
+documentfile = "1.1.0"
+sqlcipher = "4.19.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+androidx-documentfile = { group = "androidx.documentfile", name = "documentfile", version.ref = "documentfile" }
 junit-bom = { group = "org.junit", name = "junit-bom", version.ref = "junit" }
 junit-jupiter = { group = "org.junit.jupiter", name = "junit-jupiter", version.ref = "junit" }
 junit-platform-launcher = { group = "org.junit.platform", name = "junit-platform-launcher" }
@@ -49,7 +52,6 @@ coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose-android", vers
 openai-client = { group = "com.aallam.openai", name = "openai-client", version.ref = "openai" }
 ktor-client-okhttp = { group = "io.ktor", name = "ktor-client-okhttp", version.ref = "ktor" }
 sherpa-onnx = { group = "com.github.k2fsa", name = "sherpa-onnx", version.ref = "sherpaOnnx" }
-countly-sdk = { group = "ly.count.android", name = "sdk", version.ref = "countly" }
 mlkit-text-recognition-chinese = { group = "com.google.mlkit", name = "text-recognition-chinese", version.ref = "mlkit" }
 commonmark = { group = "org.commonmark", name = "commonmark", version.ref = "commonmark" }
 commonmark-gfm-tables = { group = "org.commonmark", name = "commonmark-ext-gfm-tables", version.ref = "commonmark" }
@@ -58,9 +60,12 @@ commonmark-autolink = { group = "org.commonmark", name = "commonmark-ext-autolin
 androidx-room3-runtime = { group = "androidx.room3", name = "room3-runtime", version.ref = "room3" }
 androidx-room3-compiler = { group = "androidx.room3", name = "room3-compiler", version.ref = "room3" }
 pdfbox-android = { group = "com.tom-roush", name = "pdfbox-android", version.ref = "pdfbox" }
+poi-ooxml = { group = "org.apache.poi", name = "poi-ooxml", version.ref = "poi" }
+poi-scratchpad = { group = "org.apache.poi", name = "poi-scratchpad", version.ref = "poi" }
 google-localagents-rag = { group = "com.google.ai.edge.localagents", name = "localagents-rag", version.ref = "localagentsRag" }
 litertlm-android = { group = "com.google.ai.edge.litertlm", name = "litertlm-android", version.ref = "litertlm" }
 protobuf-javalite = { group = "com.google.protobuf", name = "protobuf-javalite", version.ref = "protobufJavalite" }
+sqlcipher-android = { group = "net.zetetic", name = "sqlcipher-android", version.ref = "sqlcipher" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

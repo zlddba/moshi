@@ -42,7 +42,7 @@ object PdfParser : DocParser {
                 }
             }
             document.use { doc ->
-                if (doc.isEncrypted) throw IngestException(IngestException.Kind.PARSE_FAILED)
+                if (doc.isEncrypted) throw IngestException(IngestException.Kind.ENCRYPTED)
                 val pages = doc.numberOfPages
                 if (pages <= 0) throw IngestException(IngestException.Kind.EMPTY)
                 val stripper = try {

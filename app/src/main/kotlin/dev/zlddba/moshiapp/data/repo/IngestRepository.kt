@@ -8,8 +8,11 @@ import dev.zlddba.moshiapp.data.db.ChunkEntity
 import dev.zlddba.moshiapp.data.db.KeywordIndex
 import dev.zlddba.moshiapp.data.db.MoshiDatabase
 import dev.zlddba.moshiapp.data.db.NoteEntity
+import dev.zlddba.moshiapp.data.db.NoteTagCrossRef
+import dev.zlddba.moshiapp.data.db.TagEntity
 import dev.zlddba.moshiapp.data.vector.VectorStoreClient
 import dev.zlddba.moshiapp.domain.chunk.Chunker
+import dev.zlddba.moshiapp.domain.security.CryptoManager
 import dev.zlddba.moshiapp.ingest.parse.IngestException
 import dev.zlddba.moshiapp.ingest.parse.ParsedDoc
 import dev.zlddba.moshiapp.ingest.parse.ParserRegistry
@@ -52,11 +55,145 @@ object IngestRepository {
         val chunkCount: Int
     )
 
+    data class TagInfo(
+        val id: Int,
+        val name: String,
+        val refCount: Int
+    )
+
+    private const val MAX_TAG_CHARS = 16
+    private const val MAX_TAGS_PER_NOTE = 10
+
+    fun normalizeTags(raw: String): List<String> {
+        val seen = LinkedHashSet<String>()
+        raw.split(',', '，', ';', '；', '#', '/')
+            .asSequence()
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .forEach { tag ->
+                val clipped = tag.take(MAX_TAG_CHARS)
+                if (seen.size < MAX_TAGS_PER_NOTE) seen.add(clipped)
+            }
+        return seen.toList()
+    }
+
+    suspend fun listTags(context: Context): List<TagInfo> = withContext(Dispatchers.IO) {
+        MoshiDatabase.get(context).tagsDao().allWithCount().map {
+            TagInfo(id = it.id, name = it.name, refCount = it.refCount)
+        }
+    }
+
+    suspend fun tagsOf(context: Context, noteId: String): List<String> = withContext(Dispatchers.IO) {
+        MoshiDatabase.get(context).tagsDao().tagsOfNote(noteId).map { it.name }
+    }
+
+    suspend fun setTags(context: Context, noteId: String, raw: String): List<String> =
+        withContext(Dispatchers.IO) {
+            val names = normalizeTags(raw)
+            val database = MoshiDatabase.get(context)
+            val dao = database.tagsDao()
+            database.withWriteTransaction {
+                dao.clearNote(noteId)
+                val now = System.currentTimeMillis()
+                for (name in names) {
+                    dao.insertTag(TagEntity(name = name, createdAt = now))
+                    val id = dao.byName(name)?.id ?: continue
+                    dao.link(NoteTagCrossRef(noteId = noteId, tagId = id))
+                }
+                dao.deleteOrphans()
+            }
+            names
+        }
+
+    suspend fun renameTag(context: Context, tagId: Int, newName: String): Boolean =        withContext(Dispatchers.IO) {
+            val name = normalizeTags(newName).firstOrNull() ?: return@withContext false
+            val dao = MoshiDatabase.get(context).tagsDao()
+            val current = dao.byId(tagId) ?: return@withContext false
+            if (current.name == name) return@withContext true
+            val existing = dao.byName(name)
+            if (existing != null) {
+                for (noteId in MoshiDatabase.get(context).noteDao().byTag(tagId).map { it.id }) {
+                    dao.link(NoteTagCrossRef(noteId = noteId, tagId = existing.id))
+                }
+                dao.deleteTag(tagId)
+            } else {
+                dao.rename(tagId, name)
+            }
+            dao.deleteOrphans()
+            true
+        }
+
+    suspend fun deleteTag(context: Context, tagId: Int) = withContext(Dispatchers.IO) {
+        val dao = MoshiDatabase.get(context).tagsDao()
+        dao.clearTag(tagId)
+        dao.deleteTag(tagId)
+    }
+
+    suspend fun updateNoteTitle(context: Context, noteId: String, title: String) =
+        withContext(Dispatchers.IO) {
+            val value = title.trim().take(80)
+            if (value.isEmpty()) return@withContext
+            MoshiDatabase.get(context).noteDao()
+                .updateTitle(noteId, value, System.currentTimeMillis())
+        }
+
+    suspend fun updateNoteSummary(context: Context, noteId: String, summary: String) =
+        withContext(Dispatchers.IO) {
+            MoshiDatabase.get(context).noteDao()
+                .updateSummary(noteId, summary.trim().take(600), System.currentTimeMillis())
+        }
+
+    /**
+     * 编辑正文：重建分块、刷新关键词索引、清掉旧向量并重新排队索引。
+     */
+    suspend fun updateNoteContent(
+        context: Context,
+        noteId: String,
+        content: String,
+        retainEditedAt: Boolean = true
+    ): Int = withContext(Dispatchers.IO) {
+        val text = content.trim()
+        if (text.isEmpty()) throw IngestException(IngestException.Kind.EMPTY)
+        val chunks = Chunker.chunk(text)
+        if (chunks.isEmpty()) throw IngestException(IngestException.Kind.EMPTY)
+        val database = MoshiDatabase.get(context)
+        val note = database.noteDao().byId(noteId)
+            ?: throw IngestException(IngestException.Kind.IO)
+        val keepPage = note.type == NoteEntity.TYPE_PDF
+        val oldPages = database.chunkDao().byNote(noteId).map { it.pageNo }
+        val entities = chunks.mapIndexed { index, chunk ->
+            ChunkEntity(
+                noteId = noteId,
+                seq = chunk.seq,
+                text = chunk.text,
+                charOffset = chunk.offset,
+                pageNo = if (keepPage) oldPages.getOrNull(index) else null
+            )
+        }
+        val now = System.currentTimeMillis()
+        database.withWriteTransaction {
+            database.chunkDao().deleteByNote(noteId)
+            database.chunkDao().insertAll(entities)
+            database.noteDao().insert(
+                note.copy(
+                    content = text,
+                    indexStatus = NoteEntity.STATUS_PENDING,
+                    updatedAt = if (retainEditedAt) now else note.updatedAt
+                )
+            )
+        }
+        VectorStoreClient.deleteByNote(context, noteId)
+        KeywordIndex.deleteNote(context, noteId)
+        KeywordIndex.insertChunks(context, database.chunkDao().byNote(noteId))
+        _savedNotes.tryEmit(noteId)
+        entities.size
+    }
     suspend fun importFile(
         context: Context,
         uri: Uri,
         fileName: String,
         mimeType: String?,
+        title: String = "",
         onStage: (Stage) -> Unit
     ): Summary = withContext(Dispatchers.IO) {
         checkSize(context, uri)
@@ -79,13 +216,9 @@ object IngestRepository {
         persist(
             context = context,
             noteId = noteId,
-            title = parsed.title,
+            title = title.trim().ifEmpty { parsed.title },
             content = parsed.text,
-            type = if (parsed.format == ParsedDoc.FORMAT_PDF) {
-                NoteEntity.TYPE_PDF
-            } else {
-                NoteEntity.TYPE_TEXT
-            },
+            type = noteTypeOf(parsed.format),
             pageOffsets = parsed.pageOffsets,
             chunks = chunks,
             sourceUri = localFile?.path ?: uri.toString()
@@ -97,6 +230,7 @@ object IngestRepository {
         text: String,
         type: String,
         fallbackTitle: String,
+        title: String = "",
         sourceNote: String? = null,
         sourceUri: Uri? = null,
         isBuiltIn: Boolean = false
@@ -116,7 +250,7 @@ object IngestRepository {
         persist(
             context = context,
             noteId = noteId,
-            title = titleOf(content, fallbackTitle),
+            title = title.trim().ifEmpty { titleOf(content, fallbackTitle) },
             content = content,
             type = type,
             pageOffsets = emptyList(),
@@ -162,6 +296,8 @@ object IngestRepository {
                 database.chunkDao().deleteAll()
                 database.noteDao().deleteAll()
                 database.qaLogDao().deleteAll()
+                database.tagsDao().clearAllLinks()
+                database.tagsDao().deleteAll()
             }
             KeywordIndex.clearAll(appContext)
             VectorStoreClient.clearAll(appContext)
@@ -221,6 +357,12 @@ object IngestRepository {
 
     fun exportSuggestionName(): String =
         "moshi-backup-" + SimpleDateFormat("yyyyMMdd-HHmm", Locale.US).format(Date()) + ".json"
+
+    private fun noteTypeOf(format: String): String = when (format) {
+        ParsedDoc.FORMAT_PDF -> NoteEntity.TYPE_PDF
+        ParsedDoc.FORMAT_XLSX, ParsedDoc.FORMAT_XLS -> NoteEntity.TYPE_SHEET
+        else -> NoteEntity.TYPE_TEXT
+    }
 
     private fun sourceFormatOf(type: String): String = when (type) {
         NoteEntity.TYPE_AUDIO -> "wav"
@@ -295,6 +437,10 @@ object IngestRepository {
         val target = File(directory, "$noteId.$format")
         val input = context.contentResolver.openInputStream(uri)
             ?: throw IOException()
+        if (CryptoManager.isEnabled(context)) {
+            if (CryptoManager.encryptInto(context, input, target)) return target
+            throw IOException()
+        }
         input.use { source ->
             target.outputStream().use { sink ->
                 source.copyTo(sink)

@@ -1,40 +1,52 @@
 package dev.zlddba.moshiapp
 
+import android.app.Activity
 import android.app.Application
-import dev.zlddba.moshiapp.data.prefs.TelemetryPrefs
+import android.content.Intent
+import android.os.Bundle
+import dev.zlddba.moshiapp.activities.launchPage.LaunchActivity
+import dev.zlddba.moshiapp.activities.lockPage.LockActivity
 import dev.zlddba.moshiapp.data.repo.HelpSeeder
+import dev.zlddba.moshiapp.domain.device.DeviceTier
 import dev.zlddba.moshiapp.domain.index.IndexOrchestrator
-import ly.count.android.sdk.Countly
-import ly.count.android.sdk.CountlyConfig
+import dev.zlddba.moshiapp.domain.security.AppLock
 
 class MoshiApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        DeviceTier.applyAutoDowngrade(this)
         IndexOrchestrator.start(this)
         HelpSeeder.start(this)
-        if (TelemetryPrefs(this).isEnabled()) {
-            initTelemetry()
-        }
+        registerActivityLifecycleCallbacks(AppLifecycleWatcher())
+    }
+}
+
+private class AppLifecycleWatcher : Application.ActivityLifecycleCallbacks {
+
+    private var started = 0
+
+    override fun onActivityStarted(activity: Activity) {
+        started++
+        if (started != 1) return
+        if (activity is LockActivity) return
+        if (activity is LaunchActivity) return
+        if (!AppLock.shouldLockOnForeground(activity)) return
+        activity.startActivity(Intent(activity, LockActivity::class.java))
     }
 
-    fun applyTelemetry(enabled: Boolean) {
-        TelemetryPrefs(this).setEnabled(enabled)
-        if (enabled) {
-            initTelemetry()
-        } else if (Countly.sharedInstance().isInitialized) {
-            Countly.sharedInstance().halt()
-        }
+    override fun onActivityStopped(activity: Activity) {
+        if (started > 0) started--
+        if (started == 0) AppLock.onEnterBackground(activity)
     }
 
-    private fun initTelemetry() {
-        if (BuildConfig.COUNTLY_APP_KEY.isEmpty()) return
-        if (Countly.sharedInstance().isInitialized) return
-        val config = CountlyConfig(
-            this,
-            BuildConfig.COUNTLY_APP_KEY,
-            "http://www.linkzdsada.dpdns.org:9401",
-        ).enableAutomaticViewTracking()
-        Countly.sharedInstance().init(config)
-    }
+    override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {}
+
+    override fun onActivityResumed(activity: Activity) {}
+
+    override fun onActivityPaused(activity: Activity) {}
+
+    override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) {}
+
+    override fun onActivityDestroyed(activity: Activity) {}
 }

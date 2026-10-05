@@ -7,6 +7,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.Lifecycle
@@ -19,6 +20,8 @@ import kotlinx.coroutines.launch
 
 class ModelActivity : ComponentActivity() {
 
+    private var pendingLocalId: String? = null
+
     private val viewModel: ModelViewModel by lazy {
         ViewModelProvider(
             this,
@@ -29,6 +32,21 @@ class ModelActivity : ComponentActivity() {
                 }
             }
         )[ModelViewModel::class.java]
+    }
+
+    private val pickFolder = registerForActivityResult(
+        ActivityResultContracts.OpenDocumentTree()
+    ) { uri ->
+        val id = pendingLocalId
+        pendingLocalId = null
+        if (uri == null || id == null) return@registerForActivityResult
+        runCatching {
+            contentResolver.takePersistableUriPermission(
+                uri,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION
+            )
+        }
+        viewModel.onEvent(ModelViewModel.ModelEvent.LoadLocal(id, uri.toString()))
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -55,11 +73,17 @@ class ModelActivity : ComponentActivity() {
                             } else {
                                 getString(effect.messageRes)
                             }
+                            Toast.makeText(this@ModelActivity, text, Toast.LENGTH_SHORT).show()
+                        }
+
+                        is ModelViewModel.ModelEffect.PickLocalFolder -> {
+                            pendingLocalId = effect.id
                             Toast.makeText(
                                 this@ModelActivity,
-                                text,
+                                getString(dev.zlddba.moshiapp.R.string.model_local_hint),
                                 Toast.LENGTH_SHORT
                             ).show()
+                            pickFolder.launch(null)
                         }
                     }
                 }

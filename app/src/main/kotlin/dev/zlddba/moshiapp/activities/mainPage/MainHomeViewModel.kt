@@ -25,6 +25,7 @@ class MainHomeViewModel(context: Context) : ViewModel() {
 
     sealed interface HomeEvent {
         data class FilterChanged(val index: Int) : HomeEvent
+        data class TagSelected(val tagId: Int) : HomeEvent
         data class DeleteRequested(val noteId: String, val title: String) : HomeEvent
     }
 
@@ -35,6 +36,9 @@ class MainHomeViewModel(context: Context) : ViewModel() {
     private val appContext = context.applicationContext
     private var notes: List<NoteEntity> = emptyList()
     private var filter = 0
+    private var activeTagId = 0
+    private var tagNames: Map<Int, String> = emptyMap()
+    private var tagsByNote: Map<String, List<Int>> = emptyMap()
 
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
@@ -63,6 +67,11 @@ class MainHomeViewModel(context: Context) : ViewModel() {
                 emit()
             }
 
+            is HomeEvent.TagSelected -> {
+                activeTagId = if (activeTagId == event.tagId) 0 else event.tagId
+                emit()
+            }
+
             is HomeEvent.DeleteRequested -> deleteNote(event)
         }
     }
@@ -76,42 +85,69 @@ class MainHomeViewModel(context: Context) : ViewModel() {
 
     fun refresh() {
         viewModelScope.launch {
+            val database = MoshiDatabase.get(appContext)
             val loaded = withContext(Dispatchers.IO) {
-                MoshiDatabase.get(appContext).noteDao().recentAll()
+                val all = database.noteDao().recentAll()
+                val tags = database.tagsDao().allTags()
+                val links = database.tagsDao().allLinks()
+                Triple(all, tags, links)
             }
-            notes = loaded.filter { !it.isBuiltIn }
+            notes = loaded.first.filter { !it.isBuiltIn }
+            tagNames = loaded.second.associate { it.id to it.name }
+            tagsByNote = loaded.third.groupBy({ it.noteId }, { it.tagId })
             emit()
         }
     }
 
     private fun emit() {
+        val chips = tagNames.entries
+            .map { entry ->
+                HomeUiState.TagChip(
+                    id = entry.key,
+                    name = entry.value,
+                    refCount = tagsByNote.count { it.value.contains(entry.key) }
+                )
+            }
+            .filter { it.refCount > 0 }
+            .sortedWith(compareByDescending<HomeUiState.TagChip> { it.refCount }.thenBy { it.name })
         _uiState.update {
             HomeUiState(
                 cards = sorted().map { note -> note.toCard() },
                 filter = filter,
-                loaded = true
+                loaded = true,
+                tags = chips,
+                activeTagId = activeTagId
             )
         }
     }
 
-    private fun sorted(): List<NoteEntity> = when (filter) {
-        1 -> notes.sortedWith(
-            compareBy<NoteEntity> { it.type }.thenByDescending { it.createdAt }
-        )
+    private fun sorted(): List<NoteEntity> {
+        val scoped = if (activeTagId == 0) {
+            notes
+        } else {
+            notes.filter { tagsByNote[it.id]?.contains(activeTagId) == true }
+        }
+        return when (filter) {
+            1 -> scoped.sortedWith(
+                compareBy<NoteEntity> { it.type }.thenByDescending { it.createdAt }
+            )
 
-        else -> notes
+            else -> scoped
+        }
     }
 
     private fun NoteEntity.toCard(): HomeUiState.NoteCard {
         val preview = summary?.takeIf { it.isNotBlank() }
             ?: content.replace('\n', ' ').take(80)
+        val names = tagsByNote[id].orEmpty().mapNotNull { tagNames[it] }
         return HomeUiState.NoteCard(
             noteId = id,
             type = type,
             title = title,
             summary = preview,
             tag = sourceNote.orEmpty(),
-            time = formatTime(createdAt)
+            time = formatTime(createdAt),
+            tags = names
         )
     }
 

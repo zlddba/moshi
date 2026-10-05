@@ -46,6 +46,7 @@ object VectorStoreClient {
     private const val TEXT_COLUMN = "text"
     private const val EMBEDDINGS_COLUMN = "embeddings"
     private const val DATABASE_NAME = "moshi_vec.db"
+    private const val DELEGATE_FILE = "delegate.txt"
     private const val TAG = "VectorStoreClient"
 
     private val mutex = Mutex()
@@ -57,23 +58,28 @@ object VectorStoreClient {
     private var storeDim = 0
 
     @Volatile
+    private var storeDelegate = ""
+
+    @Volatile
     private var unavailable = false
 
     suspend fun insert(
         context: Context,
         dim: Int,
+        delegate: String,
         chunks: List<VecChunk>,
         vectors: List<List<Float>>
     ): InsertOutcome {
         if (chunks.isEmpty()) return InsertOutcome.Ok
         if (dim <= 0 || vectors.size != chunks.size) return InsertOutcome.Unavailable
+        ensureDelegate(context, delegate)
         return withContext(Dispatchers.IO) {
             mutex.withLock {
                 val appContext = context.applicationContext
-                var opened = openLocked(appContext, dim)
+                var opened = openLocked(appContext, dim, delegate)
                 var reset = false
                 if (opened is OpenResult.DimReset) {
-                    opened = openLocked(appContext, dim)
+                    opened = openLocked(appContext, dim, delegate)
                     reset = true
                 }
                 val ready = opened as? OpenResult.Ready
@@ -81,7 +87,7 @@ object VectorStoreClient {
                 for (index in chunks.indices) {
                     val chunk = chunks[index]
                     val record = VectorStoreRecord.create(
-                        chunk.text,
+                        chunk.chunkId.toString(),
                         ImmutableList.copyOf(vectors[index])
                     )
                         .toBuilder()
@@ -97,8 +103,9 @@ object VectorStoreClient {
                         return@withLock InsertOutcome.Unavailable
                     }
                 }
-                Log.i(TAG, "insert ok size=${chunks.size} dim=$dim")
+                Log.i(TAG, "insert ok size=${chunks.size} dim=$dim delegate=$delegate")
                 writeDimMarker(appContext, dim)
+                if (delegate.isNotBlank()) writeDelegateMarker(appContext, delegate)
                 if (reset) InsertOutcome.DimReset else InsertOutcome.Ok
             }
         }
@@ -111,7 +118,7 @@ object VectorStoreClient {
                 if (store == null) {
                     val dim = readDimMarker(appContext) ?: return@withLock
                     if (dim <= 0) return@withLock
-                    val opened = openLocked(appContext, dim)
+                    val opened = openLocked(appContext, dim, null)
                     if (opened !is OpenResult.Ready) return@withLock
                 }
                 try {
@@ -148,6 +155,46 @@ object VectorStoreClient {
         }
     }
 
+    suspend fun ensureDelegate(context: Context, delegate: String): Boolean {
+        if (delegate.isBlank()) return false
+        return withContext(Dispatchers.IO) {
+            mutex.withLock {
+                val appContext = context.applicationContext
+                val marked = readDelegateMarker(appContext)
+                if (marked == delegate) return@withLock false
+                Log.w(
+                    TAG,
+                    "embedding delegate changed ${marked ?: "unknown"} -> $delegate, " +
+                        "dropping stored vectors"
+                )
+                store = null
+                storeDim = 0
+                storeDelegate = ""
+                deleteDatabaseFile(appContext)
+                true
+            }
+        }
+    }
+
+    private fun writeDelegateMarker(context: Context, delegate: String) {
+        try {
+            val directory = File(context.filesDir, "vectors")
+            directory.mkdirs()
+            File(directory, DELEGATE_FILE).writeText(delegate)
+        } catch (e: Throwable) {
+            Log.w(TAG, "writeDelegateMarker failed delegate=$delegate", e)
+        }
+    }
+
+    private fun readDelegateMarker(context: Context): String? = try {
+        File(File(context.filesDir, "vectors"), DELEGATE_FILE)
+            .readText()
+            .trim()
+            .takeIf { it.isNotEmpty() }
+    } catch (e: Throwable) {
+        null
+    }
+
     private fun writeDimMarker(context: Context, dim: Int) {
         try {
             val directory = File(context.filesDir, "vectors")
@@ -164,11 +211,17 @@ object VectorStoreClient {
         null
     }
 
-    suspend fun search(context: Context, query: List<Float>, k: Int): List<VecHit> {
+    suspend fun search(
+        context: Context,
+        query: List<Float>,
+        k: Int,
+        delegate: String
+    ): List<VecHit> {
         if (query.isEmpty() || k <= 0) return emptyList()
+        ensureDelegate(context, delegate)
         return withContext(Dispatchers.IO) {
             mutex.withLock {
-                val opened = openLocked(context.applicationContext, query.size)
+                val opened = openLocked(context.applicationContext, query.size, delegate)
                 val ready = opened as? OpenResult.Ready
                 if (ready == null) {
                     Log.w(TAG, "search store not ready dim=${query.size}")
@@ -217,12 +270,15 @@ object VectorStoreClient {
         else -> 0f
     }
 
-    private fun openLocked(context: Context, dim: Int): OpenResult {
+    private fun openLocked(context: Context, dim: Int, delegate: String?): OpenResult {
         if (unavailable) return OpenResult.Unavailable
         store?.let { existing ->
-            if (storeDim == dim) return OpenResult.Ready(existing)
+            val dimOk = storeDim == dim
+            val delegateOk = delegate == null || storeDelegate == delegate
+            if (dimOk && delegateOk) return OpenResult.Ready(existing)
             store = null
             storeDim = 0
+            storeDelegate = ""
             deleteDatabaseFile(context)
             return OpenResult.DimReset
         }
@@ -240,7 +296,8 @@ object VectorStoreClient {
             )
             store = created
             storeDim = dim
-            Log.i(TAG, "store opened dim=$dim")
+            storeDelegate = delegate ?: readDelegateMarker(context).orEmpty()
+            Log.i(TAG, "store opened dim=$dim delegate=$storeDelegate")
             OpenResult.Ready(created)
         } catch (first: Throwable) {
             Log.e(TAG, "store open failed dim=$dim, deleting and retry", first)
@@ -255,6 +312,7 @@ object VectorStoreClient {
                 )
                 store = created
                 storeDim = dim
+                storeDelegate = delegate ?: readDelegateMarker(context).orEmpty()
                 OpenResult.Ready(created)
             } catch (second: Throwable) {
                 Log.e(TAG, "store open failed permanently dim=$dim", second)

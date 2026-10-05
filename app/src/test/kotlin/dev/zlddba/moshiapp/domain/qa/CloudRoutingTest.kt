@@ -75,7 +75,7 @@ class CloudRoutingTest {
 
     @Test
     fun `user prompt only carries question and fragments`() {
-        val prompt = QaOrchestrator.buildUserPrompt(
+        val prompt = QaFormat.userPrompt(
             "什么是向量检索",
             listOf(hit())
         )

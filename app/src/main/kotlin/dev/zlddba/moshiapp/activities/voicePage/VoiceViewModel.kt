@@ -11,6 +11,7 @@ import androidx.lifecycle.viewModelScope
 import dev.zlddba.moshiapp.R
 import dev.zlddba.moshiapp.data.db.NoteEntity
 import dev.zlddba.moshiapp.data.repo.IngestRepository
+import dev.zlddba.moshiapp.domain.title.TitleSuggester
 import dev.zlddba.moshiapp.ingest.parse.IngestException
 import dev.zlddba.moshiapp.ingest.vision.AsrModelManager
 import dev.zlddba.moshiapp.ingest.vision.SpeechRecognizer
@@ -33,7 +34,8 @@ import kotlinx.coroutines.withContext
 import kotlin.time.Duration.Companion.milliseconds
 
 private const val MAX_RECORD_SECONDS = 180
-private const val RECORD_FILE_NAME = "voice_record.wav"
+private const val AUDIO_DIR = "audio"
+private const val RECORD_PREFIX = "rec_"
 
 class VoiceViewModel(context: Context) : ViewModel() {
 
@@ -51,10 +53,12 @@ class VoiceViewModel(context: Context) : ViewModel() {
         val downloadPercent: Int = 0,
         val elapsedSeconds: Int = 0,
         val transcript: String = "",
+        val title: String = "",
+        val tags: String = "",
         val durationMs: Long = 0L,
-        val keepAudio: Boolean = true,
         val isPlaying: Boolean = false,
-        val transcribeFailed: Boolean = false
+        val transcribeFailed: Boolean = false,
+        val isGeneratingTitle: Boolean = false
     )
 
     sealed interface VoiceEvent {
@@ -64,7 +68,9 @@ class VoiceViewModel(context: Context) : ViewModel() {
         data object StopRecordClicked : VoiceEvent
         data object PlayClicked : VoiceEvent
         data class TranscriptChanged(val text: String) : VoiceEvent
-        data class KeepAudioChanged(val checked: Boolean) : VoiceEvent
+        data class TitleChanged(val value: String) : VoiceEvent
+        data class TagsChanged(val value: String) : VoiceEvent
+        data object RegenerateTitle : VoiceEvent
         data object RerecordClicked : VoiceEvent
         data object ConfirmClicked : VoiceEvent
     }
@@ -80,6 +86,9 @@ class VoiceViewModel(context: Context) : ViewModel() {
     private var asr: SpeechRecognizer? = null
     private var mediaPlayer: MediaPlayer? = null
     private var timerJob: Job? = null
+
+    /** 当前这条录音的工作文件，确认保存时会复制进 notes 目录。 */
+    private var currentRecordingFile: File? = null
 
     private val _voiceUiState = MutableStateFlow(
         VoiceUiState(
@@ -106,9 +115,22 @@ class VoiceViewModel(context: Context) : ViewModel() {
             VoiceEvent.StopRecordClicked -> stopRecording()
             VoiceEvent.PlayClicked -> togglePlayback()
             is VoiceEvent.TranscriptChanged -> _voiceUiState.update { it.copy(transcript = event.text) }
-            is VoiceEvent.KeepAudioChanged -> _voiceUiState.update { it.copy(keepAudio = event.checked) }
+            is VoiceEvent.TitleChanged -> _voiceUiState.update { it.copy(title = event.value) }
+            is VoiceEvent.TagsChanged -> _voiceUiState.update { it.copy(tags = event.value) }
+            VoiceEvent.RegenerateTitle -> generateTitle()
             VoiceEvent.RerecordClicked -> resetToReady()
             VoiceEvent.ConfirmClicked -> confirm()
+        }
+    }
+
+    private fun generateTitle() {
+        val transcript = _voiceUiState.value.transcript
+        if (transcript.isBlank()) return
+        if (_voiceUiState.value.isGeneratingTitle) return
+        _voiceUiState.update { it.copy(isGeneratingTitle = true) }
+        viewModelScope.launch {
+            val suggestion = TitleSuggester.suggest(appContext, transcript)
+            _voiceUiState.update { it.copy(title = suggestion.title, isGeneratingTitle = false) }
         }
     }
 
@@ -186,9 +208,9 @@ class VoiceViewModel(context: Context) : ViewModel() {
     private fun transcribe(recording: VoiceRecorder.Recording) {
         viewModelScope.launch {
             withContext(Dispatchers.IO) {
-                val dir = File(appContext.cacheDir, "voice")
+                val dir = File(appContext.filesDir, AUDIO_DIR)
                 dir.mkdirs()
-                VoiceRecorder.writeWav(File(dir, RECORD_FILE_NAME), recording.samples)
+                VoiceRecorder.writeWav(createRecordingFile(), recording.samples)
             }
             var failed = false
             var text = ""
@@ -217,6 +239,9 @@ class VoiceViewModel(context: Context) : ViewModel() {
                     transcribeFailed = failed
                 )
             }
+            if (!failed && text.isNotBlank() && _voiceUiState.value.title.isBlank()) {
+                generateTitle()
+            }
         }
     }
 
@@ -225,8 +250,7 @@ class VoiceViewModel(context: Context) : ViewModel() {
             stopPlayback()
             return
         }
-        val file = wavFile()
-        if (!file.exists()) return
+        val file = currentFile() ?: return
         val player = MediaPlayer()
         try {
             player.setDataSource(file.absolutePath)
@@ -262,10 +286,17 @@ class VoiceViewModel(context: Context) : ViewModel() {
     private fun resetToReady() {
         if (_voiceUiState.value.phase != VoicePhase.CONFIRM) return
         stopPlayback()
+        // 重新录制：上一条未保存的录音文件不再需要，清掉避免堆积。
+        currentRecordingFile?.let { file ->
+            if (file.isFile) file.delete()
+        }
+        currentRecordingFile = null
         _voiceUiState.update {
             it.copy(
                 phase = VoicePhase.READY,
                 transcript = "",
+                title = "",
+                tags = "",
                 durationMs = 0L,
                 elapsedSeconds = 0,
                 transcribeFailed = false
@@ -283,21 +314,22 @@ class VoiceViewModel(context: Context) : ViewModel() {
         stopPlayback()
         viewModelScope.launch {
             try {
-                val file = wavFile()
-                IngestRepository.importText(
+                val recording = currentRecordingFile
+                val result = IngestRepository.importText(
                     context = appContext,
                     text = state.transcript,
                     type = NoteEntity.TYPE_AUDIO,
                     fallbackTitle = appContext.getString(R.string.voice_title),
-                    sourceUri = if (state.keepAudio && file.exists()) {
-                        Uri.fromFile(file)
-                    } else {
-                        null
-                    }
+                    title = state.title,
+                    sourceUri = recording?.takeIf { it.isFile }?.let { Uri.fromFile(it) }
                 )
-                if (!state.keepAudio) {
-                    withContext(Dispatchers.IO) { file.delete() }
+                if (state.tags.isNotBlank()) {
+                    IngestRepository.setTags(appContext, result.noteId, state.tags)
                 }
+                recording?.let { file ->
+                    if (file.isFile) withContext(Dispatchers.IO) { file.delete() }
+                }
+                currentRecordingFile = null
                 sendEffect(VoiceEffect.ShowToast(R.string.ingest_success))
                 sendEffect(VoiceEffect.Close)
             } catch (e: CancellationException) {
@@ -310,7 +342,20 @@ class VoiceViewModel(context: Context) : ViewModel() {
         }
     }
 
-    private fun wavFile(): File = File(File(appContext.cacheDir, "voice"), RECORD_FILE_NAME)
+    private fun createRecordingFile(): File {
+        val existing = currentRecordingFile
+        if (existing != null && !existing.isFile) currentRecordingFile = null
+        val file = currentRecordingFile
+            ?: File(File(appContext.filesDir, AUDIO_DIR), "$RECORD_PREFIX${System.currentTimeMillis()}.wav")
+                .also { currentRecordingFile = it }
+        if (!file.isFile) {
+            val dir = file.parentFile
+            if (dir != null && !dir.exists()) dir.mkdirs()
+        }
+        return file
+    }
+
+    private fun currentFile(): File? = currentRecordingFile?.takeIf { it.isFile }
 
     private fun sendEffect(effect: VoiceEffect) {
         viewModelScope.launch {
@@ -323,6 +368,11 @@ class VoiceViewModel(context: Context) : ViewModel() {
         timerJob?.cancel()
         asr?.release()
         asr = null
+        // 未确认保存的工作录音文件属于临时产物，离开页面即清理。
+        currentRecordingFile?.let { file ->
+            if (file.isFile) file.delete()
+        }
+        currentRecordingFile = null
         val player = mediaPlayer
         mediaPlayer = null
         if (player != null) {
