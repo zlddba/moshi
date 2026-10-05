@@ -106,7 +106,7 @@
 | 云端（可选） | `openai-kotlin` 4.1.0，基于 Ktor 3.6.0 / OkHttp |
 | 图片 | Coil 3.6.3 |
 | 单元测试 | JUnit 5（Jupiter） |
-| 构建 | AGP 9.4.1、Gradle 9.5.0、JDK 21、compileSdk/targetSdk 37、minSdk 26 |
+| 构建 | AGP 9.4.1、Gradle 9.8.0、JDK 21、compileSdk/targetSdk 37、minSdk 26 |
 
 ## 架构
 

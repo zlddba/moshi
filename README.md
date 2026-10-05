@@ -122,7 +122,7 @@ audited after the fact.
 | Cloud (opt-in) | `openai-kotlin` 4.1.0 on Ktor 3.6.0 / OkHttp |
 | Images | Coil 3.6.3 |
 | Unit tests | JUnit 5 (Jupiter) |
-| Build | AGP 9.4.1, Gradle 9.5.0, JDK 21, compileSdk/targetSdk 37, minSdk 26 |
+| Build | AGP 9.4.1, Gradle 9.8.0, JDK 21, compileSdk/targetSdk 37, minSdk 26 |
 
 ## Architecture
 
