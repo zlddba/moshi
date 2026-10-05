@@ -471,8 +471,8 @@ private fun ContentCard(uiState: DetailUiState) {
                 }
 
                 DocumentRenderer.Kind.MARKDOWN -> HtmlView(
-                    html = remember(block.text, dark) {
-                        HtmlRenderer.page(block.text, dark)
+                    html = remember(block.text, dark, uiState.hitRange) {
+                        HtmlRenderer.markdownPage(block.text, dark, uiState.hitRange)
                     },
                     modifier = Modifier.fillMaxWidth()
                 )

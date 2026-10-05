@@ -71,24 +71,35 @@ object HtmlRenderer {
 
     fun page(markdown: String, dark: Boolean): String = wrap(markdownToHtml(markdown), dark)
 
+    fun markdownPage(markdown: String, dark: Boolean, highlight: IntRange? = null): String {
+        val range = highlightRange(markdown, highlight)
+            ?: return page(markdown, dark)
+        val body = markdown.substring(0, range.first) +
+            "<mark>" + markdown.substring(range.first, range.last + 1) + "</mark>" +
+            markdown.substring(range.last + 1)
+        return page(body, dark)
+    }
+
     fun textPage(text: String, dark: Boolean, highlight: IntRange? = null): String {
-        val body = if (highlight == null) {
+        val range = highlightRange(text, highlight)
+        val body = if (range == null) {
             escape(text)
         } else {
-            val start = highlight.first.coerceIn(0, text.length)
-            val endExclusive = (highlight.last + 1).coerceIn(start, text.length)
-            if (endExclusive <= start) {
-                escape(text)
-            } else {
-                escape(text.substring(0, start)) +
-                    "<mark>" + escape(text.substring(start, endExclusive)) + "</mark>" +
-                    escape(text.substring(endExclusive))
-            }
+            escape(text.substring(0, range.first)) +
+                "<mark>" + escape(text.substring(range.first, range.last + 1)) + "</mark>" +
+                escape(text.substring(range.last + 1))
         }
         return wrap(
             "<pre style=\"white-space:pre-wrap;word-wrap:break-word;\">" + body + "</pre>",
             dark
         )
+    }
+
+    private fun highlightRange(text: String, highlight: IntRange?): IntRange? {
+        if (highlight == null) return null
+        val start = highlight.first.coerceIn(0, text.length)
+        val endExclusive = (highlight.last + 1).coerceIn(start, text.length)
+        return if (endExclusive <= start) null else start until endExclusive
     }
 
     fun escape(value: String): String = buildString(value.length) {

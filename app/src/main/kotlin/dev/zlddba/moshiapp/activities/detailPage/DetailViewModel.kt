@@ -117,7 +117,7 @@ class DetailViewModel(context: Context) : ViewModel() {
         event: DetailEvent.Init
     ): DetailUiState {
         val stored = note.sourceUri?.let { File(it) }?.takeIf { it.isFile }
-        val kind = DocumentRenderer.kindOf(stored?.name ?: note.title, note.type)
+        val kind = DocumentRenderer.kindOf(stored?.name ?: note.title, note.type, note.content)
         val file = stored?.let { CryptoManager.openForRead(appContext, it) }
         val sources = buildList {
             add(appContext.getString(R.string.detail_source_type_fmt, typeLabel(note.type)))

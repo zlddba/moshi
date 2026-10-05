@@ -13,7 +13,28 @@ object DocumentRenderer {
     private val WORD_EXT = setOf("docx", "doc")
     private val SHEET_EXT = setOf("xlsx", "xls")
 
-    fun kindOf(fileName: String?, noteType: String?): Kind {
+    private val MARKDOWN_STRONG = listOf(
+        Regex("(?m)^#{1,6}\\s+\\S"),
+        Regex("(?m)^\\s*```"),
+        Regex("(?m)^\\s*\\|[^\\n]*\\|[^\\n]*$"),
+        Regex("\\[[^\\]\\n]+\\]\\([^)\\n]+\\)"),
+        Regex("\\*\\*[^*\\n]{1,80}\\*\\*")
+    )
+
+    private val MARKDOWN_WEAK = listOf(
+        Regex("(?m)^\\s*[-*+]\\s+\\S"),
+        Regex("(?m)^\\s*\\d+[.)]\\s+\\S"),
+        Regex("(?m)^\\s*>\\s+\\S"),
+        Regex("`[^`\\n]+`")
+    )
+
+    fun looksLikeMarkdown(content: String): Boolean {
+        if (content.isBlank()) return false
+        if (MARKDOWN_STRONG.any { it.containsMatchIn(content) }) return true
+        return MARKDOWN_WEAK.count { it.containsMatchIn(content) } >= 2
+    }
+
+    fun kindOf(fileName: String?, noteType: String?, content: String = ""): Kind {
         val extension = fileName?.substringAfterLast('.', "")?.lowercase(Locale.US).orEmpty()
         return when {
             extension == "pdf" -> Kind.PDF
@@ -26,6 +47,7 @@ object DocumentRenderer {
             noteType == "PDF" -> Kind.PDF
             noteType == "IMAGE_OCR" -> Kind.IMAGE
             noteType == "AUDIO" -> Kind.AUDIO
+            looksLikeMarkdown(content) -> Kind.MARKDOWN
             else -> Kind.TEXT
         }
     }
