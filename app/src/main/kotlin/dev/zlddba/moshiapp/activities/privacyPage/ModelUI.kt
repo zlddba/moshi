@@ -191,7 +191,6 @@ private fun ManagedModelCard(
             if (current) MaterialTheme.colorScheme.primary
             else MaterialTheme.colorScheme.outlineVariant
         ),
-        shadowElevation = 2.dp,
         modifier = modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(16.dp)) {

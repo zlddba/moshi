@@ -50,7 +50,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -434,17 +433,13 @@ private fun HomeNoteCard(
     onLongClick: () -> Unit
 ) {
     val (icon, typeRes) = typeVisual(card.type)
-    val isPdf = card.type == NoteEntity.TYPE_PDF
-    val tileColor = if (isPdf) MaterialTheme.colorScheme.secondaryContainer
-    else MaterialTheme.colorScheme.primaryContainer
-    val tileTint = if (isPdf) MaterialTheme.colorScheme.onSecondaryContainer
-    else MaterialTheme.colorScheme.onPrimaryContainer
+    val tileColor = MaterialTheme.colorScheme.surfaceContainerHigh
+    val tileTint = MaterialTheme.colorScheme.onSurfaceVariant
 
     Surface(
         shape = MoshiShapeMedium,
         color = MaterialTheme.colorScheme.surface,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        shadowElevation = 2.dp,
         modifier = Modifier
             .fillMaxWidth()
             .combinedClickable(onClick = onClick, onLongClick = onLongClick)
@@ -482,8 +477,7 @@ private fun HomeNoteCard(
                     Text(
                         text = stringResource(typeRes),
                         style = MaterialTheme.typography.labelSmall,
-                        color = if (isPdf) MaterialTheme.colorScheme.secondary
-                        else MaterialTheme.colorScheme.primary,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier
                             .clip(MoshiShapePill)
                             .background(tileColor)
@@ -506,12 +500,12 @@ private fun HomeNoteCard(
                             Text(
                                 text = name,
                                 style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                                 modifier = Modifier
                                     .clip(MoshiShapePill)
-                                    .background(MaterialTheme.colorScheme.secondaryContainer)
+                                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
                                     .padding(horizontal = 8.dp, vertical = 3.dp)
                             )
                         }
@@ -526,12 +520,12 @@ private fun HomeNoteCard(
                         Text(
                             text = card.tag,
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.tertiary,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                             modifier = Modifier
                                 .clip(MoshiShapePill)
-                                .background(MaterialTheme.colorScheme.tertiaryContainer)
+                                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
                                 .padding(horizontal = 8.dp, vertical = 3.dp)
                         )
                         Spacer(modifier = Modifier.weight(1f))

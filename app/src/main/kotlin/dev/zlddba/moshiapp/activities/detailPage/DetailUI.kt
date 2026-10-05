@@ -349,7 +349,7 @@ private fun NoteHeader(
 private fun SummaryCard(text: String, onRegenerate: () -> Unit) {
     Surface(
         shape = MoshiShapeMedium,
-        color = MaterialTheme.colorScheme.secondaryContainer,
+        color = MaterialTheme.colorScheme.primaryContainer,
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
@@ -358,14 +358,14 @@ private fun SummaryCard(text: String, onRegenerate: () -> Unit) {
                     imageVector = Icons.Outlined.AutoAwesome,
                     contentDescription = null,
                     modifier = Modifier.size(16.dp),
-                    tint = MaterialTheme.colorScheme.onSecondaryContainer
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
                     text = stringResource(R.string.detail_summary_heading),
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
                     modifier = Modifier.weight(1f)
                 )
                 TextButton(onClick = onRegenerate) {
@@ -379,7 +379,7 @@ private fun SummaryCard(text: String, onRegenerate: () -> Unit) {
             Text(
                 text = text.ifBlank { stringResource(R.string.detail_summary_empty) },
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSecondaryContainer
+                color = MaterialTheme.colorScheme.onPrimaryContainer
             )
         }
     }

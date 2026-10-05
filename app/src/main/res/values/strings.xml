@@ -34,22 +34,9 @@
     <string name="home_card_type_image">截图</string>
     <string name="home_card_type_voice">语音</string>
     <string name="home_card_type_sheet">Excel</string>
-    <string name="home_card_summary_1">介绍了 SQLite 向量扩展的安装与基本用法…</string>
-    <string name="home_card_summary_2">端侧推理框架选型对比与踩坑记录…</string>
-    <string name="home_card_summary_3">课堂笔记：向量检索的召回与重排…</string>
     <string name="home_card_title_1">sqlite-vec 使用笔记</string>
-    <string name="home_card_title_2">LiteRT-LM 部署踩坑</string>
-    <string name="home_card_title_3">语义检索原理摘要</string>
     <string name="home_card_tag_db">数据库</string>
     <string name="home_card_tag_ml">机器学习</string>
-    <string name="home_card_tag_course">课程</string>
-    <string name="home_card_time_1">今天 09:24</string>
-    <string name="home_card_time_2">昨天 21:10</string>
-    <string name="home_card_time_3">9 月 18 日</string>
-    <string name="home_card_title_4">周会语音纪要</string>
-    <string name="home_card_summary_4">转写完成，识别置信度高，可直接编辑后入库</string>
-    <string name="home_card_tag_4">工作</string>
-    <string name="home_card_time_4">昨天 15:40</string>
     <string name="home_search_submit">搜索</string>
 
     <!-- 语义搜索页 -->

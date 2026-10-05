@@ -106,7 +106,6 @@ private fun ModelMissingContent(onEvent: (VoiceViewModel.VoiceEvent) -> Unit) {
             shape = MoshiShapeMedium,
             color = MaterialTheme.colorScheme.surface,
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-            shadowElevation = 2.dp,
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(
@@ -157,7 +156,6 @@ private fun DownloadingContent(uiState: VoiceViewModel.VoiceUiState) {
             shape = MoshiShapeMedium,
             color = MaterialTheme.colorScheme.surface,
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-            shadowElevation = 2.dp,
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(
@@ -392,7 +390,6 @@ private fun VoiceAudioCard(
         shape = MoshiShapeMedium,
         color = MaterialTheme.colorScheme.surface,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        shadowElevation = 2.dp,
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
