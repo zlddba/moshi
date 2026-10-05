@@ -1,50 +1,260 @@
-# 默识（Moshi）
+<div align="center">
 
-端侧优先的个人知识库问答 App：笔记与文档导入本机，分块、嵌入、检索、问答全部在设备本地闭环。第十六届华北五省计算机应用大赛参赛作品。
+<img src="app/src/main/res/mipmap-xxxhdpi/ic_launcher.webp" width="88" alt="Moshi icon" />
 
-## 核心特性
+# Moshi · 默识
 
-- **本地零上传**：端侧模式不申请网络权限，解析、向量检索与回答生成不依赖云端。
-- **双引擎**：端侧推理 LiteRT-LM（默认开箱即用），云端 OpenAI 兼容网关可选开启；仅发送「问题 + 检索命中的相关片段」，原始知识不出端。
-- **有据才答**：所有回答强制附来源，可一键跳转原文并高亮；相关性不足时固定拒答「知识库中没有找到相关内容」，禁止编造。
-- **敏感强制端侧**：标记为敏感的知识即使云端已开启也只走本地引擎。
-- **多格式导入**：PDF、DOCX、Markdown、TXT、截图 OCR（ML Kit 中文）与语音转写，全部本机处理。
+**An on-device-first personal knowledge base for Android that answers only from your own documents.**
 
-## 技术栈
+Parsing, chunking, embedding, retrieval and answer generation all run on the phone.
+Every answer carries its sources, and when the evidence is not there, Moshi refuses
+instead of making something up.
 
-Kotlin · Jetpack Compose（Material 3）· Room · sqlite-vec/usearch · LiteRT-LM · MediaPipe Gecko 嵌入 · ML Kit · Coil 3 · MVVM（单向数据流 + StateFlow）
+[中文说明](docs/readme/README.zh-CN.md)
 
-## 工程结构
+![Platform](https://img.shields.io/badge/platform-Android%2026%2B-3DDC84?logo=android&logoColor=white)
+![ABI](https://img.shields.io/badge/ABI-arm64--v8a-important)
+![Kotlin](https://img.shields.io/badge/Kotlin-2.4.20-7F52FF?logo=kotlin&logoColor=white)
+![Compose](https://img.shields.io/badge/Jetpack%20Compose-Material%203-4285F4?logo=jetpackcompose&logoColor=white)
+![License](https://img.shields.io/badge/license-Apache--2.0-blue)
 
-单模块 `:app`，Kotlin 源码位于 `app/src/main/kotlin/`：
+</div>
+
+---
+
+## Why
+
+Most "chat with your documents" tools upload your files to a server. Moshi takes the
+opposite position: the knowledge base is a private, offline asset. Retrieval never
+leaves the device, generation runs in a local model by default, and the cloud engine
+is an opt-in that only ever sees your question plus the snippets that retrieval
+already selected.
+
+That constraint shapes the whole design — and it is why Moshi is built to say
+*"I don't know"* rather than to sound confident.
+
+## Features
+
+- **Local by default.** On-device mode performs no uploads. Parsing, embedding,
+  vector search and answer generation are all local.
+- **Dual engine, switchable.** Local inference via LiteRT-LM (works out of the box),
+  plus an optional OpenAI-compatible cloud engine. The engine badge in the app
+  toggles between them with a single tap.
+- **Evidence-only answers.** Every answer is grounded in retrieved snippets and
+  cites them by number (`【1】`); tapping a source jumps to the original passage and
+  highlights the matched span.
+- **Refuses instead of fabricating.** When retrieval relevance falls below the
+  threshold, the reply is a fixed refusal — `知识库中没有找到相关内容` — never a guess.
+- **Sensitive content stays local.** Notes marked sensitive are routed to the local
+  engine even when the cloud engine is enabled, and are filtered out of cloud tool
+  calls entirely.
+- **Multi-format import.** PDF, DOC/DOCX, XLS/XLSX, CSV/TSV, Markdown and plain text,
+  plus screenshot OCR (ML Kit, Chinese) and speech transcription (sherpa-onnx).
+- **Encrypted at rest.** Optional SQLCipher encryption for both databases and
+  AES-GCM for stored source files, with biometric unlock.
+- **Knowledge graph view.** A similarity-based graph over your notes, built from the
+  same embeddings used for retrieval.
+
+## How it works
+
+### Ingestion
+
+```
+file / text / image / audio
+        │
+        ├─ PDF          → PDFBox-Android
+        ├─ DOC(X)/XLS(X) → Apache POI
+        ├─ MD / TXT     → commonmark / raw
+        ├─ image        → ML Kit OCR (Chinese)
+        └─ audio        → sherpa-onnx (SenseVoice, streaming zipformer)
+        │
+        ▼
+   heading- and sentence-aware chunking
+        │
+        ├─► embedding (MediaPipe Gecko 256 INT8, 768-dim)  → sqlite-vec
+        └─► keyword rows                                   → SQLite FTS5 (trigram)
+```
+
+### Retrieval
+
+Moshi runs two recall channels and fuses them:
+
+1. **Vector recall** over the sqlite-vec index, with a minimum similarity gate.
+2. **Keyword recall** over an FTS5 table using the trigram tokenizer, which keeps
+   Chinese substring matching and exact terms (identifiers, numbers, abbreviations)
+   working where embeddings are weak.
+
+The channels are combined with **Reciprocal Rank Fusion** (`k = 60`), then filtered by
+both an absolute relevance threshold and a ratio relative to the top hit.
+
+Two further steps exist to protect answer quality:
+
+- **Query expansion (pseudo-relevance feedback).** If the first pass looks weak,
+  Moshi derives additional queries from the best hit's title and text and retrieves
+  again — no extra model call, no added latency for easy questions.
+- **Per-note cap.** Only a limited number of chunks from any single note are kept, so
+  one long document cannot crowd out everything else in the context window.
+
+### Answering
+
+The retrieved snippets are numbered and handed to the model, which must answer in two
+parts — a reasoning section and an answer section — and must cite snippet numbers. If
+the snippets do not support an answer, the model is instructed to emit the exact
+refusal string, and the client independently verifies that refusal.
+
+Chat history, sources and the exact evidence used are persisted, so an answer can be
+audited after the fact.
+
+## Tech stack
+
+| Area | Choice |
+| --- | --- |
+| Language / UI | Kotlin 2.4.20, Jetpack Compose (Material 3) |
+| Architecture | Multi-Activity with tab switching, MVVM, unidirectional `StateFlow` |
+| Local inference | LiteRT-LM (`litertlm-android` 0.17.1) |
+| Embeddings | MediaPipe Gecko 256 INT8 (768-dim) via `google-localagents-rag` |
+| Vector index | sqlite-vec (`SqliteVectorStore`) |
+| Keyword index | SQLite FTS5 with the trigram tokenizer |
+| Persistence | Room 3 (KSP), SQLCipher 4.19.1 |
+| Document parsing | Apache POI 5.5.1, PDFBox-Android 2.0.27.0, commonmark 0.30.0 |
+| OCR | ML Kit Text Recognition 16.0.1 (Chinese) |
+| Speech | sherpa-onnx 1.13.7 (SenseVoice + streaming zipformer) |
+| Cloud (opt-in) | `openai-kotlin` 4.1.0 on Ktor 3.6.0 / OkHttp |
+| Images | Coil 3.6.3 |
+| Unit tests | JUnit 5 (Jupiter) |
+| Build | AGP 9.4.1, Gradle 9.5.0, JDK 21, compileSdk/targetSdk 37, minSdk 26 |
+
+## Architecture
+
+Single Gradle module (`:app`), layered so that UI never touches Room, files or model
+APIs directly:
 
 ```
 app/src/main/kotlin/dev/zlddba/moshiapp/
-├── activities/   # 页面三件套（Activity + UI + ViewModel）：launch/firstLaunch/main 等
-├── domain/       # 领域层
-├── data/         # 数据层：Room、向量索引、仓库、偏好
-├── engine/       # 本地/云端问答引擎抽象
-├── ingest/       # 文档导入、OCR、转写
-└── ui/theme/     # 质感简约设计语言（色板/字阶/形状令牌）
+├── activities/   Activities + Compose UI + ViewModels, grouped per page
+├── domain/       Retrieval, Q&A orchestration, tools, chunking, security, prefs
+├── data/         Room entities/DAOs, vector store, keyword index, repositories
+├── engine/       Local and cloud inference behind a common gateway interface
+├── ingest/       Document parsing, OCR, speech, model file management
+└── ui/           Design tokens (color/type/shape) and shared UI helpers
 ```
 
-## 构建
+The local and cloud engines sit behind one abstraction, so models and endpoints stay
+replaceable. Retrieval quality, prompt construction and refusal handling are shared by
+both engines.
 
-- 环境：Android Studio（AGP 9.4.1 / Gradle 9.5.0 / JDK 21）、compileSdk 37、minSdk 24。
-- 打开 `moshi/` 目录，首次同步会在 `local.properties` 写入 `sdk.dir`（已被忽略，勿提交）。
-- 运行：选择 `app` 运行配置直接 Run；本仓库约定代码修改后不主动执行构建，由开发者自行 Sync 与验证。
+## Getting started
 
-## 分支模型
+### Requirements
 
-| 分支 | 用途 |
-| ---- | ---- |
-| `master` | 稳定可演示版本，只接受合并 |
-| `develop` | 集成分支，功能在此汇聚 |
-| `feature/*` | 功能开发，从 `develop` 切出、`--no-ff` 合回 |
+- **JDK 21**
+- **Android SDK 37** (compileSdk and targetSdk)
+- Android Studio with AGP 9.4.1 or newer
+- A **physical arm64-v8a device** running **Android 8.0 (API 26) or newer**
 
-提交信息遵循 Conventional Commits + 中文 subject，详见设计文档库内《Git 使用规范》。
+> The app is built for `arm64-v8a` only. It will not install on 32-bit ARM or x86
+> devices, and it will not run in most x86 emulators.
 
-## 当前状态
+### Build and run
 
-- ✅ 启动引导链（Launch → FirstLaunch 三屏 → 主框架）、十屏静态 UI 与质感简约主题。
-- ⏳ P0 数据闭环：文档导入 → 分块 → 端侧嵌入 → 向量检索 → 问答 + 来源标注 + 拒答判定。
+```bash
+git clone git@github.com:zlddba/moshi.git
+cd moshi
+./gradlew :app:assembleDebug
+```
+
+Or open the `moshi/` directory in Android Studio and press Run. On first sync,
+`local.properties` is generated with your `sdk.dir` — it is git-ignored, do not commit it.
+
+### A note on `repo/`
+
+`com.github.k2fsa:sherpa-onnx:1.13.7` is resolved from a local Maven mirror under
+`repo/`, which is intentionally **not tracked by Git** (it is a 47 MB binary). The same
+coordinates are also declared against JitPack in `settings.gradle.kts`, so a fresh clone
+normally resolves them from there. If JitPack is unreachable from your network, place
+the artifact back under `repo/` using the same Maven layout:
+
+```
+repo/com/github/k2fsa/sherpa-onnx/1.13.7/sherpa-onnx-1.13.7.aar
+```
+
+## On-device models
+
+Model files are **not** part of this repository. The app downloads them on demand from
+ModelScope (with an `hf-mirror.com` fallback) and verifies sizes before use:
+
+| Purpose | Model | File |
+| --- | --- | --- |
+| Chat (default) | Gemma 4 E2B | `gemma-4-E2B-it.litertlm` |
+| Chat (low-end devices) | Qwen3-0.6B | `qwen3_0_6b_mixed_int4.litertlm` |
+| Embeddings | Gecko 256 INT8 | `Gecko_256_quant.tflite` + `sentencepiece.model` |
+| Speech (offline) | SenseVoice | `model.int8.onnx` + `tokens.txt` |
+| Speech (streaming) | Zipformer | `encoder/decoder/joiner-epoch-99-avg-1.int8.onnx` |
+
+Question answering needs a chat model; semantic retrieval needs the embedding model.
+The app detects device memory and can downgrade the chat model automatically. Without
+an embedding model, retrieval degrades to keyword matching only.
+
+## Cloud engine (optional)
+
+The cloud engine is **off by default** and must be configured explicitly with a base
+URL, an API key and a model name. It is OpenAI-compatible, so it works with any
+compatible endpoint.
+
+When enabled, the following leaves the device:
+
+- your question, and
+- the snippets retrieval already selected from your own knowledge base.
+
+What never leaves the device: your original files, your embeddings, and any note marked
+sensitive — those are filtered out before a cloud request is built, including inside
+tool calls.
+
+The cloud path also supports function calling with two MCP-shaped tools
+(`search_knowledge`, `get_note`) that execute **locally**, so the model can request
+more evidence without the knowledge base itself leaving the device. Failures are
+surfaced to the user with the specific cause (invalid key, unreachable host, TLS
+failure, timeout, HTTP status) rather than being silently swallowed.
+
+## Privacy model
+
+| | Local engine | Cloud engine |
+| --- | --- | --- |
+| Original files | stay on device | stay on device |
+| Embeddings / index | stay on device | stay on device |
+| Retrieved snippets | stay on device | sent |
+| Question | stays on device | sent |
+| Notes marked sensitive | stay on device | never sent |
+
+Databases can be encrypted with SQLCipher, stored source files with AES-GCM, and unlock
+can be gated behind biometrics.
+
+## Branching and commits
+
+| Branch | Purpose |
+| --- | --- |
+| `master` | Stable, demo-ready releases. Merge-only. |
+| `develop` | Integration branch. |
+| `feature/*` | Feature work, cut from `develop`, merged back with `--no-ff`. |
+
+Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/)
+with a Chinese subject line.
+
+## Status
+
+Moshi is an active competition project. The core loop — import, chunk, embed, retrieve,
+answer with citations and refusal handling — is implemented and running on device.
+Areas under active development include retrieval quality tuning, the knowledge graph
+view and broader device coverage.
+
+## License
+
+Licensed under the [Apache License 2.0](LICENSE).
+
+## Acknowledgements
+
+Built as an entry for the 16th North China Five-Province Computer Application Competition
+(第十六届华北五省计算机应用大赛).
+
+Standing on the shoulders of: LiteRT-LM, MediaPipe / `google-localagents-rag`,
+sqlite-vec, SQLCipher, Apache POI, PDFBox, ML Kit, sherpa-onnx, Room and Jetpack Compose.
