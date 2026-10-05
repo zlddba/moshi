@@ -40,6 +40,7 @@ object IndexOrchestrator {
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Throwable) {
+                    Log.e(TAG, "sweep failed", e)
                 }
             }
         }
@@ -52,7 +53,10 @@ object IndexOrchestrator {
     }
 
     private suspend fun sweep(context: Context) {
-        if (!GeckoEmbedding.isReady(context)) return
+        if (!GeckoEmbedding.isReady(context)) {
+            Log.w(TAG, "sweep skipped: embedding model not ready")
+            return
+        }
         val database = MoshiDatabase.get(context)
         val notes = database.noteDao().notIndexed()
         Log.i(TAG, "sweep pending notes=${notes.size}")

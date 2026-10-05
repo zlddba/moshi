@@ -2,6 +2,7 @@ package dev.zlddba.moshiapp.data.db
 
 import android.content.Context
 import android.database.Cursor
+import android.util.Log
 import dev.zlddba.moshiapp.domain.security.CryptoManager
 import java.io.File
 import kotlinx.coroutines.Dispatchers
@@ -9,6 +10,8 @@ import kotlinx.coroutines.withContext
 import net.zetetic.database.sqlcipher.SQLiteDatabase
 
 object KeywordIndex {
+
+    private const val TAG = "KeywordIndex"
 
     data class KwHit(
         val chunkId: Int,
@@ -31,14 +34,23 @@ object KeywordIndex {
     suspend fun search(context: Context, query: String, k: Int): List<KwHit> =
         withContext(Dispatchers.IO) {
             if (k <= 0 || query.isBlank()) return@withContext emptyList()
-            val db = open(context) ?: return@withContext emptyList()
+            val db = open(context)
+            if (db == null) {
+                Log.w(TAG, "search skipped: index unavailable query=$query")
+                return@withContext emptyList()
+            }
             val terms = termsOf(query)
-            if (terms.isEmpty()) return@withContext emptyList()
+            if (terms.isEmpty()) {
+                Log.i(TAG, "search no terms query=$query")
+                return@withContext emptyList()
+            }
             if (ftsReady) {
                 val ftsHits = ftsSearch(db, terms, k)
                 if (ftsHits.isNotEmpty()) return@withContext ftsHits
             }
-            likeSearch(db, terms, k)
+            val likeHits = likeSearch(db, terms, k)
+            Log.i(TAG, "search terms=${terms.size} fts=$ftsReady hits=${likeHits.size}")
+            likeHits
         }
 
     fun deleteNote(context: Context, noteId: String) {
@@ -74,13 +86,19 @@ object KeywordIndex {
 
     fun insertChunks(context: Context, chunks: List<ChunkEntity>) {
         if (chunks.isEmpty()) return
-        val db = open(context) ?: return
+        val db = open(context)
+        if (db == null) {
+            Log.w(TAG, "insert skipped: index unavailable chunks=${chunks.size}")
+            return
+        }
         val table = if (ftsReady) FTS_TABLE else PLAIN_TABLE
         val noteId = chunks.first().noteId
         try {
             db.execSQL("DELETE FROM $table WHERE note_id = ?", arrayOf<Any>(noteId))
         } catch (e: Throwable) {
+            Log.w(TAG, "delete before insert failed note=$noteId table=$table", e)
         }
+        var failed = 0
         for (chunk in chunks) {
             try {
                 db.execSQL(
@@ -88,15 +106,21 @@ object KeywordIndex {
                     arrayOf<Any>(chunk.id, chunk.noteId, chunk.text)
                 )
             } catch (e: Throwable) {
+                failed++
+                if (failed == 1) Log.e(TAG, "insert failed chunk=${chunk.id} table=$table", e)
             }
         }
+        Log.i(TAG, "insert done note=$noteId table=$table ok=${chunks.size - failed} failed=$failed")
     }
 
     private fun open(context: Context): SQLiteDatabase? {
         database?.let { return it }
         synchronized(this) {
             database?.let { return it }
-            if (!DatabaseCipher.ensureNative()) return null
+            if (!DatabaseCipher.ensureNative()) {
+                Log.e(TAG, "sqlcipher native library unavailable, keyword index disabled")
+                return null
+            }
             val appContext = context.applicationContext
             val directory = File(appContext.filesDir, "keywords")
             directory.mkdirs()
@@ -111,9 +135,20 @@ object KeywordIndex {
             } else {
                 ByteArray(0)
             }
+            Log.i(
+                TAG,
+                "open file=${file.name} exists=${file.exists()} encryptFlag=$encrypt " +
+                    "encryptedOnDisk=$encrypted keyLen=${key.size}"
+            )
             val created = try {
                 SQLiteDatabase.openOrCreateDatabase(file, key, null, null, null)
             } catch (e: Throwable) {
+                Log.e(
+                    TAG,
+                    "open failed encryptFlag=$encrypt encryptedOnDisk=$encrypted " +
+                        "keyLen=${key.size}",
+                    e
+                )
                 return null
             }
             ftsReady = try {
@@ -123,6 +158,7 @@ object KeywordIndex {
                 )
                 true
             } catch (e: Throwable) {
+                Log.w(TAG, "fts5 unavailable, fallback to plain table", e)
                 try {
                     created.execSQL(
                         "CREATE TABLE IF NOT EXISTS $PLAIN_TABLE (" +
@@ -130,10 +166,12 @@ object KeywordIndex {
                             "text TEXT NOT NULL)"
                     )
                 } catch (inner: Throwable) {
+                    Log.e(TAG, "plain table create failed, keyword index unusable", inner)
                 }
                 false
             }
             database = created
+            Log.i(TAG, "keyword index opened ftsReady=$ftsReady")
             return created
         }
     }
