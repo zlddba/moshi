@@ -31,6 +31,7 @@ class PrivacyViewModel(context: Context) : ViewModel() {
     data class PrivacyUiState(
         val encryptionEnabled: Boolean = false,
         val forceLocal: Boolean = true,
+        val qaHistoryEnabled: Boolean = true,
         val busy: Boolean = false,
         val storageEncrypted: Boolean = false,
         val lockMethod: String = SecurityPrefs.METHOD_NONE,
@@ -53,6 +54,7 @@ class PrivacyViewModel(context: Context) : ViewModel() {
         data object Reload : PrivacyEvent
         data class EncryptionChanged(val enabled: Boolean) : PrivacyEvent
         data class ForceLocalChanged(val enabled: Boolean) : PrivacyEvent
+        data class QaHistoryChanged(val enabled: Boolean) : PrivacyEvent
         data object SetLockPin : PrivacyEvent
         data object SetLockPattern : PrivacyEvent
         data object DisableLock : PrivacyEvent
@@ -80,6 +82,7 @@ class PrivacyViewModel(context: Context) : ViewModel() {
             PrivacyEvent.Reload -> reload()
             is PrivacyEvent.EncryptionChanged -> setEncryption(event.enabled)
             is PrivacyEvent.ForceLocalChanged -> setForceLocal(event.enabled)
+            is PrivacyEvent.QaHistoryChanged -> setQaHistory(event.enabled)
             PrivacyEvent.SetLockPin ->
                 sendEffect(PrivacyEffect.OpenLockSetup(SecurityPrefs.METHOD_PIN))
 
@@ -98,6 +101,7 @@ class PrivacyViewModel(context: Context) : ViewModel() {
             it.copy(
                 encryptionEnabled = securityPrefs.isEncryptionEnabled(),
                 forceLocal = config.forceLocal,
+                qaHistoryEnabled = securityPrefs.isQaHistoryEnabled(),
                 storageEncrypted = storageEncrypted(),
                 lockMethod = securityPrefs.lockMethod(),
                 biometricEnabled = securityPrefs.isBiometricEnabled(),
@@ -114,6 +118,11 @@ class PrivacyViewModel(context: Context) : ViewModel() {
     private fun setForceLocal(enabled: Boolean) {
         cloudPrefs.save(cloudPrefs.load().copy(forceLocal = enabled))
         _uiState.update { it.copy(forceLocal = enabled) }
+    }
+
+    private fun setQaHistory(enabled: Boolean) {
+        securityPrefs.setQaHistoryEnabled(enabled)
+        _uiState.update { it.copy(qaHistoryEnabled = enabled) }
     }
 
     private fun disableLock() {
