@@ -27,6 +27,7 @@ object CryptoManager {
     private const val IV_BYTES = 12
     private const val DEK_BYTES = 32
     private const val MAGIC = "MOSHI1"
+    private const val TEXT_PREFIX = "enc:"
     private const val CACHE_DIR = "secure"
     private const val BUFFER_SIZE = 8192
 
@@ -41,6 +42,44 @@ object CryptoManager {
     } catch (e: Throwable) {
         Log.e(TAG, "database passphrase unavailable", e)
         null
+    }
+
+    fun encryptText(context: Context, plain: String): String? {
+        if (plain.isEmpty()) return plain
+        return try {
+            val cipher = Cipher.getInstance(TRANSFORMATION)
+            cipher.init(Cipher.ENCRYPT_MODE, SecretKeySpec(dek(context), "AES"))
+            val payload = cipher.iv + cipher.doFinal(plain.toByteArray(Charsets.UTF_8))
+            TEXT_PREFIX + Base64.encodeToString(payload, Base64.NO_WRAP)
+        } catch (e: Throwable) {
+            Log.e(TAG, "encryptText failed", e)
+            null
+        }
+    }
+
+    fun decryptText(context: Context, stored: String): String? {
+        if (stored.isEmpty()) return stored
+        if (!stored.startsWith(TEXT_PREFIX)) return stored
+        return try {
+            val payload = Base64.decode(stored.removePrefix(TEXT_PREFIX), Base64.NO_WRAP)
+            if (payload.size <= IV_BYTES) {
+                null
+            } else {
+                val cipher = Cipher.getInstance(TRANSFORMATION)
+                cipher.init(
+                    Cipher.DECRYPT_MODE,
+                    SecretKeySpec(dek(context), "AES"),
+                    GCMParameterSpec(GCM_TAG_BITS, payload.copyOfRange(0, IV_BYTES))
+                )
+                String(
+                    cipher.doFinal(payload.copyOfRange(IV_BYTES, payload.size)),
+                    Charsets.UTF_8
+                )
+            }
+        } catch (e: Throwable) {
+            Log.e(TAG, "decryptText failed", e)
+            null
+        }
     }
 
     fun isFileEncrypted(file: File): Boolean {

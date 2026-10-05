@@ -28,7 +28,8 @@ object HtmlRenderer {
             "th{background:#F3EDF7;}hr{border:none;border-top:1px solid #CAC4D0;margin:12px 0;}" +
             "ul,ol{padding-left:22px;}img{max-width:100%;}" +
             ".sheet-name{font-weight:bold;margin:14px 0 6px;color:#49454F;}" +
-            ".empty{color:#79747E;}"
+            ".empty{color:#79747E;}" +
+            "mark{background:#FFE08A;color:#1C1B1F;border-radius:3px;padding:0 2px;}"
 
     private const val CSS_DARK =
         "body{font-family:sans-serif;font-size:15px;line-height:1.6;padding:16px;margin:0;" +
@@ -45,7 +46,8 @@ object HtmlRenderer {
             "th{background:#2B2930;}hr{border:none;border-top:1px solid #49454F;margin:12px 0;}" +
             "ul,ol{padding-left:22px;}img{max-width:100%;}" +
             ".sheet-name{font-weight:bold;margin:14px 0 6px;color:#CAC4D0;}" +
-            ".empty{color:#938F99;}"
+            ".empty{color:#938F99;}" +
+            "mark{background:#7A5900;color:#FFF3C4;border-radius:3px;padding:0 2px;}"
 
     fun markdownToHtml(markdown: String): String {
         val extensions = listOf(
@@ -69,8 +71,25 @@ object HtmlRenderer {
 
     fun page(markdown: String, dark: Boolean): String = wrap(markdownToHtml(markdown), dark)
 
-    fun textPage(text: String, dark: Boolean): String =
-        wrap("<pre style=\"white-space:pre-wrap;word-wrap:break-word;\">" + escape(text) + "</pre>", dark)
+    fun textPage(text: String, dark: Boolean, highlight: IntRange? = null): String {
+        val body = if (highlight == null) {
+            escape(text)
+        } else {
+            val start = highlight.first.coerceIn(0, text.length)
+            val endExclusive = (highlight.last + 1).coerceIn(start, text.length)
+            if (endExclusive <= start) {
+                escape(text)
+            } else {
+                escape(text.substring(0, start)) +
+                    "<mark>" + escape(text.substring(start, endExclusive)) + "</mark>" +
+                    escape(text.substring(endExclusive))
+            }
+        }
+        return wrap(
+            "<pre style=\"white-space:pre-wrap;word-wrap:break-word;\">" + body + "</pre>",
+            dark
+        )
+    }
 
     fun escape(value: String): String = buildString(value.length) {
         for (ch in value) {

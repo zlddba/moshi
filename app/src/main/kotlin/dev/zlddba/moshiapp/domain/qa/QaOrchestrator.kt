@@ -5,6 +5,7 @@ import android.util.Log
 import dev.zlddba.moshiapp.R
 import dev.zlddba.moshiapp.data.prefs.CloudConfigPrefs
 import dev.zlddba.moshiapp.data.prefs.ModelPrefs
+import dev.zlddba.moshiapp.domain.error.ErrorCode
 import dev.zlddba.moshiapp.domain.retrieve.RetrieveService
 import dev.zlddba.moshiapp.engine.cloud.CloudAnswer
 import dev.zlddba.moshiapp.engine.cloud.CloudConfig
@@ -58,7 +59,10 @@ object QaOrchestrator {
         val appContext = context.applicationContext
         return try {
             val hits = RetrieveService.retrieve(appContext, question, QA_TOP_K)
-            if (hits.isEmpty()) return Outcome.Refusal
+            if (hits.isEmpty()) {
+                Log.i(TAG, "refuse ${ErrorCode.RETRIEVE_EMPTY.code} question=$question")
+                return Outcome.Refusal
+            }
             val cloudConfig = CloudConfigPrefs(appContext).load()
             if (shouldUseCloud(cloudConfig, hits)) {
                 val answer = withContext(Dispatchers.IO) {
@@ -82,7 +86,8 @@ object QaOrchestrator {
                     is CloudAnswer.Failure -> {
                         Log.e(
                             TAG,
-                            "cloud failed status=${answer.statusCode} mode=${cloudConfig.mode}"
+                            "cloud failed ${ErrorCode.forCloudStatus(answer.statusCode).code} " +
+                                "status=${answer.statusCode} mode=${cloudConfig.mode}"
                         )
                         if (cloudConfig.mode == CloudConfig.MODE_CLOUD) {
                             return Outcome.Excerpt(hits)
@@ -122,6 +127,9 @@ object QaOrchestrator {
                     Outcome.Generated(hits)
                 } catch (e: CancellationException) {
                     throw e
+                } catch (e: OutOfMemoryError) {
+                    Log.e(TAG, "generate oom ${ErrorCode.OOM.code} hits=${hits.size}", e)
+                    Outcome.Excerpt(hits)
                 } catch (t: Throwable) {
                     Log.e(TAG, "generate failed hits=${hits.size}", t)
                     Outcome.Excerpt(hits)

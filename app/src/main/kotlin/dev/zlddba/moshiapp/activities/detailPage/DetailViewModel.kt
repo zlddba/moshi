@@ -133,6 +133,8 @@ class DetailViewModel(context: Context) : ViewModel() {
             }
             file?.let { add(appContext.getString(R.string.detail_source_file_fmt, it.name)) }
         }
+        val focusIndex = chunks.indexOfFirst { it.id == event.chunkId }
+        val focusChunk = chunks.getOrNull(focusIndex)
         return DetailUiState(
             noteId = note.id,
             isSensitive = note.isSensitive,
@@ -152,7 +154,9 @@ class DetailViewModel(context: Context) : ViewModel() {
             paragraphs = chunks.map { DetailUiState.Paragraph(text = it.text, pageNo = it.pageNo) },
             sources = sources,
             highlight = event.keyword.orEmpty(),
-            focusIndex = chunks.indexOfFirst { it.id == event.chunkId }
+            focusIndex = focusIndex,
+            hitSnippet = focusChunk?.text.orEmpty(),
+            hitRange = focusChunk?.let { it.charOffset until (it.charOffset + it.text.length) }
         )
     }
 

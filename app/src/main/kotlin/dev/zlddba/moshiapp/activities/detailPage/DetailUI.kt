@@ -55,7 +55,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
@@ -90,6 +94,8 @@ data class DetailUiState(
     val related: List<RelatedNote> = emptyList(),
     val highlight: String = "",
     val focusIndex: Int = -1,
+    val hitSnippet: String = "",
+    val hitRange: IntRange? = null,
     val isEditing: Boolean = false,
     val missing: Boolean = false
 ) {
@@ -215,6 +221,9 @@ private fun ViewBody(
         modifier = Modifier.fillMaxSize()
     ) {
         item { NoteHeader(uiState = uiState, onToggleSensitive = onEvent) }
+        if (uiState.hitSnippet.isNotBlank()) {
+            item { HitSnippetCard(snippet = uiState.hitSnippet, keyword = uiState.highlight) }
+        }
         item {
             SummaryCard(
                 text = uiState.abstract,
@@ -469,8 +478,8 @@ private fun ContentCard(uiState: DetailUiState) {
                 )
 
                 DocumentRenderer.Kind.TEXT, DocumentRenderer.Kind.UNSUPPORTED -> HtmlView(
-                    html = remember(block.text, dark) {
-                        HtmlRenderer.textPage(block.text, dark)
+                    html = remember(block.text, dark, uiState.hitRange) {
+                        HtmlRenderer.textPage(block.text, dark, uiState.hitRange)
                     },
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -478,6 +487,54 @@ private fun ContentCard(uiState: DetailUiState) {
         }
     }
 }
+
+@Composable
+private fun HitSnippetCard(snippet: String, keyword: String) {
+    Surface(
+        shape = MoshiShapeMedium,
+        color = MaterialTheme.colorScheme.tertiaryContainer,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            Text(
+                text = stringResource(R.string.detail_hit_heading),
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onTertiaryContainer
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = highlightSnippet(snippet = snippet, keyword = keyword),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onTertiaryContainer
+            )
+        }
+    }
+}
+
+@Composable
+private fun highlightSnippet(snippet: String, keyword: String): AnnotatedString {
+    val trimmed = snippet.take(HIT_SNIPPET_CHARS)
+    if (keyword.isBlank()) return AnnotatedString(trimmed)
+    val highlightColor = MaterialTheme.colorScheme.tertiary
+    return buildAnnotatedString {
+        var index = 0
+        while (index < trimmed.length) {
+            val found = trimmed.indexOf(keyword, index, ignoreCase = true)
+            if (found < 0) {
+                append(trimmed.substring(index))
+                break
+            }
+            append(trimmed.substring(index, found))
+            withStyle(SpanStyle(background = highlightColor, fontWeight = FontWeight.Bold)) {
+                append(trimmed.substring(found, found + keyword.length))
+            }
+            index = found + keyword.length
+        }
+    }
+}
+
+private const val HIT_SNIPPET_CHARS = 300
 
 @Composable
 private fun MissingFile() {
