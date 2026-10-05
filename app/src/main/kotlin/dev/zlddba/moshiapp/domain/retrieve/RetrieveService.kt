@@ -6,6 +6,7 @@ import dev.zlddba.moshiapp.data.db.KeywordIndex
 import dev.zlddba.moshiapp.data.db.MoshiDatabase
 import dev.zlddba.moshiapp.data.db.NoteEntity
 import dev.zlddba.moshiapp.data.vector.VectorStoreClient
+import dev.zlddba.moshiapp.domain.index.IndexOrchestrator
 import dev.zlddba.moshiapp.engine.embedding.GeckoEmbedding
 
 object RetrieveService {
@@ -89,6 +90,7 @@ object RetrieveService {
         if (query.isEmpty() || noteId.isEmpty() || topK <= 0) return emptyList()
         val appContext = context.applicationContext
         val vector = GeckoEmbedding.embedQuery(appContext, query) ?: return emptyList()
+        reconcileDelegate(appContext)
         val hits = VectorStoreClient.search(
             appContext,
             vector,
@@ -117,8 +119,17 @@ object RetrieveService {
         return related
     }
 
+    private suspend fun reconcileDelegate(context: Context) {
+        val delegate = GeckoEmbedding.delegateTag()
+        if (!VectorStoreClient.ensureDelegate(context, delegate)) return
+        Log.w(TAG, "embedding delegate is now $delegate, scheduling vector rebuild")
+        MoshiDatabase.get(context).noteDao().markAllUnindexed()
+        IndexOrchestrator.requestSweep()
+    }
+
     internal suspend fun recallVector(context: Context, query: String): List<Int> {
         val vector = GeckoEmbedding.embedQuery(context, query) ?: return emptyList()
+        reconcileDelegate(context)
         val hits = VectorStoreClient.search(
             context,
             vector,
