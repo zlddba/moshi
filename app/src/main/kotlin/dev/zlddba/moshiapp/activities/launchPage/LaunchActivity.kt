@@ -1,10 +1,8 @@
 package dev.zlddba.moshiapp.activities.launchPage
 
 import android.content.Intent
-import android.graphics.Color
 import android.os.Bundle
 import androidx.activity.ComponentActivity
-import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import dev.zlddba.moshiapp.activities.firstLaunchPage.FirstLaunchActivity
@@ -21,10 +19,7 @@ class LaunchActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
-            navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT)
-        )
+        enableEdgeToEdge()
         val appVersionName = AppInfoHelper.getAppVersionName(this)
         setContent {
             MoshiTheme {
