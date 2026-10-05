@@ -41,7 +41,12 @@ private val DarkColorScheme = darkColorScheme(
     surfaceContainerLow = MoshiSurfaceContainerLowDark,
     surfaceContainer = MoshiSurfaceContainerDark,
     surfaceContainerHigh = MoshiSurfaceContainerHighDark,
-    surfaceContainerHighest = MoshiSurfaceContainerHighestDark
+    surfaceContainerHighest = MoshiSurfaceContainerHighestDark,
+    surfaceTint = MoshiSurfaceTintDark,
+    inverseSurface = MoshiInverseSurfaceDark,
+    inverseOnSurface = MoshiOnInverseSurfaceDark,
+    inversePrimary = MoshiInversePrimaryDark,
+    scrim = MoshiScrimDark
 )
 
 private val LightColorScheme = lightColorScheme(
@@ -75,7 +80,12 @@ private val LightColorScheme = lightColorScheme(
     surfaceContainerLow = MoshiSurfaceContainerLowLight,
     surfaceContainer = MoshiSurfaceContainerLight,
     surfaceContainerHigh = MoshiSurfaceContainerHighLight,
-    surfaceContainerHighest = MoshiSurfaceContainerHighestLight
+    surfaceContainerHighest = MoshiSurfaceContainerHighestLight,
+    surfaceTint = MoshiSurfaceTintLight,
+    inverseSurface = MoshiInverseSurfaceLight,
+    inverseOnSurface = MoshiOnInverseSurfaceLight,
+    inversePrimary = MoshiInversePrimaryLight,
+    scrim = MoshiScrimLight
 )
 
 @Composable
@@ -97,6 +107,7 @@ fun MoshiTheme(
     MaterialTheme(
         colorScheme = colorScheme,
         typography = Typography,
+        shapes = MoshiShapes,
         content = content
     )
 }
