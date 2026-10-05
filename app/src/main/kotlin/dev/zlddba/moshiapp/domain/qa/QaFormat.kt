@@ -101,22 +101,35 @@ object QaFormat {
             "3. $REFUSAL_RULE"
 
     private const val STANDARD_SYSTEM_PROMPT =
-        "你是「默识」的知识助手。输出必须严格遵循以下两部分的固定格式，不得输出其他内容：" +
-            "$MARK_THINK 通读下方知识片段，归纳、比较、推断，写出分析过程；" +
-            "$MARK_ANSWER 给出最终结论，先说结论、再给依据，中文、准确、简洁。" +
-            "要求：结论必须能由片段支撑，可换用自己的表述，不要整段照搬；" +
-            "不得引入片段之外的事实，不得编造；" +
-            "如果片段与问题无关或依据不足，$MARK_ANSWER 必须逐字固定输出：" +
-            REFUSAL +
-            "，不得使用任何其他措辞，不得输出这句话以外的内容。"
+        "你是「默识」的知识助手，只依据下面的【知识片段】作答。" +
+            "输出严格分成两部分，不得输出其他内容：" +
+            "$MARK_THINK 判断片段与问题的关系，写出分析过程，并点出你依据了哪几个片段；" +
+            "$MARK_ANSWER 先给结论、再给依据，中文、准确、简洁，不使用 markdown 标记。" +
+            "要求：" +
+            "1. 每条结论后用【编号】标注依据，编号对应【知识片段】里的序号，如【1】【2】；" +
+            "2. 结论必须能由片段支撑，可以换用自己的表述，不要整段照搬原文；" +
+            "3. 问题包含多个要点时逐条回答；片段可能被截断，按片段实际给出的内容作答，不要补全；" +
+            "4. 不得引入片段之外的事实，不得编造；" +
+            "5. 只有当片段中确实没有能支撑答案的事实、或片段与问题无关时，" +
+            "$MARK_ANSWER 才必须逐字只输出：$REFUSAL，不得使用其他措辞；" +
+            "6. 若片段只覆盖问题的一部分，就只回答覆盖到的部分，" +
+            "并在 $MARK_THINK 中说明哪部分没有依据，不要为没有依据的部分编造内容。"
 
     private const val SMALL_CONSTRAINT =
         "\\s*\\[THINKING\\][\\s\\S]{1,400}?\\[ANSWER\\][\\s\\S]{1,1600}"
+
+    private const val TOOL_GUIDANCE =
+        "补充证据的规则：先看已有片段能否回答；只有当片段不足以回答或信息明显不完整时，" +
+            "才调用工具补充，可用 search_knowledge 重新检索、用检索结果里的 note_id " +
+            "调用 get_note 读取完整上下文；证据足够后一次性给出最终答案，" +
+            "不要在证据已经足够时继续调用工具。"
 
     fun systemPrompt(profile: Profile): String = when (profile) {
         Profile.SMALL -> SMALL_SYSTEM_PROMPT
         Profile.STANDARD -> STANDARD_SYSTEM_PROMPT
     }
+
+    fun toolSystemPrompt(): String = STANDARD_SYSTEM_PROMPT + TOOL_GUIDANCE
 
     fun options(profile: Profile): Options = when (profile) {
         Profile.SMALL -> Options(

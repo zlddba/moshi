@@ -40,4 +40,11 @@ interface CloudGateway {
         userPrompt: String,
         onToken: (String) -> Unit
     ): CloudAnswer
+
+    suspend fun askWithTools(
+        config: CloudConfig,
+        messages: List<CloudMessage>,
+        tools: List<CloudToolSpec>,
+        onToken: (String) -> Unit
+    ): CloudTurn
 }
