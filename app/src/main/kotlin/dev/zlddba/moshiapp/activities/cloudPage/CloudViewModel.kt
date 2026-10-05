@@ -163,7 +163,10 @@ class CloudViewModel(
             )
             val result = cloudGateway.testConnection(config)
             val testState = when (result) {
-                CloudTestResult.Success -> TestState.Success
+                CloudTestResult.Success -> {
+                    cloudConfigPrefs.save(config)
+                    TestState.Success
+                }
                 is CloudTestResult.Failure -> TestState.ServerFailed(
                     resId = failureResId(result.statusCode),
                     statusCode = result.statusCode,

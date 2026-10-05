@@ -41,7 +41,8 @@ class OpenAiCloudGateway : CloudGateway {
     override suspend fun testConnection(config: CloudConfig): CloudTestResult {
         Log.d(
             TAG,
-            "test start: ${config.baseUrl} model=${config.modelName} key=***${config.apiKey.takeLast(4)}"
+            "test start: ${config.baseUrl} model=${config.modelName} " +
+                "key=***${config.apiKey.takeLast(4)} keyLen=${config.apiKey.length}"
         )
         val probe = CloudNetworkProbe.probe(config.baseUrl)
         if (!probe.ok) {

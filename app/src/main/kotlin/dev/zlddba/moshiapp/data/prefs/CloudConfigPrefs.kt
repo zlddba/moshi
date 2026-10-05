@@ -14,21 +14,23 @@ class CloudConfigPrefs(context: Context) {
         appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
     fun load(): CloudConfig = CloudConfig(
-        baseUrl = preferences.getString(KEY_BASE_URL, "").orEmpty(),
+        baseUrl = preferences.getString(KEY_BASE_URL, "").orEmpty().trim(),
         apiKey = CryptoManager
             .decryptText(appContext, preferences.getString(KEY_API_KEY, "").orEmpty())
-            .orEmpty(),
-        modelName = preferences.getString(KEY_MODEL_NAME, "").orEmpty(),
+            .orEmpty()
+            .trim(),
+        modelName = preferences.getString(KEY_MODEL_NAME, "").orEmpty().trim(),
         forceLocal = preferences.getBoolean(KEY_FORCE_LOCAL, true),
         mode = preferences.getInt(KEY_MODE, CloudConfig.MODE_LOCAL)
     )
 
     fun save(config: CloudConfig) {
-        val storedKey = CryptoManager.encryptText(appContext, config.apiKey) ?: config.apiKey
+        val apiKey = config.apiKey.trim()
+        val storedKey = CryptoManager.encryptText(appContext, apiKey) ?: apiKey
         preferences.edit {
-            putString(KEY_BASE_URL, config.baseUrl)
+            putString(KEY_BASE_URL, config.baseUrl.trim())
             putString(KEY_API_KEY, storedKey)
-            putString(KEY_MODEL_NAME, config.modelName)
+            putString(KEY_MODEL_NAME, config.modelName.trim())
             putBoolean(KEY_FORCE_LOCAL, config.forceLocal)
             putInt(KEY_MODE, config.mode)
         }
