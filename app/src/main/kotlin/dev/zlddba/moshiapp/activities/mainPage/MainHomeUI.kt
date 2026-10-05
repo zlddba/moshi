@@ -143,6 +143,7 @@ fun MainHomeScreen(
     onManageTags: () -> Unit = {},
     onOpenGraph: () -> Unit = {},
     isCloudEngine: Boolean = false,
+    onEngineClick: () -> Unit = {},
     @SuppressLint("ModifierParameter") modifier: Modifier = Modifier
 ) {
     var query by rememberSaveable { mutableStateOf("") }
@@ -152,7 +153,11 @@ fun MainHomeScreen(
         modifier = modifier
             .fillMaxSize()
     ) {
-        HomeTopBar(isCloudEngine = isCloudEngine, onOpenGraph = onOpenGraph)
+        HomeTopBar(
+            isCloudEngine = isCloudEngine,
+            onOpenGraph = onOpenGraph,
+            onEngineClick = onEngineClick
+        )
         HomeSearchBar(
             query = query,
             onQueryChange = { query = it },
@@ -226,7 +231,11 @@ fun MainHomeScreen(
 }
 
 @Composable
-private fun HomeTopBar(isCloudEngine: Boolean, onOpenGraph: () -> Unit) {
+private fun HomeTopBar(
+    isCloudEngine: Boolean,
+    onOpenGraph: () -> Unit,
+    onEngineClick: () -> Unit
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -240,7 +249,7 @@ private fun HomeTopBar(isCloudEngine: Boolean, onOpenGraph: () -> Unit) {
             color = MaterialTheme.colorScheme.onSurface
         )
         Row(verticalAlignment = Alignment.CenterVertically) {
-            HomeEngineBadge(isCloudEngine = isCloudEngine)
+            HomeEngineBadge(isCloudEngine = isCloudEngine, onClick = onEngineClick)
             IconButton(onClick = onOpenGraph) {
                 Icon(
                     imageVector = Icons.Outlined.Hub,
@@ -253,7 +262,7 @@ private fun HomeTopBar(isCloudEngine: Boolean, onOpenGraph: () -> Unit) {
 }
 
 @Composable
-private fun HomeEngineBadge(isCloudEngine: Boolean) {
+private fun HomeEngineBadge(isCloudEngine: Boolean, onClick: () -> Unit) {
     val container = if (isCloudEngine) MaterialTheme.colorScheme.secondaryContainer
     else MaterialTheme.colorScheme.primaryContainer
     val onContainer = if (isCloudEngine) MaterialTheme.colorScheme.onSecondaryContainer
@@ -263,10 +272,7 @@ private fun HomeEngineBadge(isCloudEngine: Boolean) {
     val label = if (isCloudEngine) R.string.home_badge_cloud
     else R.string.home_badge_local
 
-    Surface(
-        shape = MoshiShapePill,
-        color = container
-    ) {
+    Surface(onClick = onClick, shape = MoshiShapePill, color = container) {
         Row(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically

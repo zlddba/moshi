@@ -87,6 +87,7 @@ import dev.zlddba.moshiapp.activities.textPage.TextActivity
 import dev.zlddba.moshiapp.activities.textPage.TitleField
 import dev.zlddba.moshiapp.activities.voicePage.VoiceActivity
 import dev.zlddba.moshiapp.data.prefs.CloudConfigPrefs
+import dev.zlddba.moshiapp.engine.cloud.CloudConfig
 import dev.zlddba.moshiapp.data.repo.IngestRepository
 import dev.zlddba.moshiapp.domain.title.TitleSuggester
 import dev.zlddba.moshiapp.domain.utils.AppInfoHelper
@@ -202,6 +203,25 @@ fun MainPageScreen(modifier: Modifier = Modifier) {
         }
     )
     val homeUiState by homeViewModel.uiState.collectAsState()
+
+    val toggleEngine: () -> Unit = {
+        val current = cloudPrefs.load()
+        if (current.usesCloud()) {
+            cloudPrefs.save(current.copy(mode = CloudConfig.MODE_LOCAL))
+            engineMode = CloudConfig.MODE_LOCAL
+            chatViewModel.onEvent(ChatViewModel.ChatEvent.RefreshCloud)
+        } else if (current.isComplete()) {
+            cloudPrefs.save(current.copy(mode = CloudConfig.MODE_HYBRID))
+            engineMode = CloudConfig.MODE_HYBRID
+            chatViewModel.onEvent(ChatViewModel.ChatEvent.RefreshCloud)
+        } else {
+            Toast.makeText(
+                context,
+                R.string.engine_cloud_incomplete,
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
     LaunchedEffect(Unit) {
         chatViewModel.onEvent(ChatViewModel.ChatEvent.Init)
         chatViewModel.effects.collect { effect ->
@@ -455,13 +475,14 @@ fun MainPageScreen(modifier: Modifier = Modifier) {
                     onSearchSubmit = { query -> SearchActivity.start(context, query) },
                     onManageTags = { TagActivity.start(context) },
                     onOpenGraph = { GraphActivity.start(context) },
-                    isCloudEngine = chatUiState.isCloudEngine
+                    isCloudEngine = chatUiState.isCloudEngine,
+                    onEngineClick = toggleEngine
                 )
 
                 1 -> MainChatScreen(
                     uiState = chatUiState,
                     onEvent = chatViewModel::onEvent,
-                    onEngineClick = { CloudActivity.start(context) },
+                    onEngineClick = toggleEngine,
                     onSettingsClick = { selectedTab = 3 }
                 )
 

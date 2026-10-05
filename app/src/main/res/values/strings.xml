@@ -51,6 +51,7 @@
     <string name="chat_title">智能问答</string>
     <string name="chat_engine_local">本地引擎</string>
     <string name="chat_engine_cloud">云端引擎</string>
+    <string name="engine_cloud_incomplete">云端配置不完整，请先在设置中填写服务地址、密钥与模型名</string>
     <string name="chat_input_hint">输入你的问题…</string>
     <string name="chat_send">发送</string>
     <string name="chat_voice_input">语音输入</string>
