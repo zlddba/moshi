@@ -370,7 +370,7 @@ private fun BackendPill(
         Surface(
             onClick = { expanded = true },
             shape = MoshiShapePill,
-            color = MaterialTheme.colorScheme.tertiaryContainer
+            color = MaterialTheme.colorScheme.primaryContainer
         ) {
             Row(
                 modifier = Modifier.padding(start = 12.dp, end = 4.dp, top = 6.dp, bottom = 6.dp),
@@ -379,14 +379,14 @@ private fun BackendPill(
                 Text(
                     text = stringResource(labelRes),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
                     fontWeight = FontWeight.Bold
                 )
                 Icon(
                     imageVector = Icons.Outlined.ArrowDropDown,
                     contentDescription = stringResource(R.string.chat_backend_menu),
                     modifier = Modifier.size(16.dp),
-                    tint = MaterialTheme.colorScheme.onTertiaryContainer
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             }
         }

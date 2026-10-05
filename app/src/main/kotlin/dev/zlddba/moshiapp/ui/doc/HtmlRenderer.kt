@@ -29,7 +29,7 @@ object HtmlRenderer {
             "ul,ol{padding-left:22px;}img{max-width:100%;}" +
             ".sheet-name{font-weight:bold;margin:14px 0 6px;color:#49454F;}" +
             ".empty{color:#79747E;}" +
-            "mark{background:#FFE08A;color:#1C1B1F;border-radius:3px;padding:0 2px;}"
+            "mark{background:#BEEFC8;color:#00210E;border-radius:3px;padding:0 2px;}"
 
     private const val CSS_DARK =
         "body{font-family:sans-serif;font-size:15px;line-height:1.6;padding:16px;margin:0;" +
@@ -47,7 +47,7 @@ object HtmlRenderer {
             "ul,ol{padding-left:22px;}img{max-width:100%;}" +
             ".sheet-name{font-weight:bold;margin:14px 0 6px;color:#CAC4D0;}" +
             ".empty{color:#938F99;}" +
-            "mark{background:#7A5900;color:#FFF3C4;border-radius:3px;padding:0 2px;}"
+            "mark{background:#235232;color:#BEEFC8;border-radius:3px;padding:0 2px;}"
 
     fun markdownToHtml(markdown: String): String {
         val extensions = listOf(
