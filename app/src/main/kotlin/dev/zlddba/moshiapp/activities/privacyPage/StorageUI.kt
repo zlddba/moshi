@@ -98,7 +98,6 @@ fun StoragePageScreen(
                 1.dp,
                 MaterialTheme.colorScheme.outlineVariant
             ),
-            shadowElevation = 2.dp,
             modifier = Modifier.fillMaxWidth()
         ) {
             Column {
@@ -211,7 +210,6 @@ private fun StorageActionCard(
             if (danger) MaterialTheme.colorScheme.secondary
             else MaterialTheme.colorScheme.outlineVariant
         ),
-        shadowElevation = 2.dp,
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(

@@ -264,7 +264,6 @@ private fun MarkdownPreviewCard(markdown: String, modifier: Modifier = Modifier)
         shape = MoshiShapeMedium,
         color = MaterialTheme.colorScheme.surface,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        shadowElevation = 2.dp,
         modifier = modifier
     ) {
         if (markdown.isBlank()) {

@@ -71,7 +71,6 @@ fun CloudPageScreen(
                 1.dp,
                 MaterialTheme.colorScheme.outlineVariant
             ),
-            shadowElevation = 2.dp,
             modifier = Modifier.fillMaxWidth()
         ) {
             Row(
@@ -160,7 +159,6 @@ fun CloudPageScreen(
                 1.dp,
                 MaterialTheme.colorScheme.outlineVariant
             ),
-            shadowElevation = 2.dp,
             modifier = Modifier.fillMaxWidth()
         ) {
             Row(

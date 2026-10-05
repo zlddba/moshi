@@ -210,7 +210,6 @@ private fun OcrImagePreview(imageUri: String?, recognizing: Boolean, onClick: ()
         shape = MoshiShapeMedium,
         color = MaterialTheme.colorScheme.surface,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        shadowElevation = 2.dp,
         modifier = Modifier.fillMaxWidth()
     ) {
         Box(
