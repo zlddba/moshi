@@ -168,15 +168,17 @@ Or open the `moshi/` directory in Android Studio and press Run. On first sync,
 
 ### A note on `repo/`
 
-`com.github.k2fsa:sherpa-onnx:1.13.7` is resolved from a local Maven mirror under
-`repo/`, which is intentionally **not tracked by Git** (it is a 47 MB binary). The same
-coordinates are also declared against JitPack in `settings.gradle.kts`, so a fresh clone
-normally resolves them from there. If JitPack is unreachable from your network, place
-the artifact back under `repo/` using the same Maven layout:
+`sherpa-onnx` has no public Maven repository, and JitPack cannot build it — its Android
+artifact comes out of the project's own CMake/NDK pipeline. The prebuilt AAR is therefore
+**vendored** under `repo/`, which `settings.gradle.kts` declares as a Maven repository:
 
 ```
 repo/com/github/k2fsa/sherpa-onnx/1.13.7/sherpa-onnx-1.13.7.aar
 ```
+
+It is checked in deliberately. Without it, a fresh clone cannot resolve
+`com.github.k2fsa:sherpa-onnx` and the build fails while configuring. The upstream project
+also publishes this artifact on its GitHub Releases, should you ever need to bump it.
 
 ## On-device models
 

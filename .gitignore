@@ -17,7 +17,9 @@ local.properties
 # IDE
 .idea/
 /logs/
-/repo/
+
+# The vendored sherpa-onnx AAR under repo/ is tracked on purpose: no public Maven
+# repository serves it and JitPack cannot build it. Do not add it to this file.
 
 # Signing material — never commit the keystore or its passwords
 /keystore/*

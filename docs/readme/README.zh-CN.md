@@ -149,14 +149,17 @@ cd moshi
 
 ### 关于 `repo/` 目录
 
-`com.github.k2fsa:sherpa-onnx:1.13.7` 从 `repo/` 下的本地 Maven 镜像解析，而该目录
-**刻意不纳入 Git 跟踪**（它是 47 MB 的二进制）。同一坐标也在 `settings.gradle.kts`
-中声明了 JitPack 仓库，因此全新克隆通常可从 JitPack 解析成功。若你的网络无法访问
-JitPack，请按相同的 Maven 目录结构把构件放回：
+`sherpa-onnx` 没有公开的 Maven 仓库，JitPack 也无法构建它——它的 Android 构件来自项目
+自己的 CMake/NDK 流程。因此预编译好的 AAR **随仓库提供**，放在 `repo/` 下，由
+`settings.gradle.kts` 声明为 Maven 仓库：
 
 ```
 repo/com/github/k2fsa/sherpa-onnx/1.13.7/sherpa-onnx-1.13.7.aar
 ```
+
+它是刻意纳入版本管理的。没有它，全新克隆无法解析 `com.github.k2fsa:sherpa-onnx`，
+构建会在配置阶段失败。上游项目也在它的 GitHub Releases 里提供同一构件，将来需要
+升级版本时可以从那里取。
 
 ## 端侧模型
 
