@@ -132,17 +132,28 @@ object IndexOrchestrator {
         batch: List<Pair<String, ChunkEntity>>
     ) {
         val vectors = GeckoEmbedding.embedDocuments(context, batch.map { it.second.text })
-        if (vectors == null || vectors.size != batch.size || vectors.isEmpty()) {
+        if (vectors == null || vectors.size != batch.size) {
             Log.w(TAG, "embed batch failed size=${batch.size} got=${vectors?.size ?: -1}")
             return
         }
-        val chunks = batch.map { (noteId, chunk) ->
-            VectorStoreClient.VecChunk(chunk.id, noteId, chunk.text)
+        val embedded = batch.mapIndexedNotNull { index, pair ->
+            vectors[index]?.let { pair.second to it }
         }
+        if (embedded.isEmpty()) {
+            Log.w(TAG, "embed produced no vectors size=${batch.size}")
+            return
+        }
+        if (embedded.size < batch.size) {
+            Log.w(TAG, "embed partial ok=${embedded.size}/${batch.size}, rest stays pending")
+        }
+        val chunks = embedded.map { (chunk, _) ->
+            VectorStoreClient.VecChunk(chunk.id, chunk.noteId, chunk.text)
+        }
+        val floats = embedded.map { it.second }
         val delegate = GeckoEmbedding.delegateTag()
-        when (VectorStoreClient.insert(context, vectors[0].size, delegate, chunks, vectors)) {
+        when (VectorStoreClient.insert(context, floats[0].size, delegate, chunks, floats)) {
             VectorStoreClient.InsertOutcome.Ok -> {
-                for ((_, chunk) in batch) {
+                for ((chunk, _) in embedded) {
                     database.chunkDao().markEmbedded(chunk.id)
                 }
             }

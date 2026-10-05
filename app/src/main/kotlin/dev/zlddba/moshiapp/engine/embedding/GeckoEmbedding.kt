@@ -51,14 +51,16 @@ object GeckoEmbedding {
     suspend fun embedQuery(context: Context, text: String): List<Float>? =
         embed(context.applicationContext, text, EmbedData.TaskType.RETRIEVAL_QUERY, true)
 
-    suspend fun embedDocuments(context: Context, texts: List<String>): List<List<Float>>? =
+    suspend fun embedDocuments(context: Context, texts: List<String>): List<List<Float>?>? =
         withContext(Dispatchers.IO) {
             if (texts.isEmpty()) return@withContext emptyList()
             val target = obtain(context.applicationContext) ?: return@withContext null
-            val request = EmbeddingRequest.create(
-                texts.map { value -> EmbedData.create(value, EmbedData.TaskType.RETRIEVAL_DOCUMENT) }
-            )
-            try {
+            val batch = try {
+                val request = EmbeddingRequest.create(
+                    texts.map { value ->
+                        EmbedData.create(value, EmbedData.TaskType.RETRIEVAL_DOCUMENT)
+                    }
+                )
                 target.getBatchEmbeddings(request)
                     .get(CALL_TIMEOUT_SECONDS, TimeUnit.SECONDS)
                     .map { value -> value.toList() }
@@ -67,7 +69,28 @@ object GeckoEmbedding {
             } catch (e: Throwable) {
                 null
             }
+            if (batch != null && batch.size == texts.size) return@withContext batch
+            Log.w(
+                TAG,
+                "batch embed failed size=${texts.size} got=${batch?.size ?: -1}, " +
+                    "retrying one by one"
+            )
+            texts.map { text -> embedDocument(target, text) }
         }
+
+    private fun embedDocument(target: GeckoEmbeddingModel, text: String): List<Float>? = try {
+        val request = EmbeddingRequest.create(
+            listOf(EmbedData.create(text, EmbedData.TaskType.RETRIEVAL_DOCUMENT))
+        )
+        target.getEmbeddings(request)
+            .get(CALL_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            .toList()
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Throwable) {
+        Log.w(TAG, "embed document failed chars=${text.length} reason=${e.message}")
+        null
+    }
 
     private suspend fun embed(
         context: Context,

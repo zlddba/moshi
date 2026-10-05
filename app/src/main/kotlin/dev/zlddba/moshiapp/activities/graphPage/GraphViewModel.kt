@@ -128,7 +128,9 @@ class GraphViewModel(context: Context) : ViewModel() {
             val batch = texts.subList(index, end)
             val embedded = GeckoEmbedding.embedDocuments(appContext, batch) ?: return null
             if (embedded.size != batch.size) return null
-            vectors.addAll(embedded)
+            for (vector in embedded) {
+                vectors.add(vector ?: return null)
+            }
             index = end
         }
         return vectors
