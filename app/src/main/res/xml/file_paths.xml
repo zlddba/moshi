@@ -6,4 +6,7 @@
     <files-path
         name="note_files"
         path="notes/" />
+    <cache-path
+        name="secure_files"
+        path="secure/" />
 </paths>

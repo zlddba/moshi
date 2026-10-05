@@ -200,4 +200,5 @@ dependencies {
     implementation(libs.google.localagents.rag)
     implementation(libs.litertlm.android)
     implementation(libs.protobuf.javalite)
+    implementation(libs.sqlcipher.android)
 }

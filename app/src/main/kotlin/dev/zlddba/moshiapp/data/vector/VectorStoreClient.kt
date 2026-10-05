@@ -81,7 +81,7 @@ object VectorStoreClient {
                 for (index in chunks.indices) {
                     val chunk = chunks[index]
                     val record = VectorStoreRecord.create(
-                        chunk.text,
+                        chunk.chunkId.toString(),
                         ImmutableList.copyOf(vectors[index])
                     )
                         .toBuilder()
