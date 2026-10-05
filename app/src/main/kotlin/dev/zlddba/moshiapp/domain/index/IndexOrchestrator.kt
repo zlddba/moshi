@@ -58,6 +58,11 @@ object IndexOrchestrator {
             return
         }
         val database = MoshiDatabase.get(context)
+        val delegate = GeckoEmbedding.delegateTag()
+        if (VectorStoreClient.ensureDelegate(context, delegate)) {
+            Log.w(TAG, "embedding delegate is now $delegate, rebuilding all vectors")
+            database.noteDao().markAllUnindexed()
+        }
         val notes = database.noteDao().notIndexed()
         Log.i(TAG, "sweep pending notes=${notes.size}")
         if (notes.isEmpty()) return
@@ -109,7 +114,8 @@ object IndexOrchestrator {
         val chunks = batch.map { (noteId, chunk) ->
             VectorStoreClient.VecChunk(chunk.id, noteId, chunk.text)
         }
-        when (VectorStoreClient.insert(context, vectors[0].size, chunks, vectors)) {
+        val delegate = GeckoEmbedding.delegateTag()
+        when (VectorStoreClient.insert(context, vectors[0].size, delegate, chunks, vectors)) {
             VectorStoreClient.InsertOutcome.Ok -> {
                 for ((_, chunk) in batch) {
                     database.chunkDao().markEmbedded(chunk.id)

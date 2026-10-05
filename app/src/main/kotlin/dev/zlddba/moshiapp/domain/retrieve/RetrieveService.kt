@@ -89,7 +89,12 @@ object RetrieveService {
         if (query.isEmpty() || noteId.isEmpty() || topK <= 0) return emptyList()
         val appContext = context.applicationContext
         val vector = GeckoEmbedding.embedQuery(appContext, query) ?: return emptyList()
-        val hits = VectorStoreClient.search(appContext, vector, RELATED_RECALL_K)
+        val hits = VectorStoreClient.search(
+            appContext,
+            vector,
+            RELATED_RECALL_K,
+            GeckoEmbedding.delegateTag()
+        )
         if (hits.isEmpty()) return emptyList()
         val best = HashMap<String, Float>()
         for (hit in hits) {
@@ -114,7 +119,12 @@ object RetrieveService {
 
     internal suspend fun recallVector(context: Context, query: String): List<Int> {
         val vector = GeckoEmbedding.embedQuery(context, query) ?: return emptyList()
-        val hits = VectorStoreClient.search(context, vector, VEC_RECALL_K)
+        val hits = VectorStoreClient.search(
+            context,
+            vector,
+            VEC_RECALL_K,
+            GeckoEmbedding.delegateTag()
+        )
         val kept = hits.filter { it.similarity >= VEC_SIM_MIN }
         Log.i(
             TAG,

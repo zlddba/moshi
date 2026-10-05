@@ -23,6 +23,9 @@ object GeckoEmbedding {
 
     private const val OPENCL_LIBRARY = "OpenCL"
 
+    const val DELEGATE_CPU = "cpu"
+    const val DELEGATE_GPU = "gpu"
+
     private val OPENCL_CANDIDATES = listOf(
         "/vendor/lib64/libOpenCL.so",
         "/vendor/lib64/egl/libOpenCL.so",
@@ -37,6 +40,11 @@ object GeckoEmbedding {
 
     @Volatile
     private var unavailable = false
+
+    @Volatile
+    private var delegate: String = DELEGATE_CPU
+
+    fun delegateTag(): String = delegate
 
     fun isReady(context: Context): Boolean = obtain(context.applicationContext) != null
 
@@ -97,7 +105,10 @@ object GeckoEmbedding {
                     modelFile.absolutePath,
                     Optional.of(tokenizerFile.absolutePath),
                     useGpu
-                ).also { created -> model = created }
+                ).also { created ->
+                    model = created
+                    delegate = if (useGpu) DELEGATE_GPU else DELEGATE_CPU
+                }
             } catch (e: Throwable) {
                 unavailable = true
                 null
