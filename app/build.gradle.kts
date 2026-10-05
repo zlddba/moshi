@@ -22,7 +22,7 @@ kotlin {
 }
 
 val appBaseName = "moshi"
-val appVersion = "1.0"
+val appVersion = "0.1"
 val appId = "dev.zlddba.moshiapp"
 val splitAbis = listOf("arm64-v8a")
 
