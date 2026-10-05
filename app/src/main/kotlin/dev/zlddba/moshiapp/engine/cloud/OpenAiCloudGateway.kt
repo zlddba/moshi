@@ -28,7 +28,9 @@ import kotlinx.coroutines.withTimeoutOrNull
 
 private const val TAG = "MoshiCloud"
 
-private const val TIMEOUT_MS = 15_000L
+private const val TEST_TIMEOUT_MS = 60_000L
+private const val ANSWER_TIMEOUT_MS = 180_000L
+private const val TEST_MAX_TOKENS = 1
 private const val MAX_RETRY = 2
 private const val BACKOFF_BASE_MS = 1_000
 
@@ -47,11 +49,12 @@ class OpenAiCloudGateway : CloudGateway {
         val started = System.currentTimeMillis()
         val openAI = createClient(config)
         return try {
-            val completed = withTimeoutOrNull(TIMEOUT_MS) {
+            val completed = withTimeoutOrNull(TEST_TIMEOUT_MS) {
                 openAI.chatCompletion(
                     ChatCompletionRequest(
                         model = ModelId(config.modelName),
-                        messages = listOf(ChatMessage.User("ping"))
+                        messages = listOf(ChatMessage.User("ping")),
+                        maxTokens = TEST_MAX_TOKENS
                     )
                 )
                 true
@@ -59,7 +62,7 @@ class OpenAiCloudGateway : CloudGateway {
             if (completed == null) {
                 Log.d(
                     TAG,
-                    "test timeout after ${TIMEOUT_MS}ms, request reached server but no response " +
+                    "test timeout after ${TEST_TIMEOUT_MS}ms, request reached server but no response " +
                         "(elapsed=${System.currentTimeMillis() - started}ms)"
                 )
                 CloudTestResult.Failure(statusCode = STATUS_TIMEOUT, detail = "timeout")
@@ -144,7 +147,7 @@ class OpenAiCloudGateway : CloudGateway {
                 )
             )
             val builder = StringBuilder()
-            val completed = withTimeoutOrNull(TIMEOUT_MS) {
+            val completed = withTimeoutOrNull(ANSWER_TIMEOUT_MS) {
                 openAI.chatCompletions(request).collect { chunk ->
                     val delta = chunk.choices.firstOrNull()?.delta?.content
                     if (!delta.isNullOrEmpty()) {
@@ -155,7 +158,7 @@ class OpenAiCloudGateway : CloudGateway {
                 true
             }
             if (completed == null) {
-                Log.d(TAG, "ask timeout after ${TIMEOUT_MS}ms len=${builder.length}")
+                Log.d(TAG, "ask timeout after ${ANSWER_TIMEOUT_MS}ms len=${builder.length}")
                 CloudAnswer.Failure(statusCode = STATUS_TIMEOUT, detail = "timeout")
             } else {
                 Log.d(TAG, "ask success len=${builder.length}")
@@ -241,7 +244,7 @@ class OpenAiCloudGateway : CloudGateway {
             )
             val text = StringBuilder()
             val slots = LinkedHashMap<Int, ToolCallSlot>()
-            val completed = withTimeoutOrNull(TIMEOUT_MS) {
+            val completed = withTimeoutOrNull(ANSWER_TIMEOUT_MS) {
                 openAI.chatCompletions(request).collect { chunk ->
                     val delta = chunk.choices.firstOrNull()?.delta ?: return@collect
                     val piece = delta.content
@@ -264,7 +267,7 @@ class OpenAiCloudGateway : CloudGateway {
                 true
             }
             if (completed == null) {
-                Log.d(TAG, "tool round timeout after ${TIMEOUT_MS}ms")
+                Log.d(TAG, "tool round timeout after ${ANSWER_TIMEOUT_MS}ms")
                 CloudTurn.Failed(statusCode = STATUS_TIMEOUT, detail = "timeout")
             } else if (slots.isNotEmpty()) {
                 val calls = slots.values.map {
