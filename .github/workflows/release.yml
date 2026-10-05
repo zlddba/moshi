@@ -65,8 +65,17 @@ jobs:
           distribution: temurin
           java-version: '21'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Report the preinstalled Android SDK
+        run: |
+          set -euo pipefail
+          SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          echo "SDK root: $SDK"
+          echo "--- platforms ---"
+          ls "$SDK/platforms" || true
+          echo "--- build-tools ---"
+          ls "$SDK/build-tools" || true
+          echo "--- cmdline-tools ---"
+          ls "$SDK/cmdline-tools" || true
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
