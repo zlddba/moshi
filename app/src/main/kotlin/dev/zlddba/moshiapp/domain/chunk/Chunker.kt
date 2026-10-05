@@ -2,7 +2,7 @@ package dev.zlddba.moshiapp.domain.chunk
 
 object Chunker {
 
-    const val MAX_CHARS = 1200
+    const val MAX_CHARS = 800
 
     data class TextChunk(
         val seq: Int,
