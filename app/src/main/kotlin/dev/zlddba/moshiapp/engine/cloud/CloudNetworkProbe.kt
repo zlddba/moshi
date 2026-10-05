@@ -67,6 +67,7 @@ object CloudNetworkProbe {
             "probe dns host=$host ok ms=$dnsMs addrs=${addresses.map { it.hostAddress }}"
         )
 
+        var failure: Result? = null
         for (address in addresses) {
             val tcpStart = System.currentTimeMillis()
             val socket = Socket()
@@ -89,6 +90,9 @@ object CloudNetworkProbe {
                     socket.close()
                 } catch (ignored: Throwable) {
                 }
+                if (failure == null) {
+                    failure = Result(false, STATUS_CONNECT, "无法连接 $host:$port")
+                }
                 continue
             }
             try {
@@ -96,9 +100,11 @@ object CloudNetworkProbe {
             } catch (ignored: Throwable) {
             }
             if (uri.scheme != "https") return Result(true)
-            return probeTls(host, address, port)
+            val tls = probeTls(host, address, port)
+            if (tls.ok) return tls
+            if (failure == null) failure = tls
         }
-        return Result(false, STATUS_CONNECT, "无法连接 $host:$port")
+        return failure ?: Result(false, STATUS_CONNECT, "无法连接 $host:$port")
     }
 
     private suspend fun probeTls(host: String, address: InetAddress, port: Int): Result {
