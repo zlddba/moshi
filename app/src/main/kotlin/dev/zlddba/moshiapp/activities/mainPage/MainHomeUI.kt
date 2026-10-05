@@ -1,5 +1,6 @@
 package dev.zlddba.moshiapp.activities.mainPage
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -142,7 +143,7 @@ fun MainHomeScreen(
     onManageTags: () -> Unit = {},
     onOpenGraph: () -> Unit = {},
     isCloudEngine: Boolean = false,
-    modifier: Modifier = Modifier
+    @SuppressLint("ModifierParameter") modifier: Modifier = Modifier
 ) {
     var query by rememberSaveable { mutableStateOf("") }
     var deleteTarget by remember { mutableStateOf<HomeUiState.NoteCard?>(null) }
