@@ -54,7 +54,9 @@ object QueryExpansion {
                 }
             }
         }
-        val result = merged.values.sortedByDescending { it.score }.take(topK)
+        val result = RetrieveService
+            .capPerNote(merged.values.sortedByDescending { it.score })
+            .take(topK)
         Log.i(TAG, "expand base=${base.size} extra=${extra.size} merged=${result.size}")
         return result
     }

@@ -300,7 +300,7 @@ class ChatViewModel(context: Context) : ViewModel() {
                                     role = ChatUiState.Role.ASSISTANT,
                                     text = parsed.answer.ifBlank { generated },
                                     thinking = parsed.thinking,
-                                    sources = outcome.hits.map { it.toSource() }
+                                    sources = outcome.hits.toSources()
                                 )
                             )
                         }
@@ -453,8 +453,11 @@ class ChatViewModel(context: Context) : ViewModel() {
         ChatUiState.ChatMessage(
             role = ChatUiState.Role.ASSISTANT,
             text = QaOrchestrator.excerptText(appContext, hits),
-            sources = hits.map { it.toSource() }
+            sources = hits.toSources()
         )
+
+    private fun List<RetrieveService.Hit>.toSources(): List<ChatUiState.ChatSource> =
+        distinctBy { it.noteId }.map { it.toSource() }
 
     private fun RetrieveService.Hit.toSource(): ChatUiState.ChatSource =
         ChatUiState.ChatSource(

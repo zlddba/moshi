@@ -84,7 +84,9 @@ object KnowledgeTools {
         val query = args.stringArg("query")
         if (query.isNullOrBlank()) return Outcome("缺少 query 参数", emptyList(), false)
         val topK = (args.intArg("top_k") ?: DEFAULT_TOP_K).coerceIn(1, MAX_TOP_K)
-        val found = RetrieveService.retrieve(context, query, topK)
+        val found = RetrieveService.capPerNote(
+            RetrieveService.retrieve(context, query, topK)
+        )
         if (found.isEmpty()) {
             return Outcome("知识库中没有检索到与「$query」相关的片段", emptyList(), true)
         }

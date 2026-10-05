@@ -19,6 +19,7 @@ object RetrieveService {
     const val RELATIVE_RATIO = 0.8f
     const val RELATED_TOP_K = 3
     const val RELATED_RECALL_K = 24
+    const val MAX_HITS_PER_NOTE = 2
 
     private const val TAG = "RetrieveService"
     private const val RRF_K = 60
@@ -39,6 +40,19 @@ object RetrieveService {
         val title: String,
         val similarity: Float
     )
+
+    fun capPerNote(hits: List<Hit>, limit: Int = MAX_HITS_PER_NOTE): List<Hit> {
+        if (hits.size <= limit) return hits
+        val perNote = HashMap<String, Int>()
+        val kept = ArrayList<Hit>(hits.size)
+        for (hit in hits) {
+            val taken = perNote[hit.noteId] ?: 0
+            if (taken >= limit) continue
+            perNote[hit.noteId] = taken + 1
+            kept.add(hit)
+        }
+        return kept
+    }
 
     suspend fun retrieve(context: Context, question: String, topK: Int = TOP_K): List<Hit> {
         val query = question.trim()
