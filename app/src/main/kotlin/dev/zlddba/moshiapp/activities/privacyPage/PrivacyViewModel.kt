@@ -190,7 +190,9 @@ class PrivacyViewModel(context: Context) : ViewModel() {
 
     private suspend fun purgeVectorText() {
         VectorStoreClient.clearAll(appContext)
-        MoshiDatabase.get(appContext).chunkDao().clearEmbeddings()
+        val database = MoshiDatabase.get(appContext)
+        database.chunkDao().clearEmbeddings()
+        database.noteDao().markAllUnindexed()
         IndexOrchestrator.requestSweep()
     }
 

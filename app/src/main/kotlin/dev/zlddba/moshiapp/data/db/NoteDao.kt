@@ -41,8 +41,14 @@ interface NoteDao {
     @Query("SELECT COUNT(*) FROM notes WHERE is_builtin = 1")
     suspend fun builtinCount(): Int
 
-    @Query("SELECT * FROM notes WHERE index_status != 'INDEXED'")
+    @Query(
+        "SELECT * FROM notes WHERE index_status != 'INDEXED' " +
+            "OR id IN (SELECT DISTINCT note_id FROM chunks WHERE embedding_id IS NULL)"
+    )
     suspend fun notIndexed(): List<NoteEntity>
+
+    @Query("UPDATE notes SET index_status = 'PENDING'")
+    suspend fun markAllUnindexed()
 
     @Query(
         "SELECT n.* FROM notes n INNER JOIN note_tags nt ON nt.note_id = n.id " +
