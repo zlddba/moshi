@@ -113,6 +113,19 @@ object KeywordIndex {
         Log.i(TAG, "insert done note=$noteId table=$table ok=${chunks.size - failed} failed=$failed")
     }
 
+    fun countAll(context: Context): Int {
+        val db = open(context) ?: return -1
+        val table = if (ftsReady) FTS_TABLE else PLAIN_TABLE
+        return try {
+            db.rawQuery("SELECT COUNT(*) FROM $table", null).use { cursor ->
+                if (cursor.moveToFirst()) cursor.getInt(0) else 0
+            }
+        } catch (e: Throwable) {
+            Log.e(TAG, "countAll failed table=$table", e)
+            -1
+        }
+    }
+
     private fun open(context: Context): SQLiteDatabase? {
         database?.let { return it }
         synchronized(this) {

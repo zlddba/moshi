@@ -3,6 +3,7 @@ package dev.zlddba.moshiapp.domain.index
 import android.content.Context
 import android.util.Log
 import dev.zlddba.moshiapp.data.db.ChunkEntity
+import dev.zlddba.moshiapp.data.db.KeywordIndex
 import dev.zlddba.moshiapp.data.db.MoshiDatabase
 import dev.zlddba.moshiapp.data.db.NoteEntity
 import dev.zlddba.moshiapp.data.repo.IngestRepository
@@ -53,11 +54,12 @@ object IndexOrchestrator {
     }
 
     private suspend fun sweep(context: Context) {
+        val database = MoshiDatabase.get(context)
+        repairKeywordIndex(context, database)
         if (!GeckoEmbedding.isReady(context)) {
             Log.w(TAG, "sweep skipped: embedding model not ready")
             return
         }
-        val database = MoshiDatabase.get(context)
         val delegate = GeckoEmbedding.delegateTag()
         if (VectorStoreClient.ensureDelegate(context, delegate)) {
             Log.w(TAG, "embedding delegate is now $delegate, rebuilding all vectors")
@@ -99,6 +101,29 @@ object IndexOrchestrator {
             Log.i(TAG, "note ${note.id} unembedded=$unembedded -> $status")
             database.noteDao().updateStatus(note.id, status)
         }
+    }
+
+    private suspend fun repairKeywordIndex(context: Context, database: MoshiDatabase) {
+        val chunkTotal = database.chunkDao().count()
+        if (chunkTotal <= 0) return
+        val indexed = KeywordIndex.countAll(context)
+        if (indexed < 0) {
+            Log.w(TAG, "keyword index unavailable, repair skipped")
+            return
+        }
+        if (indexed >= chunkTotal) return
+        Log.w(TAG, "keyword index incomplete indexed=$indexed chunks=$chunkTotal, rebuilding")
+        var repaired = 0
+        for (note in database.noteDao().recentAll()) {
+            val chunks = database.chunkDao().byNote(note.id)
+            if (chunks.isEmpty()) continue
+            KeywordIndex.insertChunks(context, chunks)
+            repaired++
+        }
+        Log.i(
+            TAG,
+            "keyword index rebuilt notes=$repaired total=${KeywordIndex.countAll(context)}"
+        )
     }
 
     private suspend fun processBatch(
