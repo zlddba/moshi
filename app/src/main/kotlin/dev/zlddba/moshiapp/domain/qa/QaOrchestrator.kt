@@ -35,6 +35,10 @@ object QaOrchestrator {
         data object Refusal : Outcome
         data class ModelMissing(val hits: List<RetrieveService.Hit>) : Outcome
         data class Excerpt(val hits: List<RetrieveService.Hit>) : Outcome
+        data class CloudFailed(
+            val statusCode: Int,
+            val hits: List<RetrieveService.Hit>
+        ) : Outcome
         data class Generated(val hits: List<RetrieveService.Hit>) : Outcome
     }
 
@@ -136,7 +140,9 @@ object QaOrchestrator {
                             "status=${turn.statusCode} mode=${config.mode}"
                     )
                     logOutput("cloud-failed", trace)
-                    if (config.mode == CloudConfig.MODE_CLOUD) return Outcome.Excerpt(collected)
+                    if (config.mode == CloudConfig.MODE_CLOUD) {
+                        return Outcome.CloudFailed(turn.statusCode, collected)
+                    }
                     return null
                 }
             }

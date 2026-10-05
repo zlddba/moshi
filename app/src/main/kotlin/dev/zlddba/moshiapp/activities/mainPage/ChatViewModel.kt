@@ -21,6 +21,7 @@ import dev.zlddba.moshiapp.engine.local.BackendKind
 import dev.zlddba.moshiapp.engine.local.LiteRtLlmEngine
 import dev.zlddba.moshiapp.ingest.vision.StreamAsrModelManager
 import dev.zlddba.moshiapp.ingest.vision.StreamingSpeechRecognizer
+import dev.zlddba.moshiapp.ui.CloudMessages
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -277,6 +278,13 @@ class ChatViewModel(context: Context) : ViewModel() {
                         appendMessage(excerptMessage(outcome.hits))
                     }
                     sendEffect(ChatEffect.ShowToast(R.string.chat_generate_failed))
+                }
+
+                is QaOrchestrator.Outcome.CloudFailed -> {
+                    if (outcome.hits.isNotEmpty()) {
+                        appendMessage(excerptMessage(outcome.hits))
+                    }
+                    sendEffect(ChatEffect.ShowToast(CloudMessages.errorOf(outcome.statusCode)))
                 }
 
                 is QaOrchestrator.Outcome.Generated -> {
