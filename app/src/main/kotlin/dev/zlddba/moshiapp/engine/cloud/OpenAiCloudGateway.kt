@@ -12,9 +12,16 @@ import com.aallam.openai.client.LoggingConfig
 import com.aallam.openai.client.OpenAI
 import com.aallam.openai.client.OpenAIHost
 import io.ktor.client.plugins.ResponseException
+import dev.zlddba.moshiapp.domain.error.STATUS_TIMEOUT
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withTimeoutOrNull
 
 private const val TAG = "MoshiCloud"
+
+private const val TIMEOUT_MS = 15_000L
+private const val MAX_RETRY = 2
+private const val BACKOFF_BASE_MS = 1_000
 
 class OpenAiCloudGateway : CloudGateway {
 
@@ -25,14 +32,22 @@ class OpenAiCloudGateway : CloudGateway {
         )
         val openAI = createClient(config)
         return try {
-            openAI.chatCompletion(
-                ChatCompletionRequest(
-                    model = ModelId(config.modelName),
-                    messages = listOf(ChatMessage.User("ping"))
+            val completed = withTimeoutOrNull(TIMEOUT_MS) {
+                openAI.chatCompletion(
+                    ChatCompletionRequest(
+                        model = ModelId(config.modelName),
+                        messages = listOf(ChatMessage.User("ping"))
+                    )
                 )
-            )
-            Log.d(TAG, "test success: ${config.baseUrl} model=${config.modelName}")
-            CloudTestResult.Success
+                true
+            }
+            if (completed == null) {
+                Log.d(TAG, "test timeout after ${TIMEOUT_MS}ms")
+                CloudTestResult.Failure(statusCode = STATUS_TIMEOUT, detail = "timeout")
+            } else {
+                Log.d(TAG, "test success: ${config.baseUrl} model=${config.modelName}")
+                CloudTestResult.Success
+            }
         } catch (e: CancellationException) {
             throw e
         } catch (e: OpenAIAPIException) {
@@ -62,6 +77,44 @@ class OpenAiCloudGateway : CloudGateway {
             "ask start: ${config.baseUrl} model=${config.modelName} " +
                 "userLen=${userPrompt.length}"
         )
+        var attempt = 0
+        var lastFailure: CloudAnswer.Failure? = null
+        while (attempt <= MAX_RETRY) {
+            if (attempt > 0) {
+                val backoff = BACKOFF_BASE_MS shl (attempt - 1)
+                Log.d(TAG, "ask retry attempt=$attempt backoff=${backoff}ms")
+                delay(backoff.toLong())
+            }
+            var emitted = false
+            val result = attemptOnce(config, systemPrompt, userPrompt) { token ->
+                emitted = true
+                onToken(token)
+            }
+            when (result) {
+                is CloudAnswer.Success -> return result
+                is CloudAnswer.Failure -> {
+                    lastFailure = result
+                    if (emitted || !isRetryable(result.statusCode)) {
+                        Log.d(
+                            TAG,
+                            "ask give up attempt=$attempt emitted=$emitted " +
+                                "status=${result.statusCode}"
+                        )
+                        return result
+                    }
+                }
+            }
+            attempt++
+        }
+        return lastFailure ?: CloudAnswer.Failure(statusCode = 0, detail = "unknown")
+    }
+
+    private suspend fun attemptOnce(
+        config: CloudConfig,
+        systemPrompt: String,
+        userPrompt: String,
+        onToken: (String) -> Unit
+    ): CloudAnswer {
         val openAI = createClient(config)
         return try {
             val request = ChatCompletionRequest(
@@ -72,15 +125,23 @@ class OpenAiCloudGateway : CloudGateway {
                 )
             )
             val builder = StringBuilder()
-            openAI.chatCompletions(request).collect { chunk ->
-                val delta = chunk.choices.firstOrNull()?.delta?.content
-                if (!delta.isNullOrEmpty()) {
-                    builder.append(delta)
-                    onToken(delta)
+            val completed = withTimeoutOrNull(TIMEOUT_MS) {
+                openAI.chatCompletions(request).collect { chunk ->
+                    val delta = chunk.choices.firstOrNull()?.delta?.content
+                    if (!delta.isNullOrEmpty()) {
+                        builder.append(delta)
+                        onToken(delta)
+                    }
                 }
+                true
             }
-            Log.d(TAG, "ask success len=${builder.length}")
-            CloudAnswer.Success(builder.toString())
+            if (completed == null) {
+                Log.d(TAG, "ask timeout after ${TIMEOUT_MS}ms len=${builder.length}")
+                CloudAnswer.Failure(statusCode = STATUS_TIMEOUT, detail = "timeout")
+            } else {
+                Log.d(TAG, "ask success len=${builder.length}")
+                CloudAnswer.Success(builder.toString())
+            }
         } catch (e: CancellationException) {
             throw e
         } catch (e: OpenAIAPIException) {
@@ -98,6 +159,9 @@ class OpenAiCloudGateway : CloudGateway {
             openAI.close()
         }
     }
+
+    private fun isRetryable(statusCode: Int): Boolean =
+        statusCode == 0 || statusCode == STATUS_TIMEOUT || statusCode == 429 || statusCode >= 500
 
     private fun createClient(config: CloudConfig): OpenAI {
         val baseUrl = if (config.baseUrl.endsWith("/")) config.baseUrl else "${config.baseUrl}/"
