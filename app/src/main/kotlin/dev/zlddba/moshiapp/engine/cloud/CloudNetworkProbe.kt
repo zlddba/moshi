@@ -8,6 +8,7 @@ import java.net.URI
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlin.time.Duration.Companion.milliseconds
 
 object CloudNetworkProbe {
 
@@ -40,7 +41,7 @@ object CloudNetworkProbe {
         val port = if (uri.port > 0) uri.port else if (uri.scheme == "http") 80 else 443
 
         val dnsStart = System.currentTimeMillis()
-        val addresses = withTimeoutOrNull(DNS_TIMEOUT_MS) {
+        val addresses = withTimeoutOrNull(DNS_TIMEOUT_MS.milliseconds) {
             try {
                 withContext(Dispatchers.IO) { InetAddress.getAllByName(host) }
             } catch (e: Throwable) {
