@@ -7,6 +7,7 @@ import android.os.Bundle
 import dev.zlddba.moshiapp.activities.launchPage.LaunchActivity
 import dev.zlddba.moshiapp.activities.lockPage.LockActivity
 import dev.zlddba.moshiapp.data.repo.HelpSeeder
+import dev.zlddba.moshiapp.domain.device.DeviceTier
 import dev.zlddba.moshiapp.domain.index.IndexOrchestrator
 import dev.zlddba.moshiapp.domain.security.AppLock
 
@@ -14,6 +15,7 @@ class MoshiApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        DeviceTier.applyAutoDowngrade(this)
         IndexOrchestrator.start(this)
         HelpSeeder.start(this)
         registerActivityLifecycleCallbacks(AppLifecycleWatcher())
