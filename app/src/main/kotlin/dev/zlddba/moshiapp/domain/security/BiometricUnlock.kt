@@ -6,6 +6,7 @@ import android.hardware.biometrics.BiometricManager
 import android.hardware.biometrics.BiometricPrompt
 import android.os.Build
 import android.os.CancellationSignal
+import androidx.annotation.RequiresApi
 import androidx.core.content.ContextCompat
 
 object BiometricUnlock {
@@ -28,6 +29,7 @@ object BiometricUnlock {
         return hasBiometricHardware(context)
     }
 
+    @RequiresApi(Build.VERSION_CODES.Q)
     private fun canAuthenticate(context: Context, withAuthenticators: Boolean): Boolean? {
         val manager = try {
             context.getSystemService(Context.BIOMETRIC_SERVICE) as? BiometricManager
