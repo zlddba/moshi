@@ -8,6 +8,7 @@ import dev.zlddba.moshiapp.data.db.MoshiDatabase
 import dev.zlddba.moshiapp.data.db.NoteEntity
 import dev.zlddba.moshiapp.data.repo.IngestRepository
 import dev.zlddba.moshiapp.domain.retrieve.RetrieveService
+import dev.zlddba.moshiapp.domain.security.CryptoManager
 import dev.zlddba.moshiapp.domain.summary.NoteSummarizer
 import dev.zlddba.moshiapp.ingest.parse.IngestException
 import dev.zlddba.moshiapp.ui.IngestMessages
@@ -115,8 +116,9 @@ class DetailViewModel(context: Context) : ViewModel() {
         chunks: List<dev.zlddba.moshiapp.data.db.ChunkEntity>,
         event: DetailEvent.Init
     ): DetailUiState {
-        val file = note.sourceUri?.let { File(it) }?.takeIf { it.isFile }
-        val kind = DocumentRenderer.kindOf(file?.name ?: note.title, note.type)
+        val stored = note.sourceUri?.let { File(it) }?.takeIf { it.isFile }
+        val kind = DocumentRenderer.kindOf(stored?.name ?: note.title, note.type)
+        val file = stored?.let { CryptoManager.openForRead(appContext, it) }
         val sources = buildList {
             add(appContext.getString(R.string.detail_source_type_fmt, typeLabel(note.type)))
             add(

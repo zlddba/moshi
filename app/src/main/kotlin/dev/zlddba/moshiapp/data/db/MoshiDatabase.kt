@@ -1,11 +1,14 @@
 package dev.zlddba.moshiapp.data.db
 
 import android.content.Context
+import android.util.Log
 import androidx.room3.Database
 import androidx.room3.Room
 import androidx.room3.RoomDatabase
 import androidx.room3.migration.Migration
 import androidx.sqlite.SQLiteConnection
+import dev.zlddba.moshiapp.domain.security.CryptoManager
+import net.zetetic.database.sqlcipher.driver.SQLCipherDriver
 
 @Database(
     entities = [
@@ -29,6 +32,9 @@ abstract class MoshiDatabase : RoomDatabase() {
     abstract fun tagsDao(): TagsDao
 
     companion object {
+
+        private const val DATABASE_NAME = "moshi.db"
+        private const val TAG = "MoshiDatabase"
 
         @Volatile
         private var INSTANCE: MoshiDatabase? = null
@@ -107,13 +113,36 @@ abstract class MoshiDatabase : RoomDatabase() {
 
         fun get(context: Context): MoshiDatabase {
             return INSTANCE ?: synchronized(this) {
-                INSTANCE ?: Room.databaseBuilder(
-                    context.applicationContext,
-                    MoshiDatabase::class.java,
-                    "moshi.db"
+                INSTANCE ?: build(context.applicationContext).also { INSTANCE = it }
+            }
+        }
+
+        private fun build(context: Context): MoshiDatabase {
+            val file = context.getDatabasePath(DATABASE_NAME)
+            val encrypt = CryptoManager.isEnabled(context)
+            val passphrase = if (encrypt) CryptoManager.databasePassphrase(context) else null
+            DatabaseCipher.prepare(file, encrypt, passphrase)
+            val encryptedOnDisk = DatabaseCipher.isEncryptedOnDisk(file) ||
+                (encrypt && !file.exists() && passphrase != null)
+            val builder = Room.databaseBuilder(
+                context,
+                MoshiDatabase::class.java,
+                DATABASE_NAME
+            ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+            if (encryptedOnDisk && passphrase != null && DatabaseCipher.ensureNative()) {
+                builder.setDriver(
+                    SQLCipherDriver(passphrase.toByteArray(Charsets.UTF_8), null, null)
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
-                    .build().also { INSTANCE = it }
+            } else if (encryptedOnDisk) {
+                Log.e(TAG, "database on disk is encrypted but no driver could be created")
+            }
+            return builder.build()
+        }
+
+        fun reset() {
+            synchronized(this) {
+                INSTANCE?.close()
+                INSTANCE = null
             }
         }
     }

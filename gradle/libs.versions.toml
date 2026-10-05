@@ -24,6 +24,7 @@ localagentsRag = "0.3.0"
 protobufJavalite = "4.36.2"
 litertlm = "0.17.1"
 documentfile = "1.1.0"
+sqlcipher = "4.19.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -64,6 +65,7 @@ poi-scratchpad = { group = "org.apache.poi", name = "poi-scratchpad", version.re
 google-localagents-rag = { group = "com.google.ai.edge.localagents", name = "localagents-rag", version.ref = "localagentsRag" }
 litertlm-android = { group = "com.google.ai.edge.litertlm", name = "litertlm-android", version.ref = "litertlm" }
 protobuf-javalite = { group = "com.google.protobuf", name = "protobuf-javalite", version.ref = "protobufJavalite" }
+sqlcipher-android = { group = "net.zetetic", name = "sqlcipher-android", version.ref = "sqlcipher" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

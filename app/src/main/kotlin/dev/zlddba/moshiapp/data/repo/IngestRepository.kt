@@ -12,6 +12,7 @@ import dev.zlddba.moshiapp.data.db.NoteTagCrossRef
 import dev.zlddba.moshiapp.data.db.TagEntity
 import dev.zlddba.moshiapp.data.vector.VectorStoreClient
 import dev.zlddba.moshiapp.domain.chunk.Chunker
+import dev.zlddba.moshiapp.domain.security.CryptoManager
 import dev.zlddba.moshiapp.ingest.parse.IngestException
 import dev.zlddba.moshiapp.ingest.parse.ParsedDoc
 import dev.zlddba.moshiapp.ingest.parse.ParserRegistry
@@ -436,6 +437,10 @@ object IngestRepository {
         val target = File(directory, "$noteId.$format")
         val input = context.contentResolver.openInputStream(uri)
             ?: throw IOException()
+        if (CryptoManager.isEnabled(context)) {
+            if (CryptoManager.encryptInto(context, input, target)) return target
+            throw IOException()
+        }
         input.use { source ->
             target.outputStream().use { sink ->
                 source.copyTo(sink)

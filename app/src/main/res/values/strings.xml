@@ -370,11 +370,52 @@
     <string name="privacy_force_local">敏感内容强制端侧</string>
     <string name="privacy_force_local_desc">标记为敏感的知识强制走本地引擎，即使云端已开启（默认开启）</string>
     <string name="privacy_encrypt">本地加密存储</string>
-    <string name="privacy_encrypt_desc">使用 AES 加密数据库，会轻微影响读写性能（默认关闭）</string>
+    <string name="privacy_encrypt_desc">使用 AES-GCM 加密原始文件与笔记数据库，主密钥由系统密钥库托管</string>
+    <string name="privacy_storage_state_encrypted">当前：已加密</string>
+    <string name="privacy_storage_state_plain">当前：明文存储</string>
+    <string name="privacy_converting">正在转换数据库，请勿退出应用…</string>
+    <string name="privacy_encrypt_on">已开启加密</string>
+    <string name="privacy_encrypt_off">已关闭加密，数据恢复为明文存储</string>
+    <string name="privacy_encrypt_failed">加密转换失败，数据保持原状态</string>
+    <string name="privacy_encrypt_scope">已加密：原始文件、笔记数据库（含分块与问答日志）、关键词索引。\n向量索引仅存向量与编号、不含原文，因此不参与加密。\n首次开启加密会重建向量索引，知识较多时需要一些时间。</string>
     <string name="privacy_autolock">后台自动锁定</string>
-    <string name="privacy_autolock_desc">切到后台一段时间后返回需要重新解锁（默认开启）</string>
-    <string name="privacy_log">日志保留策略</string>
-    <string name="privacy_log_desc">运行日志仅保存在本地，最多保留 7 天</string>
+    <string name="privacy_autolock_desc">切到后台一段时间后返回需要重新解锁</string>
+    <string name="privacy_lock_section">应用解锁</string>
+    <string name="privacy_lock_state_none">当前：未开启</string>
+    <string name="privacy_lock_state_pin">当前：6 位数字密码</string>
+    <string name="privacy_lock_state_pattern">当前：九宫格图案</string>
+    <string name="privacy_lock_set_pin">设置密码</string>
+    <string name="privacy_lock_set_pattern">设置图案</string>
+    <string name="privacy_lock_change_pin">修改密码</string>
+    <string name="privacy_lock_change_pattern">修改图案</string>
+    <string name="privacy_lock_disable">关闭应用锁</string>
+    <string name="privacy_lock_disabled">已关闭应用锁</string>
+    <string name="privacy_biometric">指纹解锁</string>
+    <string name="privacy_biometric_desc">已录入指纹时可用指纹快速解锁（需 Android 9 及以上）</string>
+    <string name="privacy_biometric_need_lock">请先设置密码或图案</string>
+    <string name="privacy_biometric_unavailable">设备不支持指纹或尚未录入</string>
+
+    <!-- 应用锁 -->
+    <string name="lock_title">解锁默识</string>
+    <string name="lock_hint">输入密码或绘制图案以继续</string>
+    <string name="lock_set_pin_title">设置 6 位数字密码</string>
+    <string name="lock_confirm_pin_title">再次输入以确认</string>
+    <string name="lock_set_pattern_title">绘制解锁图案</string>
+    <string name="lock_confirm_pattern_title">再次绘制以确认</string>
+    <string name="lock_pin_error">密码错误，请重试</string>
+    <string name="lock_pattern_error">图案错误，请重试</string>
+    <string name="lock_pattern_too_short">至少连接 4 个点</string>
+    <string name="lock_mismatch">两次输入不一致，请重新设置</string>
+    <string name="lock_credential_saved">应用锁已设置</string>
+    <string name="lock_delete">删除</string>
+    <string name="lock_cancel">取消</string>
+    <string name="lock_use_biometric">使用指纹解锁</string>
+    <string name="lock_biometric_title">指纹解锁</string>
+    <string name="lock_biometric_subtitle">验证已录入的指纹以解锁默识</string>
+    <string name="lock_forgot">忘记密码？</string>
+    <string name="lock_forgot_confirm">忘记密码后只能重置应用：本地已入库的知识会被清空且无法恢复。\n\n原始文件与数据库的加密密钥由系统密钥库托管，与应用密码无关。</string>
+    <string name="lock_reset_confirm">重置应用</string>
+    <string name="lock_reset_done">已重置应用</string>
 
     <!-- 存储管理页 -->
     <string name="storage_title">存储管理</string>

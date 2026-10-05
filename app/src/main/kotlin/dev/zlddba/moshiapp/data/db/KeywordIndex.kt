@@ -2,10 +2,11 @@ package dev.zlddba.moshiapp.data.db
 
 import android.content.Context
 import android.database.Cursor
-import android.database.sqlite.SQLiteDatabase
+import dev.zlddba.moshiapp.domain.security.CryptoManager
 import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import net.zetetic.database.sqlcipher.SQLiteDatabase
 
 object KeywordIndex {
 
@@ -60,6 +61,17 @@ object KeywordIndex {
         }
     }
 
+    fun reset() {
+        synchronized(this) {
+            try {
+                database?.close()
+            } catch (e: Throwable) {
+            }
+            database = null
+            ftsReady = false
+        }
+    }
+
     fun insertChunks(context: Context, chunks: List<ChunkEntity>) {
         if (chunks.isEmpty()) return
         val db = open(context) ?: return
@@ -84,13 +96,23 @@ object KeywordIndex {
         database?.let { return it }
         synchronized(this) {
             database?.let { return it }
-            val directory = File(context.applicationContext.filesDir, "keywords")
+            if (!DatabaseCipher.ensureNative()) return null
+            val appContext = context.applicationContext
+            val directory = File(appContext.filesDir, "keywords")
             directory.mkdirs()
+            val file = File(directory, DATABASE_NAME)
+            val encrypt = CryptoManager.isEnabled(appContext)
+            val passphrase = if (encrypt) CryptoManager.databasePassphrase(appContext) else null
+            DatabaseCipher.prepare(file, encrypt, passphrase)
+            val encrypted = DatabaseCipher.isEncryptedOnDisk(file) ||
+                (encrypt && !file.exists() && passphrase != null)
+            val key = if (encrypted) {
+                passphrase?.toByteArray(Charsets.UTF_8) ?: ByteArray(0)
+            } else {
+                ByteArray(0)
+            }
             val created = try {
-                SQLiteDatabase.openOrCreateDatabase(
-                    File(directory, DATABASE_NAME),
-                    null
-                )
+                SQLiteDatabase.openOrCreateDatabase(file, key, null, null, null)
             } catch (e: Throwable) {
                 return null
             }
