@@ -22,6 +22,7 @@ data class GenerationOptions(
     val maxOutputTokens: Int? = null,
     val constraint: String? = null,
     val thinkingTokenBudget: Int? = null,
+    val thinkingEnabled: Boolean? = null,
     val seed: Int = DEFAULT_SEED
 ) {
     companion object {

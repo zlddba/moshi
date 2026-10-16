@@ -224,7 +224,8 @@ object QaOrchestrator {
                             topP = options.topP,
                             maxOutputTokens = options.maxOutputTokens,
                             constraint = options.constraint,
-                            thinkingTokenBudget = options.thinkingTokenBudget
+                            thinkingTokenBudget = options.thinkingTokenBudget,
+                            thinkingEnabled = options.thinkingEnabled,
                         ),
                         onToken = traced
                     )
