@@ -39,7 +39,7 @@ fun LaunchPageScreen(version: String) {
             ) {
                 Spacer(modifier = Modifier.fillMaxHeight(.2f))
                 Image(
-                    painter = painterResource(R.drawable.ic_logo),
+                    painter = painterResource(R.drawable.app_icon1),
                     contentDescription = null,
                     modifier = Modifier
                         .size(100.dp)
