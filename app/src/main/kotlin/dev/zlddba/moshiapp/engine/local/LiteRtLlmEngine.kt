@@ -177,7 +177,13 @@ object LiteRtLlmEngine : LlmEngine {
             options.seed
         ),
         maxOutputToken = options.maxOutputTokens,
-        thinkingConfig = options.thinkingTokenBudget?.let { ThinkingConfig(true, it) },
+        thinkingConfig = when {
+            options.thinkingEnabled == false -> ThinkingConfig(enableThinking = false)
+            options.thinkingTokenBudget != null ->
+                ThinkingConfig(enableThinking = true, thinkingTokenBudget = options.thinkingTokenBudget)
+            options.thinkingEnabled == true -> ThinkingConfig(enableThinking = true)
+            else -> null
+        },
         enableResponseFormat = options.constraint != null
     )
 

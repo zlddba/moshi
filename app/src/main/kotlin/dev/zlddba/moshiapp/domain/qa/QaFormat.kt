@@ -63,7 +63,7 @@ object QaFormat {
 
     private val SCOPE_WORDS = listOf("片段", "本条", "该条", "此条", "该段", "此段")
 
-    enum class Profile { SMALL, STANDARD }
+    enum class Profile { SMALL, STANDARD, DIRECT }
 
     data class Options(
         val systemPrompt: String,
@@ -72,7 +72,8 @@ object QaFormat {
         val topP: Double,
         val maxOutputTokens: Int,
         val constraint: String?,
-        val thinkingTokenBudget: Int?
+        val thinkingTokenBudget: Int?,
+        val thinkingEnabled: Boolean? = null
     )
 
     data class ParsedAnswer(
@@ -81,8 +82,11 @@ object QaFormat {
         val refused: Boolean
     )
 
-    fun of(modelId: String): Profile =
-        if (ModelCatalog.isSmallModel(modelId)) Profile.SMALL else Profile.STANDARD
+    fun of(modelId: String): Profile = when {
+        ModelCatalog.isSmallModel(modelId) -> Profile.SMALL
+        modelId == ModelCatalog.MINICPM -> Profile.DIRECT
+        else -> Profile.STANDARD
+    }
 
     private const val REFUSAL_RULE =
         "只使用【知识片段】中的信息作答，不得引入片段之外的知识，" +
@@ -129,7 +133,7 @@ object QaFormat {
 
     fun systemPrompt(profile: Profile): String = when (profile) {
         Profile.SMALL -> SMALL_SYSTEM_PROMPT
-        Profile.STANDARD -> STANDARD_SYSTEM_PROMPT
+        Profile.STANDARD, Profile.DIRECT -> STANDARD_SYSTEM_PROMPT
     }
 
     fun toolSystemPrompt(): String = STANDARD_SYSTEM_PROMPT + TOOL_GUIDANCE
@@ -153,6 +157,17 @@ object QaFormat {
             maxOutputTokens = 1024,
             constraint = null,
             thinkingTokenBudget = null
+        )
+
+        Profile.DIRECT -> Options(
+            systemPrompt = STANDARD_SYSTEM_PROMPT,
+            temperature = 0.3,
+            topK = 40,
+            topP = 0.95,
+            maxOutputTokens = 1024,
+            constraint = null,
+            thinkingTokenBudget = null,
+            thinkingEnabled = false
         )
     }
 

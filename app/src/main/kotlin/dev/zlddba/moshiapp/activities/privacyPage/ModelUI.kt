@@ -93,6 +93,18 @@ fun ModelPageScreen(
             )
             Spacer(modifier = Modifier.height(10.dp))
             ManagedModelCard(
+                modelId = ModelCatalog.MINICPM,
+                iconRes = R.drawable.minicpmicon,
+                nameRes = R.string.model_name_minicpm,
+                versionRes = R.string.model_version_minicpm,
+                sizeRes = R.string.model_size_minicpm,
+                state = uiState.minicpm,
+                current = uiState.currentLlm == ModelCatalog.MINICPM,
+                switchable = true,
+                onEvent = onEvent
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+            ManagedModelCard(
                 modelId = ModelCatalog.QWEN,
                 iconRes = R.drawable.qwicons,
                 nameRes = R.string.model_name_qwen,

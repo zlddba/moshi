@@ -30,6 +30,7 @@ class ModelViewModel(context: Context) : ViewModel() {
 
     data class ModelUiState(
         val gemma: ModelCardState = ModelCardState(),
+        val minicpm: ModelCardState = ModelCardState(),
         val qwen: ModelCardState = ModelCardState(),
         val gecko: ModelCardState = ModelCardState(),
         val asr: ModelCardState = ModelCardState(),
@@ -121,6 +122,7 @@ class ModelViewModel(context: Context) : ViewModel() {
 
     private fun initialState(): ModelUiState = ModelUiState(
         gemma = cardStateOf(ModelCatalog.GEMMA),
+        minicpm = cardStateOf(ModelCatalog.MINICPM),
         qwen = cardStateOf(ModelCatalog.QWEN),
         gecko = cardStateOf(ModelCatalog.GECKO),
         asr = cardStateOf(ModelCatalog.SENSE_VOICE),
@@ -203,8 +205,9 @@ class ModelViewModel(context: Context) : ViewModel() {
             val currentLlm = if (
                 id in ModelCatalog.LLM_IDS && latest.currentLlm == id
             ) {
-                val other = ModelCatalog.LLM_IDS.first { it != id }
-                if (ModelFileManager.isReady(appContext, other)) {
+                val other = ModelCatalog.LLM_IDS
+                    .firstOrNull { it != id && ModelFileManager.isReady(appContext, it) }
+                if (other != null) {
                     modelPrefs.setCurrentLlm(other)
                     other
                 } else {
@@ -232,6 +235,7 @@ class ModelViewModel(context: Context) : ViewModel() {
 
     private fun nameResOf(id: String): Int = when (id) {
         ModelCatalog.GEMMA -> R.string.model_name_gemma
+        ModelCatalog.MINICPM -> R.string.model_name_minicpm
         ModelCatalog.QWEN -> R.string.model_name_qwen
         ModelCatalog.GECKO -> R.string.model_name_embed
         ModelCatalog.STREAM_ASR -> R.string.model_name_stream_asr
@@ -240,6 +244,7 @@ class ModelViewModel(context: Context) : ViewModel() {
 
     private fun ModelUiState.card(id: String): ModelCardState = when (id) {
         ModelCatalog.GEMMA -> gemma
+        ModelCatalog.MINICPM -> minicpm
         ModelCatalog.QWEN -> qwen
         ModelCatalog.GECKO -> gecko
         ModelCatalog.STREAM_ASR -> streamAsr
@@ -248,6 +253,7 @@ class ModelViewModel(context: Context) : ViewModel() {
 
     private fun ModelUiState.withCard(id: String, card: ModelCardState): ModelUiState = when (id) {
         ModelCatalog.GEMMA -> copy(gemma = card)
+        ModelCatalog.MINICPM -> copy(minicpm = card)
         ModelCatalog.QWEN -> copy(qwen = card)
         ModelCatalog.GECKO -> copy(gecko = card)
         ModelCatalog.STREAM_ASR -> copy(streamAsr = card)

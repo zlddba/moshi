@@ -4,11 +4,12 @@ object ModelCatalog {
 
     const val GEMMA = "gemma4_e2b"
     const val QWEN = "qwen3_06b"
+    const val MINICPM = "minicpm5_2b"
     const val GECKO = "gecko_110m"
     const val SENSE_VOICE = "sense_voice"
     const val STREAM_ASR = "stream_asr"
 
-    val LLM_IDS = listOf(GEMMA, QWEN)
+    val LLM_IDS = listOf(GEMMA, MINICPM, QWEN)
 
     data class ModelFile(
         val name: String,
@@ -49,6 +50,20 @@ object ModelCatalog {
             urlPrefixes = listOf(
                 "https://modelscope.cn/models/litert-community/Qwen3-0.6B/resolve/master",
                 "https://hf-mirror.com/litert-community/Qwen3-0.6B/resolve/main"
+            )
+        ),
+        Descriptor(
+            id = MINICPM,
+            files = listOf(
+                ModelFile(
+                    name = "MiniCPM5-2B_int8.litertlm",
+                    bytes = 2_546_937_984L,
+                    sha256 = "61dafe884025d29019302ef27ffb8c677c13eab5c2eb5efd34873ff7cb35c36e"
+                )
+            ),
+            urlPrefixes = listOf(
+                "https://modelscope.cn/models/litert-community/MiniCPM5-2B/resolve/master",
+                "https://hf-mirror.com/litert-community/MiniCPM5-2B/resolve/main"
             )
         ),
         Descriptor(
