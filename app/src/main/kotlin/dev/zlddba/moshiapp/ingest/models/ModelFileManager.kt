@@ -394,18 +394,18 @@ object ModelFileManager {
     fun dir(context: Context, id: String): File = File(File(context.filesDir, "models"), id)
 
     /**
-     * 从用户选定的目录导入已下载好的模型权重，按文件名匹配后复制到应用私有目录。
+     * 从用户选定的模型文件导入已下载好的权重，按文件名匹配后复制到应用私有目录。
      * 返回成功复制的文件数。
      */
-    suspend fun importFromTree(context: Context, id: String, treeUri: Uri): Int =
+    suspend fun importFromUris(context: Context, id: String, uris: List<Uri>): Int =
         withContext(Dispatchers.IO) {
             lockFor(id).withLock {
                 val descriptor = ModelCatalog.descriptor(id)
                 val target = dir(context, id)
                 target.mkdirs()
-                val root = DocumentFile.fromTreeUri(context.applicationContext, treeUri)
-                    ?: return@withLock 0
-                val files = root.listFiles()
+                val sources = uris.mapNotNull { uri ->
+                    DocumentFile.fromSingleUri(context.applicationContext, uri)
+                }
                 var copied = 0
                 for (spec in descriptor.files) {
                     val finalFile = File(target, spec.name)
@@ -413,7 +413,7 @@ object ModelFileManager {
                         copied++
                         continue
                     }
-                    val source = files.firstOrNull { it.name == spec.name && it.isFile }
+                    val source = sources.firstOrNull { it.name == spec.name && it.isFile }
                         ?: continue
                     val stream = try {
                         context.contentResolver.openInputStream(source.uri)

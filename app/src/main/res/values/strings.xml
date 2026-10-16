@@ -478,9 +478,9 @@
     <string name="model_switched">已切换到 %1$s</string>
     <string name="model_deleted">已删除 %1$s</string>
     <string name="model_load_local">从本地加载</string>
-    <string name="model_local_hint">选择存放模型文件的文件夹</string>
+    <string name="model_local_hint">选择已下载好的模型文件，可多选</string>
     <string name="model_local_loaded">已从本地导入 %1$s</string>
-    <string name="model_local_missing">未在所选文件夹中找到完整的模型文件</string>
+    <string name="model_local_missing">未在所选文件中找到完整的模型文件</string>
 
     <string name="graph_entry">知识图谱</string>
     <string name="graph_title">知识图谱</string>
