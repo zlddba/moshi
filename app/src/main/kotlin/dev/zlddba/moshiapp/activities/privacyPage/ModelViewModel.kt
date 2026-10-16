@@ -43,13 +43,13 @@ class ModelViewModel(context: Context) : ViewModel() {
         data class Cancel(val id: String) : ModelEvent
         data class Delete(val id: String) : ModelEvent
         data class SwitchLlm(val id: String) : ModelEvent
-        data class LoadLocal(val id: String, val treeUri: String) : ModelEvent
+        data class LoadLocal(val id: String, val uris: List<String>) : ModelEvent
         data class PickLocal(val id: String) : ModelEvent
     }
 
     sealed interface ModelEffect {
         data class ShowToast(val messageRes: Int, val argRes: Int? = null) : ModelEffect
-        data class PickLocalFolder(val id: String) : ModelEffect
+        data class PickLocalFile(val id: String) : ModelEffect
     }
 
     private val appContext = context.applicationContext
@@ -69,12 +69,12 @@ class ModelViewModel(context: Context) : ViewModel() {
             is ModelEvent.Cancel -> cancelDownload(event.id)
             is ModelEvent.Delete -> deleteModel(event.id)
             is ModelEvent.SwitchLlm -> switchLlm(event.id)
-            is ModelEvent.LoadLocal -> loadLocal(event.id, event.treeUri)
-            is ModelEvent.PickLocal -> sendEffect(ModelEffect.PickLocalFolder(event.id))
+            is ModelEvent.LoadLocal -> loadLocal(event.id, event.uris)
+            is ModelEvent.PickLocal -> sendEffect(ModelEffect.PickLocalFile(event.id))
         }
     }
 
-    private fun loadLocal(id: String, treeUri: String) {
+    private fun loadLocal(id: String, uris: List<String>) {
         if (downloadJob != null) {
             sendEffect(ModelEffect.ShowToast(R.string.model_download_busy))
             return
@@ -85,10 +85,10 @@ class ModelViewModel(context: Context) : ViewModel() {
         val seq = ++downloadSeq
         val job = viewModelScope.launch {
             try {
-                val copied = ModelFileManager.importFromTree(
+                val copied = ModelFileManager.importFromUris(
                     appContext,
                     id,
-                    android.net.Uri.parse(treeUri)
+                    uris.map { android.net.Uri.parse(it) }
                 )
                 val ready = ModelFileManager.isReady(appContext, id)
                 if (ready) {
