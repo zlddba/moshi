@@ -34,19 +34,21 @@ class ModelActivity : ComponentActivity() {
         )[ModelViewModel::class.java]
     }
 
-    private val pickFolder = registerForActivityResult(
-        ActivityResultContracts.OpenDocumentTree()
-    ) { uri ->
+    private val pickFiles = registerForActivityResult(
+        ActivityResultContracts.OpenMultipleDocuments()
+    ) { uris ->
         val id = pendingLocalId
         pendingLocalId = null
-        if (uri == null || id == null) return@registerForActivityResult
-        runCatching {
-            contentResolver.takePersistableUriPermission(
-                uri,
-                Intent.FLAG_GRANT_READ_URI_PERMISSION
-            )
+        if (uris.isNullOrEmpty() || id == null) return@registerForActivityResult
+        uris.forEach { uri ->
+            runCatching {
+                contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+            }
         }
-        viewModel.onEvent(ModelViewModel.ModelEvent.LoadLocal(id, uri.toString()))
+        viewModel.onEvent(ModelViewModel.ModelEvent.LoadLocal(id, uris.map { it.toString() }))
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -76,14 +78,14 @@ class ModelActivity : ComponentActivity() {
                             Toast.makeText(this@ModelActivity, text, Toast.LENGTH_SHORT).show()
                         }
 
-                        is ModelViewModel.ModelEffect.PickLocalFolder -> {
+                        is ModelViewModel.ModelEffect.PickLocalFile -> {
                             pendingLocalId = effect.id
                             Toast.makeText(
                                 this@ModelActivity,
                                 getString(dev.zlddba.moshiapp.R.string.model_local_hint),
                                 Toast.LENGTH_SHORT
                             ).show()
-                            pickFolder.launch(null)
+                            pickFiles.launch(arrayOf("*/*"))
                         }
                     }
                 }
