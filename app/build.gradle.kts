@@ -22,7 +22,7 @@ kotlin {
 }
 
 val appBaseName = "moshi"
-val appVersion = "0.2"
+val appVersion = "0.2.1"
 val appId = "dev.zlddba.moshiapp"
 val splitAbis = listOf("arm64-v8a")
 
@@ -43,7 +43,7 @@ android {
         applicationId = appId
         minSdk = 26
         targetSdk = 37
-        versionCode = 3
+        versionCode = 4
         versionName = appVersion
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
